@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
-import { extractTextFromPdf } from "@/lib/pdf-extractor";
+import { extractTextFromPdf } from "@/client/utils/pdf-extractor";
 
 interface SyllabusDropzoneProps {
   onExtractedText: (text: string, fileName: string) => void;

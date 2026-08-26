@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateRoadmapWithGemini } from "@/lib/gemini";
-import { GenerationRequest } from "@/types/roadmap";
+import { generateRoadmapWithGemini } from "@/server/services/gemini.service";
+import { GenerationRequest } from "@/shared/types/roadmap";
 
 export async function POST(req: NextRequest) {
   try {

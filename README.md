@@ -22,7 +22,14 @@ Syllaba is an academic task breakdown engine designed to help students overcome 
 - **Storage**: Supabase client with local browser storage cache
 - **Deployment**: Vercel ready
 
-## Getting Started
+## Project Architecture
+
+The codebase enforces an explicit separation of concerns:
+
+- `src/client/`: **Frontend Layer** &mdash; UI components (atomic elements, roadmap timeline, uploader dropzone, analytics meter, focus timer) and client utilities.
+- `src/server/`: **Backend Layer** &mdash; Server-side business logic, Google Gemini AI synthesis, pacing heuristics, and database connection.
+- `src/shared/`: **Shared Layer** &mdash; Common TypeScript data models and universal helper functions.
+- `src/app/`: **Routing Layer** &mdash; Next.js page shells and REST API route handlers.
 
 ### Prerequisites
 

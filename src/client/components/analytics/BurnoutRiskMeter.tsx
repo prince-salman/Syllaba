@@ -1,7 +1,7 @@
 import React from "react";
-import { BurnoutMetrics } from "@/types/roadmap";
+import { BurnoutMetrics } from "@/shared/types/roadmap";
 import { ShieldCheck, AlertTriangle, ShieldAlert, HeartPulse } from "lucide-react";
-import { Card } from "@/components/common/Card";
+import { Card } from "@/client/components/common/Card";
 
 interface BurnoutRiskMeterProps {
   metrics: BurnoutMetrics;

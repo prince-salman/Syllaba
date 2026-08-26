@@ -1,4 +1,4 @@
-import { Roadmap } from "@/types/roadmap";
+import { Roadmap } from "@/shared/types/roadmap";
 
 function formatICalDate(dateStr: string, hourOffset = 9): string {
   const d = new Date(dateStr);

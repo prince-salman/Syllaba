@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { UploadCloud, FileText, Sparkles, Clock, Calendar, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/common/Button";
-import { Card } from "@/components/common/Card";
+import { Button } from "@/client/components/common/Button";
+import { Card } from "@/client/components/common/Card";
 import { SyllabusDropzone } from "./SyllabusDropzone";
 import { CoursePresets, PRESET_COURSES, PresetCourse } from "./CoursePresets";
-import { GenerationRequest, Roadmap } from "@/types/roadmap";
+import { GenerationRequest, Roadmap } from "@/shared/types/roadmap";
 
 interface SyllabusUploaderProps {
   onRoadmapGenerated: (roadmap: Roadmap) => void;
@@ -77,7 +77,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
       onRoadmapGenerated(roadmap);
     } catch {
       setErrorMessage("An error occurred during generation. Falling back to local offline heuristic...");
-      const { generateHeuristicRoadmap } = await import("@/lib/heuristics");
+      const { generateHeuristicRoadmap } = await import("@/server/services/pacing.service");
       const fallbackRoadmap = generateHeuristicRoadmap(syllabusText, {
         courseTitle: courseTitle.trim() || "Course Roadmap",
         targetDays,

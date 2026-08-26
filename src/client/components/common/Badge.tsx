@@ -1,6 +1,6 @@
 import React from "react";
-import { cn } from "@/lib/utils";
-import { CognitiveLoad, TaskCategory } from "@/types/roadmap";
+import { cn } from "@/shared/utils";
+import { CognitiveLoad, TaskCategory } from "@/shared/types/roadmap";
 import { BookOpen, Code, FileText, CheckCircle2, Dumbbell, Compass } from "lucide-react";
 
 interface CognitiveBadgeProps {

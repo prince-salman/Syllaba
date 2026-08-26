@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Roadmap } from "@/types/roadmap";
-import { SyllabusUploader } from "@/components/uploader/SyllabusUploader";
-import { RoadmapTimeline } from "@/components/roadmap/RoadmapTimeline";
-import { getActiveRoadmap, saveRoadmap, getStoredRoadmaps, setActiveRoadmapId } from "@/lib/storage";
+import { Roadmap } from "@/shared/types/roadmap";
+import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader";
+import { RoadmapTimeline } from "@/client/components/roadmap/RoadmapTimeline";
+import { getActiveRoadmap, saveRoadmap, getStoredRoadmaps, setActiveRoadmapId } from "@/client/utils/storage";
 import { BookOpen, Sparkles, CheckCircle2, ShieldCheck } from "lucide-react";
 
 export default function HomePage() {

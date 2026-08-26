@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GenerationRequest, Roadmap } from "@/types/roadmap";
-import { generateHeuristicRoadmap } from "./heuristics";
-import { generateId } from "./utils";
+import { GenerationRequest, Roadmap } from "@/shared/types/roadmap";
+import { generateHeuristicRoadmap } from "./pacing.service";
+import { generateId } from "@/shared/utils";
 
 const SYSTEM_INSTRUCTION = `You are Syllaba, an expert academic strategist and learning scientist.
 Your job is to break down academic course syllabi, assignment rubrics, and project guidelines into an anti-procrastination, anti-burnout daily roadmap.

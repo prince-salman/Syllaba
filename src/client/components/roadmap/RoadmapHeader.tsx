@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Roadmap } from "@/types/roadmap";
-import { Button } from "@/components/common/Button";
+import { Roadmap } from "@/shared/types/roadmap";
+import { Button } from "@/client/components/common/Button";
 import { Download, CalendarClock, PlusCircle, Check } from "lucide-react";
-import { downloadCalendarFile } from "@/lib/calendar";
+import { downloadCalendarFile } from "@/client/utils/calendar";
 
 interface RoadmapHeaderProps {
   roadmap: Roadmap;

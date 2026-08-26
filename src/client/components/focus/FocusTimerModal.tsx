@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Modal } from "@/components/common/Modal";
-import { Button } from "@/components/common/Button";
-import { RoadmapTask } from "@/types/roadmap";
+import { Modal } from "@/client/components/common/Modal";
+import { Button } from "@/client/components/common/Button";
+import { RoadmapTask } from "@/shared/types/roadmap";
 import { Play, Pause, RotateCcw, CheckCircle2, Volume2, VolumeX } from "lucide-react";
-import { formatMinutes } from "@/lib/utils";
+import { formatMinutes } from "@/shared/utils";
 
 interface FocusTimerModalProps {
   task: RoadmapTask | null;

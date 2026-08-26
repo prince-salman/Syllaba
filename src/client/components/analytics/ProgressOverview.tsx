@@ -1,7 +1,7 @@
 import React from "react";
-import { Roadmap } from "@/types/roadmap";
+import { Roadmap } from "@/shared/types/roadmap";
 import { CheckCircle2, Clock, CalendarDays, Award } from "lucide-react";
-import { formatMinutes } from "@/lib/utils";
+import { formatMinutes } from "@/shared/utils";
 
 interface ProgressOverviewProps {
   roadmap: Roadmap;

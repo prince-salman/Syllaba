@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rescheduleRoadmap } from "@/lib/heuristics";
-import { RescheduleRequest } from "@/types/roadmap";
+import { rescheduleRoadmap } from "@/server/services/pacing.service";
+import { RescheduleRequest } from "@/shared/types/roadmap";
 
 export async function POST(req: NextRequest) {
   try {

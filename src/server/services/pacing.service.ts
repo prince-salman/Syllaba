@@ -1,5 +1,5 @@
-import { Roadmap, DailySchedule, RoadmapTask, BurnoutMetrics, CognitiveLoad, TaskCategory } from "@/types/roadmap";
-import { generateId } from "./utils";
+import { Roadmap, DailySchedule, RoadmapTask, BurnoutMetrics, CognitiveLoad, TaskCategory } from "@/shared/types/roadmap";
+import { generateId } from "@/shared/utils";
 
 interface SyllabusSection {
   title: string;

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { RoadmapTask } from "@/types/roadmap";
-import { CategoryBadge, CognitiveBadge } from "@/components/common/Badge";
-import { formatMinutes } from "@/lib/utils";
+import { RoadmapTask } from "@/shared/types/roadmap";
+import { CategoryBadge, CognitiveBadge } from "@/client/components/common/Badge";
+import { formatMinutes } from "@/shared/utils";
 import { Check, Clock, ChevronDown, ChevronUp, Timer } from "lucide-react";
 
 interface TaskItemProps {

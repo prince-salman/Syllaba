@@ -1,5 +1,5 @@
-import { Roadmap, RoadmapTask } from "@/types/roadmap";
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { Roadmap, RoadmapTask } from "@/shared/types/roadmap";
+import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
 
 const STORAGE_KEY_ROADMAPS = "syllaba_roadmaps_v1";
 const STORAGE_KEY_ACTIVE_ID = "syllaba_active_roadmap_id";

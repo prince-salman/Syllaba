@@ -1,9 +1,9 @@
 import React from "react";
-import { DailySchedule, RoadmapTask } from "@/types/roadmap";
+import { DailySchedule, RoadmapTask } from "@/shared/types/roadmap";
 import { TaskItem } from "./TaskItem";
-import { formatDate, formatMinutes } from "@/lib/utils";
+import { formatDate, formatMinutes } from "@/shared/utils";
 import { Coffee, Calendar, Clock, CheckCircle2 } from "lucide-react";
-import { CognitiveBadge } from "@/components/common/Badge";
+import { CognitiveBadge } from "@/client/components/common/Badge";
 
 interface DailyTaskGroupProps {
   schedule: DailySchedule;

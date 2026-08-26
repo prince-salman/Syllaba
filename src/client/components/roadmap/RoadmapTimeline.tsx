@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Roadmap, RoadmapTask } from "@/types/roadmap";
+import { Roadmap, RoadmapTask } from "@/shared/types/roadmap";
 import { RoadmapHeader } from "./RoadmapHeader";
 import { DailyTaskGroup } from "./DailyTaskGroup";
-import { ProgressOverview } from "@/components/analytics/ProgressOverview";
-import { BurnoutRiskMeter } from "@/components/analytics/BurnoutRiskMeter";
-import { FocusTimerModal } from "@/components/focus/FocusTimerModal";
+import { ProgressOverview } from "@/client/components/analytics/ProgressOverview";
+import { BurnoutRiskMeter } from "@/client/components/analytics/BurnoutRiskMeter";
+import { FocusTimerModal } from "@/client/components/focus/FocusTimerModal";
 import { RescheduleModal } from "./RescheduleModal";
-import { updateTaskCompletion, updateSubtaskCompletion, saveRoadmap } from "@/lib/storage";
+import { updateTaskCompletion, updateSubtaskCompletion, saveRoadmap } from "@/client/utils/storage";
 
 interface RoadmapTimelineProps {
   roadmap: Roadmap;
@@ -57,7 +57,7 @@ export function RoadmapTimeline({
         onUpdateRoadmap(updated);
       }
     } catch {
-      const { rescheduleRoadmap } = await import("@/lib/heuristics");
+      const { rescheduleRoadmap } = await import("@/server/services/pacing.service");
       const fallbackUpdated = rescheduleRoadmap(roadmap, delayDays);
       saveRoadmap(fallbackUpdated);
       onUpdateRoadmap(fallbackUpdated);

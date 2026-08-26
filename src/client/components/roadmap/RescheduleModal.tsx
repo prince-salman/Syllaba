@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Modal } from "@/components/common/Modal";
-import { Button } from "@/components/common/Button";
-import { Roadmap } from "@/types/roadmap";
+import { Modal } from "@/client/components/common/Modal";
+import { Button } from "@/client/components/common/Button";
+import { Roadmap } from "@/shared/types/roadmap";
 import { CalendarClock, AlertCircle, Sparkles } from "lucide-react";
 
 interface RescheduleModalProps {
