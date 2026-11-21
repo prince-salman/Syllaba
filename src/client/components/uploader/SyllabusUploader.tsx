@@ -440,14 +440,14 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-brand-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 text-xs text-slate-500 min-w-0">
+            <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
             <span>{wcopy.validatorActive}</span>
           </div>
 
-          <Button type="submit" size="lg" isLoading={isGenerating} className="w-full sm:w-auto">
-            <Calendar className="w-4 h-4" />
+          <Button type="submit" size="lg" isLoading={isGenerating} className="w-full sm:w-auto shrink-0">
+            <Calendar className="w-4 h-4 shrink-0" />
             <span>{isGenerating ? wcopy.runningAgentsBtn : wcopy.launchPipelineBtn}</span>
           </Button>
         </div>
