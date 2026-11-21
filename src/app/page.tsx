@@ -8,10 +8,12 @@ import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader"
 import { RoadmapTimeline } from "@/client/components/roadmap/RoadmapTimeline";
 import {
   getActiveRoadmap,
+  getActiveRoadmapId,
   saveRoadmap,
   getStoredRoadmaps,
   setActiveRoadmapId,
   hydrateRoadmapsFromSupabase,
+  resolveOwnerScope,
 } from "@/client/utils/storage";
 import {
   fetchCentralRoadmapsByWallet,
@@ -28,14 +30,13 @@ import {
   CheckCircle2,
   Clock,
   TrendingUp,
-  BookOpen,
-  ShieldCheck,
-  Cpu,
   LogOut,
   LogIn,
   Flame,
   Coffee,
   Layers,
+  ShieldCheck,
+  Cpu,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -47,58 +48,76 @@ export default function HomePage() {
   const [showUploader, setShowUploader] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  const hydrateWalletRoadmaps = useCallback(async (walletAddress: string) => {
-    const merged = (await fetchCentralRoadmapsByWallet(walletAddress)).filter(
-      (r) => r && Array.isArray(r.dailySchedules)
-    );
-    setStoredRoadmaps(merged);
-    if (!getActiveRoadmap() && merged.length > 0) {
-      setActiveRoadmapId(merged[0].id);
-      setActiveRoadmap(merged[0]);
-      setShowUploader(false);
-    }
-  }, []);
+  const currentScope = useMemo(
+    () => resolveOwnerScope(isConnected ? address : null, user?.id ?? null),
+    [isConnected, address, user?.id]
+  );
+
+  const hydrateScopeRoadmaps = useCallback(
+    async (scope: string, walletAddr?: string | null) => {
+      const localInitial = getStoredRoadmaps(scope);
+      const activeInitial = getActiveRoadmap(scope);
+
+      setStoredRoadmaps(localInitial);
+      setActiveRoadmap(activeInitial);
+      setShowUploader(!activeInitial);
+
+      if (walletAddr && isConnected) {
+        const merged = (await fetchCentralRoadmapsByWallet(walletAddr)).filter(
+          (r) => r && Array.isArray(r.dailySchedules)
+        );
+        setStoredRoadmaps(merged);
+        if (merged.length > 0) {
+          const savedActiveId = getActiveRoadmapId(scope);
+          const nextActive =
+            merged.find((r) => r.id === savedActiveId) ?? merged[0];
+          setActiveRoadmapId(nextActive.id, scope);
+          setActiveRoadmap(nextActive);
+          setShowUploader(false);
+        }
+        return;
+      }
+
+      const synced = (await hydrateRoadmapsFromSupabase(scope)).filter(
+        (r) => r && Array.isArray(r.dailySchedules)
+      );
+      setStoredRoadmaps(synced);
+      if (synced.length > 0) {
+        const savedActiveId = getActiveRoadmapId(scope);
+        const nextActive =
+          synced.find((r) => r.id === savedActiveId) ?? synced[0];
+        setActiveRoadmapId(nextActive.id, scope);
+        setActiveRoadmap(nextActive);
+        setShowUploader(false);
+      }
+    },
+    [isConnected]
+  );
 
   useEffect(() => {
     setIsClient(true);
-    const initial = getActiveRoadmap();
-    const all = getStoredRoadmaps();
-    setActiveRoadmap(initial);
-    setStoredRoadmaps(all);
-    if (!initial) {
-      setShowUploader(true);
-    }
-
-    hydrateRoadmapsFromSupabase()
-      .then((synced) => {
-        if (synced.length > 0) {
-          setStoredRoadmaps(synced);
-          setActiveRoadmap((prev) => prev ?? synced[0]);
-        }
-      })
-      .catch(() => {
-        // Non-blocking fallback to localStorage
-      });
   }, []);
 
   useEffect(() => {
-    if (isConnected && address) {
-      void hydrateWalletRoadmaps(address);
-    }
-  }, [address, hydrateWalletRoadmaps, isConnected]);
+    if (!isClient) return;
+    // Reset state terlebih dahulu agar course wallet/user sebelumnya tidak nyangkut
+    setActiveRoadmap(null);
+    setStoredRoadmaps([]);
+    void hydrateScopeRoadmaps(currentScope, isConnected ? address : null);
+  }, [isClient, currentScope, isConnected, address, hydrateScopeRoadmaps]);
 
   const handleRoadmapGenerated = (roadmap: Roadmap) => {
-    saveRoadmap(roadmap);
+    saveRoadmap(roadmap, currentScope);
     if (isConnected && address) {
       void syncRoadmapToCentral(address, roadmap);
     }
     setActiveRoadmap(roadmap);
-    setStoredRoadmaps(getStoredRoadmaps());
+    setStoredRoadmaps(getStoredRoadmaps(currentScope));
     setShowUploader(false);
   };
 
   const handleSelectStoredRoadmap = (roadmapId: string) => {
-    setActiveRoadmapId(roadmapId);
+    setActiveRoadmapId(roadmapId, currentScope);
     const found = storedRoadmaps.find((r) => r.id === roadmapId);
     if (found) {
       setActiveRoadmap(found);
@@ -115,8 +134,11 @@ export default function HomePage() {
     const full = (user?.user_metadata?.full_name as string | undefined)?.trim();
     if (full) return full.split(" ")[0];
     if (user?.email) return user.email.split("@")[0];
+    if (isConnected && address) {
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
     return "Scholar";
-  }, [user]);
+  }, [user, isConnected, address]);
 
   const metrics = useMemo(() => {
     if (!activeRoadmap) {
@@ -365,7 +387,7 @@ export default function HomePage() {
 
             {isWorkspaceView && activeRoadmap ? (
               <div className="mt-6 space-y-6">
-                {/* 3 Reference-Aligned KPI Bento Cards */}
+                {/* 3 KPI Bento Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-2xl bg-emerald-kpi p-5 text-white shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between">
@@ -491,8 +513,9 @@ export default function HomePage() {
                 <RoadmapTimeline
                   roadmap={activeRoadmap}
                   onUpdateRoadmap={(updated) => {
+                    saveRoadmap(updated, currentScope);
                     setActiveRoadmap(updated);
-                    setStoredRoadmaps(getStoredRoadmaps());
+                    setStoredRoadmaps(getStoredRoadmaps(currentScope));
                     if (isConnected && address) {
                       void syncRoadmapToCentral(address, updated);
                     }
@@ -513,51 +536,35 @@ export default function HomePage() {
                       Turn Dense Syllabi Into Verified 15-Minute Daily Sprints
                     </h2>
                     <p className="mt-2.5 text-xs sm:text-sm text-[#CBE3D6] leading-relaxed">
-                      Extract deadlines automatically, slice heavy modules into
-                      anti-burnout micro-tasks, pair open-access papers, and
-                      anchor your study commitment on-chain.
+                      Designed for students who want steady academic momentum without late-night cramming or burnout.
                     </p>
                   </div>
 
-                  <div className="space-y-2.5">
-                    <div className="rounded-2xl bg-[#DDF1E4]/75 border border-[#52B788]/25 p-4 flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#125B3A] text-white">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
+                    <div className="rounded-2xl border border-[#E5ECE8] bg-[#FAFDFB] p-4 flex items-start gap-3">
+                      <div className="rounded-xl bg-[#DDF1E4] p-2.5 text-[#125B3A]">
                         <Cpu className="h-4 w-4" />
                       </div>
-                      <div className="text-xs">
-                        <p className="font-bold text-[#111815]">
-                          Agent 1, 2 &amp; 4: Slicer + Pacing Validator
-                        </p>
-                        <p className="text-[#4D5A54] mt-0.5">
-                          Caps daily cognitive load at 150 mins with 15–30m micro-tasks.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl bg-[#E9E9FD]/80 border border-[#8D90F2]/30 p-4 flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#5B5ED6] text-white">
-                        <BookOpen className="h-4 w-4" />
-                      </div>
-                      <div className="text-xs">
-                        <p className="font-bold text-[#111815]">
-                          Agent 3: OpenAlex &amp; Wikipedia Curator
-                        </p>
-                        <p className="text-[#4D5A54] mt-0.5">
-                          Pairs verified open-access literature directly to each module.
+                      <div>
+                        <h3 className="text-xs font-bold text-[#111815]">
+                          Smart Syllabus Decomposition
+                        </h3>
+                        <p className="text-[11px] text-[#6B7872] mt-0.5 leading-relaxed">
+                          Breaks complex PDFs and briefs into daily micro-tasks with clear time estimates.
                         </p>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl bg-[#F6EDCA]/85 border border-[#8B6B15]/20 p-4 flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#111815] text-white">
-                        <ShieldCheck className="h-4 w-4 text-[#52B788]" />
+                    <div className="rounded-2xl border border-[#E5ECE8] bg-[#FAFDFB] p-4 flex items-start gap-3">
+                      <div className="rounded-xl bg-[#E9E9FD] p-2.5 text-[#4A4DC7]">
+                        <ShieldCheck className="h-4 w-4" />
                       </div>
-                      <div className="text-xs">
-                        <p className="font-bold text-[#111815]">
-                          On-Chain Study Proof Vault
-                        </p>
-                        <p className="text-[#4D5A54] mt-0.5">
-                          Deterministic keccak256 commitment + IPFS snapshot on Base Sepolia.
+                      <div>
+                        <h3 className="text-xs font-bold text-[#111815]">
+                          Anti-Burnout Guardrails
+                        </h3>
+                        <p className="text-[11px] text-[#6B7872] mt-0.5 leading-relaxed">
+                          Balances deep focus tasks, scheduled rest days, and guilt-free rescheduling.
                         </p>
                       </div>
                     </div>
