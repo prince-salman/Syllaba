@@ -581,86 +581,99 @@ export function BlockchainCertificatePanel({
               ))}
             </div>
             <div className="text-sm font-black text-[#FACC15]">
-              +{currentBreakdown.pptDifficultyPoints} / 5 Poin Base
+              {currentBreakdown.isFullyCompletedAtEnd
+                ? `+${currentBreakdown.pptDifficultyPoints} / 5 Poin Cair!`
+                : `${currentBreakdown.pptDifficultyPoints} / 5 Poin (Cair di Akhir)`}
             </div>
           </div>
         </div>
 
-        {/* Point Breakdown from Current PPT */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
-            <div className="text-[10px] font-bold uppercase text-emerald-800">
-              1. Bobot PPT (AI Analysis)
-            </div>
-            <div className="text-base font-black text-emerald-950 mt-0.5">
-              +{currentBreakdown.basePptPoints} Poin
-            </div>
-            <div className="text-[11px] text-emerald-700">
-              Skala 1-5 Poin per PPT
-            </div>
-          </div>
-
+        {/* Final-Only Point Evaluation Checkpoints for Current PPT */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1">
           <div
             className={`rounded-xl border p-3 ${
-              currentBreakdown.tasksCompletionPoints > 0
+              currentBreakdown.allTasksDone
                 ? "border-emerald-200 bg-emerald-50/70"
                 : "border-slate-200 bg-slate-50"
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              2. Tugas Harian Runtut
+              Syarat 1 &middot; Tugas Harian Runtut
             </div>
-            <div className="text-base font-black text-slate-900 mt-0.5">
-              +{currentBreakdown.tasksCompletionPoints} /{" "}
-              {currentBreakdown.pptDifficultyPoints} Poin
+            <div className="text-sm font-black text-slate-900 mt-0.5">
+              {roadmap.completedTasks} / {roadmap.totalTasks} Selesai
             </div>
             <div className="text-[11px] text-slate-500">
-              {roadmap.completedTasks}/{roadmap.totalTasks} tugas selesai
+              {currentBreakdown.allTasksDone
+                ? "Seluruh hari telah tuntas"
+                : "Belum ada poin di tengah sesi"}
             </div>
           </div>
 
           <div
             className={`rounded-xl border p-3 ${
-              currentBreakdown.midExamPoints > 0
+              currentBreakdown.midExamPassed
                 ? "border-emerald-200 bg-emerald-50/70"
                 : "border-slate-200 bg-slate-50"
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              3. Ujian Tengah (5 PG + 2 Esai)
+              Syarat 2 &middot; Ujian Tengah Sesi
             </div>
-            <div className="text-base font-black text-slate-900 mt-0.5">
-              +{currentBreakdown.midExamPoints} Poin
+            <div className="text-sm font-black text-slate-900 mt-0.5">
+              {midPassed ? `Lulus (${midScore}/100)` : "Belum Lulus"}
             </div>
             <button
               type="button"
               onClick={() => onOpenExam("mid")}
               className="text-[11px] font-bold text-[#111111] underline hover:text-amber-700 cursor-pointer"
             >
-              {midPassed ? `Lulus (${midScore}/100)` : "Kerjakan Ujian Tengah"}
+              {midPassed ? "Lihat Pembahasan UTS" : "Kerjakan Ujian Tengah"}
             </button>
           </div>
 
           <div
             className={`rounded-xl border p-3 ${
-              currentBreakdown.finalExamPoints > 0
+              currentBreakdown.finalExamPassed
                 ? "border-emerald-200 bg-emerald-50/70"
                 : "border-slate-200 bg-slate-50"
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              4. Ujian Akhir (5 PG + 2 Esai)
+              Syarat 3 &middot; Ujian Akhir Sesi
             </div>
-            <div className="text-base font-black text-slate-900 mt-0.5">
-              +{currentBreakdown.finalExamPoints} Poin
+            <div className="text-sm font-black text-slate-900 mt-0.5">
+              {finalPassed ? `Lulus (${finalScore}/100)` : "Belum Lulus"}
             </div>
             <button
               type="button"
               onClick={() => onOpenExam("final")}
               className="text-[11px] font-bold text-[#111111] underline hover:text-amber-700 cursor-pointer"
             >
-              {finalPassed ? `Lulus (${finalScore}/100)` : "Kerjakan Ujian Akhir"}
+              {finalPassed ? "Lihat Pembahasan UAS" : "Kerjakan Ujian Akhir"}
             </button>
+          </div>
+
+          <div
+            className={`rounded-xl border-2 p-3 ${
+              currentBreakdown.isFullyCompletedAtEnd
+                ? "border-emerald-400 bg-emerald-50"
+                : "border-amber-300 bg-amber-50/60"
+            }`}
+          >
+            <div className="text-[10px] font-bold uppercase text-slate-700">
+              Evaluasi Poin Akhir PPT
+            </div>
+            <div className="text-base font-black text-slate-950 mt-0.5">
+              {currentBreakdown.isFullyCompletedAtEnd
+                ? `+${currentBreakdown.pptDifficultyPoints} Poin Diterima`
+                : `0 Poin (Menunggu Akhir)`}
+            </div>
+            <div className="text-[11px] font-semibold text-slate-600">
+              {currentBreakdown.isFullyCompletedAtEnd
+                ? `PPT Selesai 100%`
+                : `Cair +${currentBreakdown.pptDifficultyPoints} Poin saat PPT selesai`}
+            </div>
           </div>
         </div>
       </div>
@@ -675,14 +688,14 @@ export function BlockchainCertificatePanel({
                 <span>$SYL Learn-to-Earn Academic Coin</span>
               </span>
               <span className="rounded-full bg-white/10 border border-white/15 px-2.5 py-0.5 text-[10px] font-bold text-[#FEF08A]">
-                Base Sepolia ERC-20 Reward Ledger
+                Final-Completion Reward Ledger
               </span>
             </div>
             <h3 className="text-base sm:text-lg font-extrabold text-white">
-              Selain Sertifikat Blockchain, Dapatkan $SYL Coin dari Setiap PPT &amp; Ujian AI
+              Reward $SYL Coin &amp; Poin PPT Cair di Akhir Setelah Modul Selesai
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Semakin tinggi kesulitan PPT (1-5 Poin) dan skor Ujian Tengah/Akhir Sesi (5 PG + 2 Esai), semakin besar reward <strong>$SYL Coin</strong> yang dapat kamu klaim ke wallet Base Sepolia atau tukarkan dengan fitur akademik.
+              Setiap PPT memiliki bobot kesulitan <strong>1-5 Poin</strong> hasil analisis AI. Poin dan <strong>$SYL Coin</strong> baru diberikan di akhir sesi setelah seluruh tugas harian serta Ujian Tengah &amp; Ujian Akhir PPT tersebut tuntas.
             </p>
           </div>
 
@@ -719,44 +732,31 @@ export function BlockchainCertificatePanel({
           </div>
         </div>
 
-        {/* Breakdown of $SYL Earned from Current PPT */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+        {/* Final-Only $SYL Evaluation Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
           <div className="rounded-xl bg-white/5 border border-white/10 p-3">
             <div className="text-[10px] font-bold uppercase text-slate-400">
-              Upload &amp; Analisis PPT
+              Bobot Kesulitan PPT Ini
             </div>
             <div className="text-sm font-black text-[#FACC15] mt-0.5">
-              +{currentBreakdown.baseSylCoins} $SYL
+              Level {currentBreakdown.pptDifficultyPoints} / 5 Poin
             </div>
             <div className="text-[11px] text-slate-400">
-              10 &times; Kesulitan {currentBreakdown.pptDifficultyPoints}/5
+              Hasil Analisis AI terhadap PPT
             </div>
           </div>
 
           <div className="rounded-xl bg-white/5 border border-white/10 p-3">
             <div className="text-[10px] font-bold uppercase text-slate-400">
-              Tugas Harian Selesai
+              Reward Akhir PPT Ini
             </div>
             <div className="text-sm font-black text-[#FACC15] mt-0.5">
-              +{currentBreakdown.tasksSylCoins} $SYL
+              {currentBreakdown.isFullyCompletedAtEnd
+                ? `+${currentBreakdown.totalSylFromRoadmap} $SYL (Sudah Cair)`
+                : `0 $SYL (+${currentBreakdown.pendingSylCoins} $SYL di Akhir)`}
             </div>
             <div className="text-[11px] text-slate-400">
-              {roadmap.completedTasks} tugas &times;{" "}
-              {currentBreakdown.pptDifficultyPoints * 15} $SYL
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-white/5 border border-white/10 p-3">
-            <div className="text-[10px] font-bold uppercase text-slate-400">
-              Reward Ujian Tengah &amp; Akhir
-            </div>
-            <div className="text-sm font-black text-[#FACC15] mt-0.5">
-              +{currentBreakdown.midExamSylCoins + currentBreakdown.finalExamSylCoins}{" "}
-              $SYL
-            </div>
-            <div className="text-[11px] text-slate-400">
-              UTS +{currentBreakdown.midExamSylCoins} &middot; UAS +
-              {currentBreakdown.finalExamSylCoins}
+              50 $SYL &times; Bobot Kesulitan {currentBreakdown.pptDifficultyPoints}/5
             </div>
           </div>
 
@@ -768,7 +768,7 @@ export function BlockchainCertificatePanel({
               +{tierBonusSylCoins} $SYL
             </div>
             <div className="text-[11px] text-slate-400">
-              Jackpot Tier Sertifikat
+              Aktif setelah mencapai minimal 10 Poin (Bronze)
             </div>
           </div>
         </div>

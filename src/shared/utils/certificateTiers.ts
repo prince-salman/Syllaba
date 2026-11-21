@@ -28,10 +28,10 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
   {
     id: "bronze",
     name: "Bronze",
-    badgeTitle: "Bronze Tier · 10+ Poin",
+    badgeTitle: "Bronze Tier · 10 Poin",
     credentialTitle: "BRONZE SCHOLAR BLOCKCHAIN CREDENTIAL",
     minPoints: 10,
-    nextPoints: 25,
+    nextPoints: 20,
     primaryHex: "#E09F67",
     secondaryHex: "#CD7F32",
     borderClass: "border-[#CD7F32]",
@@ -40,15 +40,15 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#F5CBA7]",
     glowRgba: "rgba(205,127,50,0.8)",
     description:
-      "Diberikan setelah mengumpulkan minimal 10 Poin Kesulitan PPT & Evaluasi AI.",
+      "Terbuka setelah mengumpulkan 10 Poin dari penyelesaian akhir PPT (1-5 Poin per PPT).",
   },
   {
     id: "silver",
     name: "Silver",
-    badgeTitle: "Silver Tier · 25+ Poin",
+    badgeTitle: "Silver Tier · 20 Poin",
     credentialTitle: "SILVER SPECIALIST BLOCKCHAIN CREDENTIAL",
-    minPoints: 25,
-    nextPoints: 45,
+    minPoints: 20,
+    nextPoints: 35,
     primaryHex: "#E2E8F0",
     secondaryHex: "#94A3B8",
     borderClass: "border-[#94A3B8]",
@@ -57,15 +57,15 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#F1F5F9]",
     glowRgba: "rgba(226,232,240,0.75)",
     description:
-      "Diberikan setelah mengumpulkan minimal 25 Poin Kesulitan PPT lintas modul.",
+      "Terbuka setelah mengumpulkan 20 Poin dari penyelesaian akhir PPT.",
   },
   {
     id: "gold",
     name: "Gold",
-    badgeTitle: "Gold Tier · 45+ Poin",
+    badgeTitle: "Gold Tier · 35 Poin",
     credentialTitle: "GOLD MASTER BLOCKCHAIN CREDENTIAL",
-    minPoints: 45,
-    nextPoints: 70,
+    minPoints: 35,
+    nextPoints: 50,
     primaryHex: "#FACC15",
     secondaryHex: "#CA8A04",
     borderClass: "border-[#D4AF37]",
@@ -74,15 +74,15 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#FEF08A]",
     glowRgba: "rgba(250,204,21,0.85)",
     description:
-      "Diberikan setelah mengumpulkan minimal 45 Poin Kesulitan PPT dengan penguasaan tinggi.",
+      "Terbuka setelah mengumpulkan 35 Poin dari penyelesaian akhir PPT.",
   },
   {
     id: "platinum",
     name: "Platinum",
-    badgeTitle: "Platinum Tier · 70+ Poin",
+    badgeTitle: "Platinum Tier · 50 Poin",
     credentialTitle: "PLATINUM VANGUARD BLOCKCHAIN CREDENTIAL",
-    minPoints: 70,
-    nextPoints: 100,
+    minPoints: 50,
+    nextPoints: 75,
     primaryHex: "#38BDF8",
     secondaryHex: "#0284C7",
     borderClass: "border-[#38BDF8]",
@@ -91,15 +91,15 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#BAE6FD]",
     glowRgba: "rgba(56,189,248,0.8)",
     description:
-      "Diberikan setelah mengumpulkan minimal 70 Poin Kesulitan PPT tingkat lanjut.",
+      "Terbuka setelah mengumpulkan 50 Poin dari penyelesaian akhir PPT.",
   },
   {
     id: "diamond",
     name: "Diamond",
-    badgeTitle: "Diamond Tier · 100+ Poin",
+    badgeTitle: "Diamond Tier · 75 Poin",
     credentialTitle: "DIAMOND LUMINARY BLOCKCHAIN CREDENTIAL",
-    minPoints: 100,
-    nextPoints: 140,
+    minPoints: 75,
+    nextPoints: 100,
     primaryHex: "#C084FC",
     secondaryHex: "#9333EA",
     borderClass: "border-[#C084FC]",
@@ -108,14 +108,14 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#F3E8FF]",
     glowRgba: "rgba(192,132,252,0.85)",
     description:
-      "Diberikan setelah mengumpulkan minimal 100 Poin Kesulitan PPT dengan penguasaan komprehensif.",
+      "Terbuka setelah mengumpulkan 75 Poin dari penyelesaian akhir PPT.",
   },
   {
     id: "emerald",
     name: "Emerald",
-    badgeTitle: "Emerald Tier · 140+ Poin",
+    badgeTitle: "Emerald Tier · 100 Poin",
     credentialTitle: "EMERALD SOVEREIGN BLOCKCHAIN CREDENTIAL",
-    minPoints: 140,
+    minPoints: 100,
     nextPoints: null,
     primaryHex: "#34D399",
     secondaryHex: "#059669",
@@ -125,7 +125,7 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#A7F3D0]",
     glowRgba: "rgba(16,185,129,0.85)",
     description:
-      "Tingkat tertinggi Syllaba Sovereign yang diberikan setelah mencapai 140+ Poin Kesulitan PPT.",
+      "Tingkat tertinggi Syllaba Sovereign setelah mengumpulkan 100+ Poin dari penyelesaian akhir PPT.",
   },
 ];
 
@@ -240,16 +240,13 @@ export interface RoadmapPointBreakdown {
   pptDifficultyPoints: 1 | 2 | 3 | 4 | 5;
   difficultyLabel: string;
   rationale: string;
-  basePptPoints: number;
-  tasksCompletionPoints: number;
-  midExamPoints: number;
-  finalExamPoints: number;
+  isFullyCompletedAtEnd: boolean;
+  allTasksDone: boolean;
+  midExamPassed: boolean;
+  finalExamPassed: boolean;
   totalEarnedFromRoadmap: number;
   maxPossibleFromRoadmap: number;
-  baseSylCoins: number;
-  tasksSylCoins: number;
-  midExamSylCoins: number;
-  finalExamSylCoins: number;
+  pendingSylCoins: number;
   totalSylFromRoadmap: number;
 }
 
@@ -259,43 +256,23 @@ export function computeRoadmapPointBreakdown(
   const analysis = analyzeRoadmapPptDifficulty(roadmap);
   const d = analysis.difficultyPoints;
 
-  // 1. Base PPT Difficulty Points (1-5 Poin analyzed by AI from the PPT)
-  const basePptPoints = d;
-
-  // 2. Daily Tasks Sequential Completion Points (0 to d Poin)
-  const completionRatio =
-    roadmap.totalTasks > 0
-      ? Math.min(1, roadmap.completedTasks / roadmap.totalTasks)
-      : 0;
-  const tasksCompletionPoints = Math.round(d * completionRatio);
-
-  // 3. Mid-Session AI Exam Mastery Points (d Poin when passed, +1 bonus for >=85)
+  const allTasksDone =
+    roadmap.totalTasks > 0 && roadmap.completedTasks >= roadmap.totalTasks;
   const midSub = roadmap.exams?.mid?.submission;
-  const midExamPoints = midSub?.passed
-    ? d + (midSub.totalScore >= 85 ? 1 : 0)
-    : 0;
-
-  // 4. Final-Session AI Exam Mastery Points (d Poin when passed, +1 bonus for >=85)
   const finalSub = roadmap.exams?.final?.submission;
-  const finalExamPoints = finalSub?.passed
-    ? d + (finalSub.totalScore >= 85 ? 1 : 0)
-    : 0;
+  const midExamPassed = Boolean(midSub?.passed);
+  const finalExamPassed = Boolean(finalSub?.passed);
 
-  const totalEarnedFromRoadmap =
-    basePptPoints + tasksCompletionPoints + midExamPoints + finalExamPoints;
-  const maxPossibleFromRoadmap = d * 4 + 2;
+  // Penilaian poin (1-5 Poin per PPT) & $SYL Coin HANYA diberikan di AKHIR setelah seluruh tugas + Ujian Tengah + Ujian Akhir PPT tersebut tuntas
+  const isFullyCompletedAtEnd =
+    allTasksDone && midExamPassed && finalExamPassed;
 
-  // $SYL Coin Rewards scaled by AI PPT Difficulty (1-5)
-  const baseSylCoins = d * 10;
-  const tasksSylCoins = Math.max(0, roadmap.completedTasks) * (d * 15);
-  const midExamSylCoins = midSub?.passed
-    ? d * 40 + Math.round(midSub.totalScore * 0.5)
-    : 0;
-  const finalExamSylCoins = finalSub?.passed
-    ? d * 60 + Math.round(finalSub.totalScore * 1.0)
-    : 0;
-  const totalSylFromRoadmap =
-    baseSylCoins + tasksSylCoins + midExamSylCoins + finalExamSylCoins;
+  const totalEarnedFromRoadmap = isFullyCompletedAtEnd ? d : 0;
+  const maxPossibleFromRoadmap = d;
+
+  // $SYL Coin juga cair hanya di akhir penyelesaian 1 PPT (50 * kesulitan PPT 1-5)
+  const pendingSylCoins = d * 50;
+  const totalSylFromRoadmap = isFullyCompletedAtEnd ? pendingSylCoins : 0;
 
   return {
     roadmapId: roadmap.id,
@@ -303,16 +280,13 @@ export function computeRoadmapPointBreakdown(
     pptDifficultyPoints: d,
     difficultyLabel: analysis.difficultyLabel,
     rationale: analysis.rationale,
-    basePptPoints,
-    tasksCompletionPoints,
-    midExamPoints,
-    finalExamPoints,
+    isFullyCompletedAtEnd,
+    allTasksDone,
+    midExamPassed,
+    finalExamPassed,
     totalEarnedFromRoadmap,
     maxPossibleFromRoadmap,
-    baseSylCoins,
-    tasksSylCoins,
-    midExamSylCoins,
-    finalExamSylCoins,
+    pendingSylCoins,
     totalSylFromRoadmap,
   };
 }
