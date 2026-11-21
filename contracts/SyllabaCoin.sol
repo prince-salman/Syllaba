@@ -14,9 +14,11 @@ contract SyllabaCoin {
 
     uint256 public constant MAX_SUPPLY = 100_000_000 * 10 ** 18;
     uint256 public constant MAX_SINGLE_CLAIM = 5_000;
+    uint256 public constant MODULE_REWARD = 25 * 10 ** 16; // 0.25 SYL per graduated module
 
     uint256 public totalSupply;
     address public immutable deployer;
+    address public immutable owner;
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -38,6 +40,7 @@ contract SyllabaCoin {
 
     constructor() {
         deployer = msg.sender;
+        owner = msg.sender;
         // Bootstrap initial genesis reserve (1,000 SYL) to deployer for testing/liquidity
         uint256 genesisAmount = 1_000 * 10 ** 18;
         totalSupply = genesisAmount;
@@ -49,8 +52,8 @@ contract SyllabaCoin {
         return _balances[account];
     }
 
-    function allowance(address owner, address spender) external view returns (uint256) {
-        return _allowances[owner][spender];
+    function allowance(address tokenOwner, address spender) external view returns (uint256) {
+        return _allowances[tokenOwner][spender];
     }
 
     function transfer(address to, uint256 amount) external returns (bool) {
@@ -105,6 +108,26 @@ contract SyllabaCoin {
         emit Transfer(address(0), msg.sender, mintAmount);
         emit StudyRewardMinted(msg.sender, claimId, mintAmount, courseRef);
         return mintAmount;
+    }
+
+    /**
+     * @notice Distribute 0.25 $SYL reward to any graduating student via the protocol owner/relayer.
+     */
+    function rewardCompletedModule(address student) external {
+        require(msg.sender == owner, "SYL: only owner");
+        require(student != address(0), "SYL: zero student");
+        require(totalSupply + MODULE_REWARD <= MAX_SUPPLY, "SYL: max supply exceeded");
+
+        totalSupply += MODULE_REWARD;
+        _balances[student] += MODULE_REWARD;
+
+        emit Transfer(address(0), student, MODULE_REWARD);
+        emit StudyRewardMinted(
+            student,
+            keccak256(abi.encodePacked(student, block.number, totalSupply)),
+            MODULE_REWARD,
+            "MODULE_GRADUATION_0_25_SYL"
+        );
     }
 
     /**
