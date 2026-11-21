@@ -1,4 +1,7 @@
-import React, { useEffect } from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/shared/utils";
 
@@ -10,7 +13,19 @@ interface ModalProps {
   maxWidth?: "sm" | "md" | "lg" | "xl";
 }
 
-export function Modal({ isOpen, onClose, title, children, maxWidth = "md" }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  maxWidth = "md",
+}: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -26,7 +41,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "md" }: Mod
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const widthClasses = {
     sm: "max-w-sm",
@@ -35,23 +50,24 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "md" }: Mod
     xl: "max-w-xl",
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
       <div
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
       <div
         className={cn(
-          "relative w-full rounded-2xl bg-white p-6 shadow-xl border border-slate-200 z-10 max-h-[90vh] overflow-y-auto",
+          "relative w-full rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 z-10 max-h-[90vh] overflow-y-auto my-auto",
           widthClasses[maxWidth]
         )}
       >
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -59,6 +75,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "md" }: Mod
         </div>
         <div className="pt-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

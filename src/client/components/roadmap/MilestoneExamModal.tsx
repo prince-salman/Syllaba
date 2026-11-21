@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ExamStage,
   ExamSubmission,
@@ -355,8 +356,10 @@ export function MilestoneExamModal({
   const submission = exam?.submission;
   const optionLabels = ["A", "B", "C", "D"];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto">
       <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
         {/* Top Modal Header */}
         <div className="flex items-center justify-between gap-3 bg-[#111111] text-white px-5 py-4 border-b border-slate-800 shrink-0">
@@ -746,6 +749,7 @@ export function MilestoneExamModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
