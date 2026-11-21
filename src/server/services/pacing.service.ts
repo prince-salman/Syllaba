@@ -6,56 +6,92 @@ interface SyllabusSection {
   items: string[];
 }
 
+function splitIntoSpecificPoints(rawLine: string): string[] {
+  const cleaned = rawLine.replace(/^[-*•●▪▸\d.)]+\s*/, "").trim();
+  if (!cleaned) return [];
+  if (cleaned.length <= 160) return [cleaned];
+
+  return cleaned
+    .split(/(?:[•●▪▸;|]|\.\s+)/)
+    .map((chunk) => chunk.trim())
+    .filter((chunk) => chunk.length > 3)
+    .slice(0, 8);
+}
+
 function parseSyllabusLines(text: string): { courseTitle: string; sections: SyllabusSection[] } {
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   let courseTitle = "Academic Study Plan";
 
-  const titleCandidates = lines.slice(0, 5);
+  const sectionPattern =
+    /^(slide\s*\d+|page\s*\d+|halaman\s*\d+|week\s*\d+|minggu\s*\d+|pertemuan\s*\d+|module\s*\d+|modul\s*\d+|chapter\s*\d+|bab\s*\d+|unit\s*\d+|part\s*\d+|bagian\s*\d+|topic\s*\d+|topik\s*\d+|sesi\s*\d+|section\s*\d+|assignment\s*\d+|exam|project)\b/i;
+
+  const titleCandidates = lines.slice(0, 6);
   for (const line of titleCandidates) {
-    if (/^(course|syllabus|cs\s*\d+|chem\s*\d+|math\s*\d+|econ\s*\d+|bio\s*\d+|eng\s*\d+|introduction|principles|advanced)/i.test(line)) {
-      courseTitle = line.replace(/^(course\s*:?|syllabus\s*:?)/i, "").trim();
-      break;
-    } else if (line.length > 5 && line.length < 60 && !line.includes("http")) {
-      courseTitle = line;
+    const strippedSlidePrefix = line
+      .replace(/^(slide|page|halaman)\s*\d+\s*[:-]?\s*/i, "")
+      .replace(/^(course\s*:?|syllabus\s*:?)/i, "")
+      .trim();
+    if (strippedSlidePrefix.length > 3 && strippedSlidePrefix.length < 85 && !strippedSlidePrefix.includes("http")) {
+      courseTitle = strippedSlidePrefix;
       break;
     }
   }
 
   const sections: SyllabusSection[] = [];
-  let currentSection: SyllabusSection = { title: "Foundations & Orientation", items: [] };
-
-  const sectionPattern = /^(week\s*\d+|module\s*\d+|chapter\s*\d+|unit\s*\d+|part\s*\d+|topic\s*\d+|assignment\s*\d+|exam|project)/i;
+  let currentSection: SyllabusSection | null = null;
 
   for (const line of lines) {
     if (sectionPattern.test(line)) {
-      if (currentSection.items.length > 0) {
+      if (currentSection && (currentSection.items.length > 0 || currentSection.title)) {
         sections.push(currentSection);
       }
-      currentSection = { title: line, items: [] };
-    } else if (line.startsWith("-") || line.startsWith("*") || /^\d+\./.test(line)) {
-      const cleanItem = line.replace(/^[-*•\d.]+\s*/, "").trim();
-      if (cleanItem.length > 3) {
-        currentSection.items.push(cleanItem);
-      }
-    } else if (line.length > 10 && line.length < 150) {
-      currentSection.items.push(line);
+      currentSection = { title: line.slice(0, 100), items: [] };
+      continue;
+    }
+
+    const points = splitIntoSpecificPoints(line);
+    if (points.length === 0) continue;
+
+    if (!currentSection) {
+      currentSection = {
+        title: points[0].slice(0, 90),
+        items: points.slice(1),
+      };
+      continue;
+    }
+
+    // If current section header is bare "Slide N" or "Page N", promote the first point to its title
+    if (/^(slide|page|halaman)\s*\d+$/i.test(currentSection.title) && points.length > 0) {
+      currentSection.title = `${currentSection.title}: ${points[0].slice(0, 80)}`;
+      currentSection.items.push(...points.slice(1));
+    } else {
+      currentSection.items.push(...points);
     }
   }
 
-  if (currentSection.items.length > 0) {
+  if (currentSection && (currentSection.items.length > 0 || currentSection.title)) {
     sections.push(currentSection);
   }
 
+  // Ensure every section has at least one concrete item derived from its own title
+  for (const sec of sections) {
+    if (sec.items.length === 0) {
+      const topicCore = sec.title.replace(/^(slide|page|halaman)\s*\d+\s*[:-]?\s*/i, "").trim() || sec.title;
+      sec.items.push(topicCore);
+    }
+  }
+
   if (sections.length === 0) {
+    const fallbackPoints = lines.flatMap(splitIntoSpecificPoints).slice(0, 12);
     sections.push({
-      title: "Core Module Breakdown",
-      items: [
-        "Review syllabus and course requirements",
-        "Read foundational textbook chapters",
-        "Complete problem sets and analytical exercises",
-        "Synthesize notes into comprehensive summary",
-        "Self-assessment and milestone review",
-      ],
+      title: courseTitle,
+      items:
+        fallbackPoints.length > 0
+          ? fallbackPoints
+          : [`Master core concepts of ${courseTitle}`],
     });
   }
 
@@ -79,6 +115,7 @@ export function generateHeuristicRoadmap(
 
   const rawTasks: Array<{
     title: string;
+    moduleTitle: string;
     description: string;
     category: TaskCategory;
     load: CognitiveLoad;
@@ -87,47 +124,61 @@ export function generateHeuristicRoadmap(
   }> = [];
 
   sections.forEach((section) => {
-    rawTasks.push({
-      title: `Conceptual Foundation: ${section.title}`,
-      description: `Understand the core definitions, theoretical frameworks, and essential reading for ${section.title}.`,
-      category: "reading",
-      load: "light",
-      minutes: 45,
-      subtasks: [
-        "Skim main chapter headings and summary",
-        "Annotate key terms and formulas",
-        "Note down 2 clarifying questions",
-      ],
-    });
+    const cleanSectionTopic =
+      section.title.replace(/^(slide|page|halaman)\s*\d+\s*[:-]?\s*/i, "").trim() ||
+      section.title;
+    const items = section.items.filter(Boolean);
 
-    if (section.items.length > 0) {
-      const primaryItems = section.items.slice(0, 3).join(", ");
+    // Chunk slide/section bullet points into specific micro-tasks (2-3 concrete points per task)
+    const chunkSize = items.length > 4 ? 3 : Math.max(1, items.length);
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      const leadPoint = chunk[0] || cleanSectionTopic;
+      const shortLead =
+        leadPoint.length > 58 ? `${leadPoint.slice(0, 55).trim()}...` : leadPoint;
+
+      const taskTitle =
+        i === 0
+          ? `${section.title}${
+              shortLead.toLowerCase() !== cleanSectionTopic.toLowerCase()
+                ? ` — ${shortLead}`
+                : ""
+            }`
+          : `${section.title}: ${shortLead}`;
+
+      const specificSubtasks =
+        chunk.length >= 2
+          ? chunk.map((pt) => `Pelajari & kuasai poin materi: ${pt}`)
+          : [
+              `Pahami materi utama pada ${section.title}: ${leadPoint}`,
+              `Catat poin penting & contoh spesifik dari "${cleanSectionTopic}"`,
+              `Uji pemahaman mandiri untuk materi "${shortLead}"`,
+            ];
+
       rawTasks.push({
-        title: `Deep Application: ${section.title}`,
-        description: `Execute practical exercises and assigned deliverables: ${primaryItems}`,
-        category: "practice",
-        load: "deep",
-        minutes: 75,
-        subtasks: [
-          "Set up workspace and required tools",
-          "Work through step-by-step problem sets",
-          "Check solution reasoning against examples",
-        ],
+        title: taskTitle,
+        moduleTitle: section.title,
+        description: `Materi spesifik dari ${section.title}: ${chunk.join(" · ")}`,
+        category: i === 0 ? "reading" : "practice",
+        load: chunk.length >= 3 ? "deep" : "moderate",
+        minutes: 25,
+        subtasks: specificSubtasks,
       });
     }
 
-    rawTasks.push({
-      title: `Synthesis & Active Recall: ${section.title}`,
-      description: `Test retention with active recall flashcards, practice problems, or summary synthesis without checking notes.`,
-      category: "review",
-      load: "moderate",
-      minutes: 40,
-      subtasks: [
-        "Create concise 1-page formula or concept cheat sheet",
-        "Solve 3 practice questions under timed conditions",
-        "Review mistakes and adjust understanding",
-      ],
-    });
+    if (items.length >= 2) {
+      rawTasks.push({
+        title: `Latihan & Review Materi: ${cleanSectionTopic}`,
+        moduleTitle: section.title,
+        description: `Evaluasi dan terapkan poin-poin dari ${section.title}: ${items
+          .slice(0, 4)
+          .join(" · ")}`,
+        category: "review",
+        load: "moderate",
+        minutes: 20,
+        subtasks: items.slice(0, 4).map((pt) => `Review & praktikkan konsep: ${pt}`),
+      });
+    }
   });
 
   const startDate = new Date();
@@ -135,12 +186,20 @@ export function generateHeuristicRoadmap(
   let taskIndex = 0;
   let totalTasks = 0;
 
+  const estimatedRestDays = includeRestDays ? Math.floor(targetDays / 7) : 0;
+  const estimatedActiveDays = Math.max(1, targetDays - estimatedRestDays);
+  const maxTasksPerDayByCap = Math.max(1, Math.floor(dailyMinutesCap / 20));
+  const targetTasksPerActiveDay = Math.max(
+    1,
+    Math.min(maxTasksPerDayByCap, Math.ceil(rawTasks.length / estimatedActiveDays))
+  );
+
   for (let day = 1; day <= targetDays; day++) {
     const dayDate = new Date(startDate);
     dayDate.setDate(startDate.getDate() + (day - 1));
     const dateStr = dayDate.toISOString().split("T")[0];
 
-    const isRestDay = includeRestDays && (day % 7 === 0 || (targetDays > 10 && day % 4 === 0 && taskIndex > 4));
+    const isRestDay = includeRestDays && day % 7 === 0;
 
     if (isRestDay) {
       dailySchedules.push({
@@ -157,13 +216,18 @@ export function generateHeuristicRoadmap(
     const dayTasks: RoadmapTask[] = [];
     let currentDayMinutes = 0;
 
-    while (taskIndex < rawTasks.length && currentDayMinutes + rawTasks[taskIndex].minutes <= dailyMinutesCap) {
+    while (
+      taskIndex < rawTasks.length &&
+      dayTasks.length < targetTasksPerActiveDay &&
+      currentDayMinutes + rawTasks[taskIndex].minutes <= dailyMinutesCap
+    ) {
       const t = rawTasks[taskIndex];
       const taskId = generateId("task");
 
       dayTasks.push({
         id: taskId,
         title: t.title,
+        moduleTitle: t.moduleTitle,
         description: t.description,
         dayNumber: day,
         date: dateStr,
@@ -183,14 +247,15 @@ export function generateHeuristicRoadmap(
     }
 
     if (dayTasks.length === 0 && rawTasks.length > 0) {
+      const isSpacedReview = taskIndex >= rawTasks.length;
       const sourceTask =
         taskIndex < rawTasks.length
           ? rawTasks[taskIndex++]
           : rawTasks[(day - 1) % rawTasks.length];
-      const isSpacedReview = taskIndex >= rawTasks.length && day > 1;
       dayTasks.push({
         id: generateId("task"),
-        title: isSpacedReview ? `Spaced Review: ${sourceTask.title}` : sourceTask.title,
+        title: isSpacedReview ? `Pendalaman & Review: ${sourceTask.title}` : sourceTask.title,
+        moduleTitle: sourceTask.moduleTitle,
         description: sourceTask.description,
         dayNumber: day,
         date: dateStr,

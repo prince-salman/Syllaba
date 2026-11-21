@@ -14,8 +14,8 @@ import { generateId } from "@/shared/utils";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { saveCuratedResourcesToDb, saveRoadmapToDb } from "@/server/db/proofs.repo";
 
-const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.8-flash"];
-const AGENT_TIMEOUT_MS = 8000;
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+const AGENT_TIMEOUT_MS = 14000;
 
 async function generateJsonWithGemini(
   apiKey: string,
@@ -61,6 +61,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+function splitLineToPoints(rawLine: string): string[] {
+  const cleaned = rawLine.replace(/^[-*•●▪▸\d.)]+\s*/, "").trim();
+  if (!cleaned) return [];
+  if (cleaned.length <= 160) return [cleaned];
+  return cleaned
+    .split(/(?:[•●▪▸;|]|\.\s+)/)
+    .map((chunk) => chunk.trim())
+    .filter((chunk) => chunk.length > 3)
+    .slice(0, 8);
+}
+
 function parseSyllabusFallback(syllabusText: string, courseTitle?: string): SyllabusExtraction {
   const lines = syllabusText
     .split("\n")
@@ -69,55 +80,83 @@ function parseSyllabusFallback(syllabusText: string, courseTitle?: string): Syll
 
   const detectedTitle =
     courseTitle ||
-    lines.find((line) => line.length > 4 && line.length < 72 && !line.includes("http")) ||
+    lines
+      .map((l) => l.replace(/^(slide|page|halaman)\s*\d+\s*[:-]?\s*/i, "").trim())
+      .find((line) => line.length > 3 && line.length < 85 && !line.includes("http")) ||
     "Academic Course Plan";
 
   const modules: ExtractedModule[] = [];
-  const headingPattern = /^(week\s*\d+|module\s*\d+|chapter\s*\d+|unit\s*\d+|part\s*\d+|topic\s*\d+)/i;
+  const headingPattern =
+    /^(slide\s*\d+|page\s*\d+|halaman\s*\d+|week\s*\d+|minggu\s*\d+|pertemuan\s*\d+|module\s*\d+|modul\s*\d+|chapter\s*\d+|bab\s*\d+|unit\s*\d+|part\s*\d+|bagian\s*\d+|topic\s*\d+|topik\s*\d+|sesi\s*\d+|section\s*\d+)\b/i;
 
-  let current: ExtractedModule = {
-    title: "Foundations and Core Concepts",
-    topics: [],
-    estimatedHours: 3,
-  };
+  let current: ExtractedModule | null = null;
 
   for (const line of lines) {
     if (headingPattern.test(line)) {
-      if (current.topics.length > 0) {
+      if (current && (current.topics.length > 0 || current.title)) {
         modules.push(current);
       }
       current = {
-        title: line.slice(0, 80),
+        title: line.slice(0, 100),
         topics: [],
-        estimatedHours: 3,
+        estimatedHours: 2,
       };
-    } else if (line.length > 8 && line.length < 140) {
-      const cleaned = line.replace(/^[-*\d.]+\s*/, "").trim();
-      if (cleaned && current.topics.length < 5) {
-        current.topics.push(cleaned);
+      continue;
+    }
+
+    const points = splitLineToPoints(line);
+    if (points.length === 0) continue;
+
+    if (!current) {
+      current = {
+        title: points[0].slice(0, 90),
+        topics: points.slice(1, 9),
+        estimatedHours: 2,
+      };
+      continue;
+    }
+
+    if (/^(slide|page|halaman)\s*\d+$/i.test(current.title) && points.length > 0) {
+      current.title = `${current.title}: ${points[0].slice(0, 80)}`;
+      for (const pt of points.slice(1)) {
+        if (current.topics.length < 8) current.topics.push(pt);
+      }
+    } else {
+      for (const pt of points) {
+        if (current.topics.length < 8) current.topics.push(pt);
       }
     }
   }
 
-  if (current.topics.length > 0) {
+  if (current && (current.topics.length > 0 || current.title)) {
     modules.push(current);
   }
 
+  for (const mod of modules) {
+    if (mod.topics.length === 0) {
+      const topicCore =
+        mod.title.replace(/^(slide|page|halaman)\s*\d+\s*[:-]?\s*/i, "").trim() ||
+        mod.title;
+      mod.topics.push(topicCore);
+    }
+  }
+
   if (modules.length === 0) {
+    const fallbackTopics = lines.flatMap(splitLineToPoints).slice(0, 8);
     modules.push({
       title: detectedTitle,
-      topics: ["Core definitions", "Problem sets", "Exam synthesis"],
-      estimatedHours: 4,
+      topics: fallbackTopics.length > 0 ? fallbackTopics : [detectedTitle],
+      estimatedHours: 3,
     });
   }
 
   return {
     courseTitle: detectedTitle,
-    modules: modules.slice(0, 8),
+    modules: modules.slice(0, 16),
   };
 }
 
-/** Agent 1: Extract structured modules, topics, weights, and hard deadlines from raw syllabus text. */
+/** Agent 1: Extract structured modules, topics, weights, and hard deadlines from raw syllabus or PPT slide text. */
 export async function extractSyllabusWithAgent(
   syllabusText: string,
   courseTitle?: string
@@ -129,12 +168,17 @@ export async function extractSyllabusWithAgent(
 
   try {
     const systemInstruction =
-      "You are Agent 1 (Syllabus Extractor). Extract academic modules, key subtopics, weight percentages, and hard deadlines. Return ONLY valid JSON.";
+      "You are Agent 1 (PPT & Syllabus Content Extractor). Extract the exact slide-by-slide or section-by-section academic structure, preserving verbatim slide titles, technical concepts, definitions, formulas, case studies, and bullet points from the uploaded PPT or document. Never invent generic topics. Return ONLY valid JSON.";
 
-    const prompt = `Extract course structure from this syllabus.
+    const prompt = `Extract the detailed, specific slide/module breakdown from this uploaded presentation (PPT), PDF, or syllabus document.
 Provided courseTitle hint: ${courseTitle || "Auto-detect"}
-Syllabus text:
-${syllabusText.slice(0, 10000)}
+Document / Slide Content:
+${syllabusText.slice(0, 14000)}
+
+Rules:
+1. Group content by the actual slides or sections in the document (e.g., "Slide 1-2: <Exact Slide Heading>" or "Slide 3: <Exact Slide Heading>").
+2. Each module's "topics" array MUST contain the exact specific bullet points, definitions, formulas, examples, or sub-concepts written on those slides (4 to 8 specific items per module).
+3. Do NOT output generic placeholders like "Core concepts" or "Introduction". Use the exact terminology and language of the document.
 
 Return JSON matching:
 {
@@ -143,11 +187,11 @@ Return JSON matching:
   "hardDeadline": "YYYY-MM-DD or empty string",
   "modules": [
     {
-      "title": "Module title",
-      "topics": ["Topic 1", "Topic 2"],
-      "weightPercentage": 20,
-      "deadlineHint": "Week 2 or date",
-      "estimatedHours": 3
+      "title": "Slide/Section title with exact topic",
+      "topics": ["Specific concept/bullet 1 from slide", "Specific formula/example 2 from slide"],
+      "weightPercentage": 15,
+      "deadlineHint": "Slide group or week",
+      "estimatedHours": 2
     }
   ]
 }`;
@@ -163,12 +207,14 @@ Return JSON matching:
       courseTitle: parsed.courseTitle || courseTitle || "Academic Course Plan",
       courseCode: parsed.courseCode || undefined,
       hardDeadline: parsed.hardDeadline || undefined,
-      modules: parsed.modules.slice(0, 8).map((m: Record<string, unknown>) => ({
+      modules: parsed.modules.slice(0, 16).map((m: Record<string, unknown>) => ({
         title: String(m.title || "Study Module"),
-        topics: Array.isArray(m.topics) ? m.topics.map(String).slice(0, 5) : ["Core concepts"],
+        topics: Array.isArray(m.topics) && m.topics.length > 0
+          ? m.topics.map(String).slice(0, 8)
+          : [String(m.title || "Specific Slide Topic")],
         weightPercentage: typeof m.weightPercentage === "number" ? m.weightPercentage : undefined,
         deadlineHint: m.deadlineHint ? String(m.deadlineHint) : undefined,
-        estimatedHours: typeof m.estimatedHours === "number" ? m.estimatedHours : 3,
+        estimatedHours: typeof m.estimatedHours === "number" ? m.estimatedHours : 2,
       })),
     };
   } catch {
@@ -383,14 +429,26 @@ export async function planMicroTasksWithAgent(
 
   try {
     const systemInstruction =
-      "You are Agent 2 (Micro-Task Decomposition Planner). Slice modules into crisp 15-30 minute daily study micro-tasks. Never exceed 150 minutes/day. Include periodic rest days. Return ONLY valid JSON.";
+      "You are Agent 2 (Slide-Specific Micro-Task Decomposition Planner). Slice the uploaded PPT slides or syllabus modules into hyper-specific 15-30 minute daily study micro-tasks. Every task title, description, moduleTitle, and subtask MUST directly quote and teach the exact slide headings, bullet points, definitions, formulas, and examples from the uploaded document. Never use generic placeholders. Never exceed 150 minutes/day. Return ONLY valid JSON.";
+
+    const rawSlideContext = (options.syllabusText || "").slice(0, 12000);
 
     const prompt = `Build an exact ${targetDays}-day micro-task roadmap for "${extraction.courseTitle}".
 You MUST return exact ${targetDays} entries in dailySchedules (dayNumber 1 through ${targetDays}).
 Daily study cap: ${Math.min(dailyHoursLimit * 60, 150)} minutes/day.
 Include rest days: ${includeRestDays}.
-Extracted Modules:
+
+Extracted Slide / Module Structure:
 ${JSON.stringify(extraction.modules)}
+
+Raw Uploaded PPT / Document Content:
+${rawSlideContext}
+
+STRICT SPECIFICITY RULES:
+1. Every task "title" MUST name the specific slide/section and exact concept from the PPT (e.g., "Slide 3-4: Thesis Statement & Controlling Idea in Essay Introductions").
+2. Every task "description" MUST summarize the actual bullet points or formulas from those slides.
+3. Every item in "subtasks" (2 to 4 subtasks per task) MUST be a concrete study action referencing the specific points on that slide (never write generic strings like "Step 1" or "Read chapter").
+4. Distribute the slides progressively from Day 1 to Day ${targetDays}.
 
 Return JSON:
 {
@@ -400,13 +458,13 @@ Return JSON:
       "isRestDay": false,
       "tasks": [
         {
-          "title": "Actionable 15-30m micro-task",
-          "description": "Concrete focus goal",
-          "moduleTitle": "Module name",
+          "title": "Specific slide/topic micro-task title from PPT",
+          "description": "Concrete explanation of the exact slide bullet points to master",
+          "moduleTitle": "Exact Slide/Module title",
           "estimatedMinutes": 25,
           "cognitiveLoad": "light",
           "category": "reading",
-          "subtasks": ["Step 1", "Step 2"]
+          "subtasks": ["Specific point 1 from slide", "Specific point 2 from slide"]
         }
       ]
     }
@@ -608,14 +666,30 @@ export async function curateResourcesWithAgent(
   modules: ExtractedModule[]
 ): Promise<CuratedResource[]> {
   const topics = modules
-    .slice(0, 4)
+    .slice(0, 6)
     .map((m) => {
-      const cleanTitle = m.title.replace(/^(week|module|chapter|unit)\s*\d+\s*[:-]?\s*/i, "").trim();
-      return cleanTitle || m.topics[0] || m.title;
+      const cleanTitle = m.title
+        .replace(
+          /^(slide|page|halaman|week|minggu|pertemuan|module|modul|chapter|bab|unit|topic|topik|part|bagian|sesi|section)\s*\d+(?:\s*[-–]\s*\d+)?\s*[:-]?\s*/i,
+          ""
+        )
+        .trim();
+      const firstSpecificTopic = (m.topics?.[0] || "")
+        .replace(/^[-*•●▪▸\d.)]+\s*/, "")
+        .slice(0, 70)
+        .trim();
+
+      if (cleanTitle && cleanTitle.length > 4) {
+        return firstSpecificTopic &&
+          !cleanTitle.toLowerCase().includes(firstSpecificTopic.toLowerCase().slice(0, 12))
+          ? `${cleanTitle} ${firstSpecificTopic}`.slice(0, 90)
+          : cleanTitle;
+      }
+      return firstSpecificTopic || m.title;
     })
     .filter(Boolean);
 
-  const uniqueTopics = Array.from(new Set(topics)).slice(0, 4);
+  const uniqueTopics = Array.from(new Set(topics)).slice(0, 5);
 
   const results = await Promise.allSettled(
     uniqueTopics.flatMap((topic) => [

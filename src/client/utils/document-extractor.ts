@@ -232,7 +232,17 @@ async function extractTextFromPptx(file: File): Promise<string> {
       .join("\n");
 
     if (combined) {
-      sections.push(`Slide ${slideNum}\n${combined}`);
+      const slideLines = combined
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const firstLine = slideLines[0] || `Topic ${slideNum}`;
+      const restLines = slideLines.slice(1).join("\n");
+      sections.push(
+        restLines
+          ? `Slide ${slideNum}: ${firstLine}\n${restLines}`
+          : `Slide ${slideNum}: ${firstLine}`
+      );
     }
   }
 

@@ -42,10 +42,66 @@ export async function extractTextFromPdf(file: File): Promise<string> {
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
-        const pageString = textContent.items
-          .map((item: any) => item.str)
-          .join(" ");
-        textChunks.push(`Page ${pageNum}:\n${pageString}`);
+        const lines: string[] = [];
+        let currentLine = "";
+        let lastY: number | null = null;
+
+        for (const item of textContent.items as Array<{
+          str?: string;
+          hasEOL?: boolean;
+          transform?: number[];
+        }>) {
+          const text = (item.str ?? "").trim();
+          const y = Array.isArray(item.transform) ? item.transform[5] : null;
+
+          if (
+            lastY !== null &&
+            y !== null &&
+            Math.abs(y - lastY) > 3 &&
+            currentLine.trim()
+          ) {
+            lines.push(currentLine.trim());
+            currentLine = "";
+          }
+
+          if (text) {
+            currentLine = currentLine ? `${currentLine} ${text}` : text;
+          }
+
+          if (item.hasEOL && currentLine.trim()) {
+            lines.push(currentLine.trim());
+            currentLine = "";
+          }
+
+          if (y !== null) {
+            lastY = y;
+          }
+        }
+
+        if (currentLine.trim()) {
+          lines.push(currentLine.trim());
+        }
+
+        const cleanedLines = lines
+          .flatMap((line) =>
+            line.length > 160
+              ? line
+                  .split(/(?:[•●▪▸]|\.\s+)/)
+                  .map((part) => part.trim())
+                  .filter((part) => part.length > 2)
+              : [line]
+          )
+          .filter(Boolean);
+
+        if (cleanedLines.length > 0) {
+          const heading = cleanedLines[0].slice(0, 90);
+          const body = cleanedLines.slice(1).join("\n");
+          textChunks.push(
+            body
+              ? `Slide ${pageNum}: ${heading}\n${body}`
+              : `Slide ${pageNum}: ${heading}`
+          );
+        }
       }
 
       const fullText = textChunks.join("\n\n").trim();
