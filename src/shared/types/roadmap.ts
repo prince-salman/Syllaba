@@ -126,8 +126,27 @@ export interface MilestoneExam {
   submission?: ExamSubmission;
 }
 
+export type CertificateTierId =
+  | "bronze"
+  | "silver"
+  | "gold"
+  | "platinum"
+  | "diamond"
+  | "emerald";
+
+export interface PptDifficultyAnalysis {
+  difficultyPoints: 1 | 2 | 3 | 4 | 5;
+  difficultyLabel: string;
+  rationale: string;
+  latexDensityCount: number;
+  deepTasksCount: number;
+}
+
 export interface BlockchainCertificateRecord {
   certificateId: string;
+  tier: CertificateTierId;
+  totalPointsAtIssue: number;
+  pptDifficultyPoints: number;
   recipientName: string;
   walletAddress: string;
   courseTitle: string;
@@ -158,6 +177,7 @@ export interface Roadmap {
   burnoutMetrics: BurnoutMetrics;
   modulesSummary?: ExtractedModule[];
   curatedResources?: CuratedResource[];
+  difficultyAnalysis?: PptDifficultyAnalysis;
   exams?: {
     mid?: MilestoneExam;
     final?: MilestoneExam;

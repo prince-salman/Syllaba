@@ -18,6 +18,7 @@ import {
   MilestoneExamModal,
 } from "./MilestoneExamModal";
 import { BlockchainCertificatePanel } from "./BlockchainCertificatePanel";
+import { computeRoadmapPointBreakdown } from "@/shared/utils/certificateTiers";
 import { BurnoutRiskMeter } from "@/client/components/analytics/BurnoutRiskMeter";
 import { FocusTimerModal } from "@/client/components/focus/FocusTimerModal";
 import { RescheduleModal } from "./RescheduleModal";
@@ -309,6 +310,10 @@ export function RoadmapTimeline({
   const allTasksDone =
     roadmap.totalTasks > 0 && roadmap.completedTasks >= roadmap.totalTasks;
   const isCertificateUnlocked = allTasksDone && midPassed && finalPassed;
+  const pptPointBreakdown = useMemo(
+    () => computeRoadmapPointBreakdown(roadmap),
+    [roadmap]
+  );
 
   const coveredTasksForModal = useMemo(() => {
     if (!activeExamModalStage) return [];
@@ -591,8 +596,22 @@ export function RoadmapTimeline({
                   </h3>
                 </div>
                 <span className="rounded-full bg-[#FEF3C7] border border-[#FACC15]/50 px-2 py-0.5 text-[10px] font-bold text-[#111111]">
-                  5 PG + 2 Essay
+                  PPT Difficulty: {pptPointBreakdown.pptDifficultyPoints}/5 Poin
                 </span>
+              </div>
+
+              <div className="rounded-xl bg-[#111111] text-white p-3 space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-[#FACC15] font-extrabold">
+                    AI PPT Rating: +{pptPointBreakdown.pptDifficultyPoints}/5 Poin
+                  </span>
+                  <span className="font-bold text-emerald-300">
+                    Earned: {pptPointBreakdown.totalEarnedFromRoadmap} Poin
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Tier Sertifikat: Bronze (10) &middot; Silver (25) &middot; Gold (45) &middot; Platinum (70) &middot; Diamond (100) &middot; Emerald (140)
+                </p>
               </div>
 
               <div className="space-y-2 text-xs">

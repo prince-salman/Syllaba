@@ -11,6 +11,7 @@ import {
   TaskCategory,
 } from "@/shared/types/roadmap";
 import { generateId } from "@/shared/utils";
+import { analyzeRoadmapPptDifficulty } from "@/shared/utils/certificateTiers";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { saveCuratedResourcesToDb, saveRoadmapToDb } from "@/server/db/proofs.repo";
 
@@ -385,7 +386,7 @@ export function validateAndNormalizeRoadmap(
         : ["Deterministic validator confirmed <=150 min/day cap with 15-30m micro-tasks."],
   };
 
-  return {
+  const baseRoadmap: Roadmap = {
     ...roadmap,
     startDate: startDate.toISOString().split("T")[0],
     targetEndDate:
@@ -396,6 +397,12 @@ export function validateAndNormalizeRoadmap(
     burnoutMetrics,
     modulesSummary: options.modulesSummary ?? roadmap.modulesSummary,
     updatedAt: new Date().toISOString(),
+  };
+
+  return {
+    ...baseRoadmap,
+    difficultyAnalysis:
+      baseRoadmap.difficultyAnalysis || analyzeRoadmapPptDifficulty(baseRoadmap),
   };
 }
 
@@ -484,6 +491,8 @@ Return JSON:
       ]
     }
   ],
+  "pptDifficultyPoints": 4,
+  "pptDifficultyRationale": "AI analysis of why this PPT is rated 1 to 5 points based on conceptual depth, mathematical formulas, and technical complexity",
   "burnoutFactors": ["Brief pacing observation"]
 }`;
 
@@ -556,6 +565,12 @@ Return JSON:
       }
     );
 
+    const rawDiffPts = Number(parsed.pptDifficultyPoints);
+    const aiDiffPts =
+      rawDiffPts >= 1 && rawDiffPts <= 5
+        ? (Math.round(rawDiffPts) as 1 | 2 | 3 | 4 | 5)
+        : undefined;
+
     const draft: Roadmap = {
       id: generateId("roadmap"),
       courseTitle: extraction.courseTitle,
@@ -575,6 +590,21 @@ Return JSON:
           ? parsed.burnoutFactors.map(String)
           : ["Micro-tasks calibrated to 15-30 minutes."],
       },
+      difficultyAnalysis: aiDiffPts
+        ? {
+            difficultyPoints: aiDiffPts,
+            difficultyLabel: `Level ${aiDiffPts}/5 · AI Evaluated PPT Difficulty (+${aiDiffPts} Poin Base)`,
+            rationale:
+              typeof parsed.pptDifficultyRationale === "string" &&
+              parsed.pptDifficultyRationale.trim()
+                ? parsed.pptDifficultyRationale.trim()
+                : `AI menilai tingkat kesulitan PPT ini ${aiDiffPts}/5 Poin berdasarkan kepadatan materi dan rumus teknis.`,
+            latexDensityCount: schedules.flatMap((s) => s.tasks).length * 2,
+            deepTasksCount: schedules
+              .flatMap((s) => s.tasks)
+              .filter((t) => t.cognitiveLoad === "deep").length,
+          }
+        : undefined,
       modulesSummary: extraction.modules,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
