@@ -13,7 +13,7 @@ import { RescheduleModal } from "./RescheduleModal";
 import { updateTaskCompletion, updateSubtaskCompletion, saveRoadmap } from "@/client/utils/storage";
 import { BookOpen, CalendarDays, ShieldCheck, FileKey2, ArrowUpRight } from "lucide-react";
 import { keccak256, stringToHex } from "viem";
-import { useAccount } from "wagmi";
+import { useWeb3 } from "@/components/Web3Providers";
 
 interface RoadmapTimelineProps {
   roadmap: Roadmap;
@@ -32,7 +32,7 @@ export function RoadmapTimeline({
   const [selectedTaskForTimer, setSelectedTaskForTimer] = useState<RoadmapTask | null>(null);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const { isConnected } = useAccount();
+  const { isConnected } = useWeb3();
 
   const roadmapHash = useMemo(() => {
     const canonical = JSON.stringify({

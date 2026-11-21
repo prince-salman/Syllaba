@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
 import { Header } from "@/client/components/layout/Header";
 import { Footer } from "@/client/components/layout/Footer";
 import { Web3Providers } from "@/components/Web3Providers";
 
 export const metadata: Metadata = {
-  title: "Syllaba - AI Study & Task Roadmap Generator",
-  description: "Transform course syllabi and assignment instructions into anti-burnout daily study roadmaps.",
+  title: "Syllaba - Multi-Agent Academic Pacing & On-Chain Study Proof",
+  description: "Transform course syllabi and assignment instructions into anti-burnout daily study roadmaps with verifiable on-chain proofs.",
 };
 
 export default function RootLayout({

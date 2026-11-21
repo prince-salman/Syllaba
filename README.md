@@ -1,69 +1,50 @@
-# Syllaba - AI Study & Task Roadmap Generator
+# Syllaba - Multi-Agent Academic Pacing & On-Chain Study Proof
 
-Syllaba is an academic task breakdown engine designed to help students overcome academic fatigue and procrastination. It decomposes dense course syllabi and multi-week assignment guidelines into structured, low-friction daily micro-milestones with automated cognitive load pacing.
+Syllaba transforms overwhelming university syllabi and assignment rubrics into validated 15-30 minute daily micro-tasks with curated open-access scholarly literature and verifiable on-chain study commitments.
 
-## Features
+Built by **Team ITSPIRIT** for **COMPSPHERE 12 / HACKSPHERE 2026 International Web3 Hackathon (Phase 2 Top 30 Finalists)**.
 
-- **Document Ingestion**: Upload course syllabi or assignment prompts as PDF or plain text, or select from built-in academic presets.
-- **AI Task Decomposition**: Breaks complex multi-week deliverables into daily tasks (30 to 75 minutes) with actionable subtasks.
-- **Anti-Burnout Pacing Engine**: Evaluates weekly peak hours, caps daily study volume, and embeds mandatory cognitive recovery days.
-- **Cognitive Load Profiling**: Classifies each task into Light, Moderate, or Deep Focus categories.
-- **Interactive Execution**: In-app task checklist with real-time progress calculations.
-- **Focus Timer**: Integrated Pomodoro session modal with audio completion alerts.
-- **Dynamic Rescheduling**: "I'm Falling Behind" timeline recalibration to shift remaining tasks across your calendar without guilt.
-- **Calendar Integration**: Export generated study plans directly into standard `.ics` format compatible with Google Calendar, Apple Calendar, and Microsoft Outlook.
+## Live Production
 
-## Tech Stack
+- **Application**: https://syllaba-prince-salman-s-projects.vercel.app
 
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: Tailwind CSS (UI/UX Pro Max design tokens)
-- **Icons**: Lucide React
-- **AI Model**: Google Gemini (gemini-2.5-flash)
-- **Storage**: Supabase client with local browser storage cache
-- **Deployment**: Vercel ready
+## Core Architecture
 
-## Project Architecture
+### 1. Modular Multi-Agent Pipeline (Next.js App Router)
+Designed to execute cleanly under serverless latency limits:
+- **Agent 1 (`POST /api/agents/extract`)**: Extracts course metadata, modules, grading weights, and hard deadlines using `gemini-2.5-flash` with deterministic fallback.
+- **Agent 2 & 4 (`POST /api/agents/plan`)**: Decomposes modules into 15-30 minute micro-tasks and runs deterministic TypeScript validation capping daily workload at 150 minutes with periodic recovery days.
+- **Agent 3 (`POST /api/agents/curate`)**: Fetches legal Open-Access scholarly papers from **OpenAlex API** and conceptual summaries from **Wikipedia API** in parallel, archiving results in Supabase.
+- **Agent 5 (`POST /api/roadmap/reschedule`)**: Adaptive rescheduler shifting remaining sessions smoothly without backlog panic.
 
-The codebase enforces an explicit separation of concerns:
+### 2. Web3 Commitment & Proof Vault (`contracts/SyllabaProofVault.sol`)
+- Solidity `^0.8.20` smart contract designed for **Base Sepolia (Chain ID 84532)**.
+- `commitStudyPlan`: Anchors `keccak256` roadmap digest + IPFS snapshot CID on-chain with optional micro-stake.
+- `verifyMilestone`: Logs cryptographic proof of completed study milestones.
+- `claimStudyCredential`: Releases stake and records completion credential when all milestones are verified.
+- Wallet connectivity powered by **RainbowKit + Wagmi + Viem** with Supabase proof ledger sync (`POST /api/proofs`) and **Pinata IPFS Snapshot** (`POST /api/ipfs/snapshot`).
 
-- `src/client/`: **Frontend Layer** &mdash; UI components (atomic elements, roadmap timeline, uploader dropzone, analytics meter, focus timer) and client utilities.
-- `src/server/`: **Backend Layer** &mdash; Server-side business logic, Google Gemini AI synthesis, pacing heuristics, and database connection.
-- `src/shared/`: **Shared Layer** &mdash; Common TypeScript data models and universal helper functions.
-- `src/app/`: **Routing Layer** &mdash; Next.js page shells and REST API route handlers.
+### 3. Database Schema (`supabase/migrations/`)
+- `public.roadmaps`: Full JSON study roadmaps synced with resilient client/server persistence.
+- `public.curated_resources`: OpenAlex OA papers and Wikipedia links indexed per roadmap.
+- `public.onchain_proofs`: Wallet signatures, Base Sepolia TX hashes, `keccak256` digests, and snapshot CIDs.
 
-### Prerequisites
+## Directory Structure
 
-- Node.js 18.17 or later
-- npm or yarn
+- `contracts/` &mdash; Solidity smart contracts (`SyllabaProofVault.sol`)
+- `supabase/migrations/` &mdash; Idempotent PostgreSQL schema + RLS policies
+- `src/client/` &mdash; Mobbin-referenced React UI components, RainbowKit header, tabbed workspace, focus timer, and proof panels
+- `src/server/` &mdash; Multi-agent orchestration (`agents.service.ts`), pacing validator (`pacing.service.ts`), and Supabase repositories (`proofs.repo.ts`)
+- `src/shared/` &mdash; TypeScript contracts (`roadmap.ts`), `syllabaVault.ts` ABI, and shared utilities
+- `src/app/api/` &mdash; Modular Next.js API route handlers
 
-### Installation
+## Local Development
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd syllaba
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env.local
-   ```
-   Add your Gemini API key in `.env.local`:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
 ## Production Build
 

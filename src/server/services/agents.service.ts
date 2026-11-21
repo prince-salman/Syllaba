@@ -14,8 +14,37 @@ import { generateId } from "@/shared/utils";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { saveCuratedResourcesToDb, saveRoadmapToDb } from "@/server/db/proofs.repo";
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.8-flash"];
 const AGENT_TIMEOUT_MS = 8000;
+
+async function generateJsonWithGemini(
+  apiKey: string,
+  systemInstruction: string,
+  prompt: string,
+  temperature: number
+): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  let lastError: unknown;
+
+  for (const modelName of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature,
+        },
+        systemInstruction,
+      });
+      const result = await withTimeout(model.generateContent(prompt), AGENT_TIMEOUT_MS);
+      return result.response.text();
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("All Gemini models failed");
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -99,16 +128,8 @@ export async function extractSyllabusWithAgent(
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-      },
-      systemInstruction:
-        "You are Agent 1 (Syllabus Extractor). Extract academic modules, key subtopics, weight percentages, and hard deadlines. Return ONLY valid JSON.",
-    });
+    const systemInstruction =
+      "You are Agent 1 (Syllabus Extractor). Extract academic modules, key subtopics, weight percentages, and hard deadlines. Return ONLY valid JSON.";
 
     const prompt = `Extract course structure from this syllabus.
 Provided courseTitle hint: ${courseTitle || "Auto-detect"}
@@ -131,8 +152,8 @@ Return JSON matching:
   ]
 }`;
 
-    const result = await withTimeout(model.generateContent(prompt), AGENT_TIMEOUT_MS);
-    const parsed = JSON.parse(result.response.text());
+    const rawText = await generateJsonWithGemini(apiKey, systemInstruction, prompt, 0.1);
+    const parsed = JSON.parse(rawText);
 
     if (!Array.isArray(parsed.modules) || parsed.modules.length === 0) {
       return parseSyllabusFallback(syllabusText, courseTitle);
@@ -286,16 +307,8 @@ export async function planMicroTasksWithAgent(
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
-      systemInstruction:
-        "You are Agent 2 (Micro-Task Decomposition Planner). Slice modules into crisp 15-30 minute daily study micro-tasks. Never exceed 150 minutes/day. Include periodic rest days. Return ONLY valid JSON.",
-    });
+    const systemInstruction =
+      "You are Agent 2 (Micro-Task Decomposition Planner). Slice modules into crisp 15-30 minute daily study micro-tasks. Never exceed 150 minutes/day. Include periodic rest days. Return ONLY valid JSON.";
 
     const prompt = `Build a 7-to-14 day micro-task roadmap for "${extraction.courseTitle}".
 Daily study cap: ${Math.min(dailyHoursLimit * 60, 150)} minutes/day.
@@ -325,8 +338,8 @@ Return JSON:
   "burnoutFactors": ["Brief pacing observation"]
 }`;
 
-    const result = await withTimeout(model.generateContent(prompt), AGENT_TIMEOUT_MS);
-    const parsed = JSON.parse(result.response.text());
+    const rawText = await generateJsonWithGemini(apiKey, systemInstruction, prompt, 0.2);
+    const parsed = JSON.parse(rawText);
 
     const schedules: DailySchedule[] = (parsed.dailySchedules || []).map(
       (ds: Record<string, unknown>, idx: number) => {
