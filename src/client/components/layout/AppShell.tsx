@@ -4,6 +4,7 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "@/client/components/layout/Header";
 import { Footer } from "@/client/components/layout/Footer";
+import { BackToTopButton } from "@/client/components/common/BackToTopButton";
 
 const AUTH_ROUTES = new Set(["/login", "/register"]);
 
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <Header />
       <main className="flex-1">{children}</main>
+      <BackToTopButton />
       <Footer />
     </>
   );

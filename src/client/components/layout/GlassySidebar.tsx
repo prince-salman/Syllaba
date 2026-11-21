@@ -117,7 +117,7 @@ export function GlassySidebar({
   if (!isOpen) {
     return (
       <aside
-        className={`hidden lg:flex w-[4.5rem] shrink-0 border-r py-4 px-2.5 flex-col items-center justify-between gap-4 transition-all duration-200 ${
+        className={`hidden lg:flex lg:sticky lg:top-[5.25rem] lg:h-[calc(100vh-5.25rem)] lg:overflow-y-auto lg:self-start w-[4.5rem] shrink-0 border-r py-4 px-2.5 flex-col items-center justify-between gap-4 transition-all duration-200 ${
           isAuthenticated
             ? "border-white/50 bg-gradient-to-b from-white/85 via-[#FFFDF5]/80 to-[#FEF9C3]/65 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
             : "border-[#E5E5E0] bg-[#FFFDF8]/90 backdrop-blur-xl"
@@ -348,7 +348,7 @@ export function GlassySidebar({
 
   return (
     <aside
-      className={`hidden lg:flex w-64 xl:w-72 shrink-0 border-r p-4 xl:p-5 flex-col justify-between gap-5 transition-all duration-200 ${
+      className={`hidden lg:flex lg:sticky lg:top-[5.25rem] lg:h-[calc(100vh-5.25rem)] lg:overflow-y-auto lg:self-start w-64 xl:w-72 shrink-0 border-r p-4 xl:p-5 flex-col justify-between gap-5 transition-all duration-200 ${
         isAuthenticated
           ? "border-white/50 bg-gradient-to-b from-white/85 via-[#FFFDF5]/80 to-[#FEF9C3]/65 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
           : "border-[#E5E5E0] bg-[#FFFDF8]/90 backdrop-blur-xl"
