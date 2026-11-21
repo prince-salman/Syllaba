@@ -3,25 +3,21 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
   createPublicClient,
-  createWalletClient,
   encodeFunctionData,
   formatEther,
   http,
   parseEther,
   toHex,
 } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { SYLLABA_VAULT_ABI, SYLLABA_VAULT_BYTECODE } from "@/shared/contracts/syllabaVault";
 import {
   AlertCircle,
-  CheckCircle2,
   ExternalLink,
-  KeyRound,
   Layers,
   Loader2,
+  QrCode,
   ShieldCheck,
-  Sparkles,
   Wallet,
   X,
 } from "lucide-react";
@@ -29,16 +25,24 @@ import {
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 const BASE_SEPOLIA_HEX = "0x14a34";
 const BASE_SEPOLIA_RPC = "https://sepolia.base.org";
-const EMBEDDED_PK_STORAGE_KEY = "syllaba_embedded_wallet_pk";
-const WALLET_MODE_STORAGE_KEY = "syllaba_wallet_mode";
+const WALLET_ID_STORAGE_KEY = "syllaba_connected_wallet_id";
+
+export type SupportedWalletId =
+  | "rabbyWallet"
+  | "metaMaskWallet"
+  | "coinbaseWallet"
+  | "rainbowWallet"
+  | "walletConnectWallet";
 
 export interface EthereumProvider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
   on?: (event: string, handler: (...args: unknown[]) => void) => void;
   removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
+  disconnect?: () => Promise<void>;
   isMetaMask?: boolean;
   isCoinbaseWallet?: boolean;
   isRabby?: boolean;
+  isRainbow?: boolean;
   isPhantom?: boolean;
   isBraveWallet?: boolean;
   providers?: EthereumProvider[];
@@ -56,7 +60,63 @@ interface EIP6963ProviderDetail {
   provider: EthereumProvider;
 }
 
-type WalletMode = "injected" | "embedded" | null;
+interface WalletOptionSpec {
+  id: SupportedWalletId;
+  name: string;
+  subtitle: string;
+  badgeText: string;
+  badgeClass: string;
+  downloadUrl: string;
+  rdnsHints: string[];
+}
+
+export const SUPPORTED_WALLETS: WalletOptionSpec[] = [
+  {
+    id: "rabbyWallet",
+    name: "Rabby Wallet",
+    subtitle: "rabbyWallet (EIP-6963 & Injected Extension)",
+    badgeText: "RB",
+    badgeClass: "bg-indigo-50 border-indigo-200 text-indigo-700",
+    downloadUrl: "https://rabby.io/",
+    rdnsHints: ["io.rabby", "rabby"],
+  },
+  {
+    id: "metaMaskWallet",
+    name: "MetaMask",
+    subtitle: "metaMaskWallet (Browser Extension & Mobile)",
+    badgeText: "MM",
+    badgeClass: "bg-orange-50 border-orange-200 text-orange-600",
+    downloadUrl: "https://metamask.io/download/",
+    rdnsHints: ["io.metamask", "metamask"],
+  },
+  {
+    id: "coinbaseWallet",
+    name: "Coinbase Wallet",
+    subtitle: "coinbaseWallet (Base & Coinbase Extension)",
+    badgeText: "CB",
+    badgeClass: "bg-blue-50 border-blue-200 text-blue-700",
+    downloadUrl: "https://www.coinbase.com/wallet/downloads",
+    rdnsHints: ["com.coinbase.wallet", "coinbase"],
+  },
+  {
+    id: "rainbowWallet",
+    name: "Rainbow Wallet",
+    subtitle: "rainbowWallet (Rainbow Browser Extension)",
+    badgeText: "RW",
+    badgeClass: "bg-sky-50 border-sky-200 text-sky-700",
+    downloadUrl: "https://rainbow.me/extension",
+    rdnsHints: ["me.rainbow", "rainbow"],
+  },
+  {
+    id: "walletConnectWallet",
+    name: "WalletConnect",
+    subtitle: "walletConnectWallet (Scan QR with Mobile Wallet)",
+    badgeText: "WC",
+    badgeClass: "bg-brand-50 border-brand-200 text-brand-700",
+    downloadUrl: "https://walletconnect.network/",
+    rdnsHints: ["walletconnect"],
+  },
+];
 
 function getWindowEthereum(): EthereumProvider | null {
   if (typeof window === "undefined") return null;
@@ -73,7 +133,7 @@ interface Web3ContextValue {
   address: string | null;
   chainId: number;
   chainName: string;
-  walletMode: WalletMode;
+  connectedWalletId: SupportedWalletId | null;
   balanceEth: string | null;
   isConnected: boolean;
   isConnecting: boolean;
@@ -109,7 +169,7 @@ const Web3Context = createContext<Web3ContextValue>({
   address: null,
   chainId: BASE_SEPOLIA_CHAIN_ID,
   chainName: "Base Sepolia",
-  walletMode: null,
+  connectedWalletId: null,
   balanceEth: null,
   isConnected: false,
   isConnecting: false,
@@ -150,19 +210,18 @@ function resolveChainName(id: number): string {
 export function Web3Providers({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number>(BASE_SEPOLIA_CHAIN_ID);
-  const [walletMode, setWalletMode] = useState<WalletMode>(null);
+  const [connectedWalletId, setConnectedWalletId] = useState<SupportedWalletId | null>(null);
   const [activeProvider, setActiveProvider] = useState<EthereumProvider | null>(null);
-  const [embeddedPrivateKey, setEmbeddedPrivateKey] = useState<`0x${string}` | null>(null);
   const [balanceEth, setBalanceEth] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectingId, setConnectingId] = useState<SupportedWalletId | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorDownloadUrl, setErrorDownloadUrl] = useState<string | null>(null);
   const [statusHint, setStatusHint] = useState<string | null>(null);
 
   const [discoveredWallets, setDiscoveredWallets] = useState<EIP6963ProviderDetail[]>([]);
-  const [showImportKey, setShowImportKey] = useState(false);
-  const [customKeyInput, setCustomKeyInput] = useState("");
 
   const readChainId = useCallback(async (eth: EthereumProvider) => {
     try {
@@ -172,6 +231,8 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         if (!Number.isNaN(parsed)) {
           setChainId(parsed);
         }
+      } else if (typeof rawChain === "number") {
+        setChainId(rawChain);
       }
     } catch {
       // Ignore read errors
@@ -197,37 +258,31 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
 
     const winEth = getWindowEthereum();
     if (winEth) {
-      const list = Array.isArray(winEth.providers) && winEth.providers.length > 0
-        ? winEth.providers
-        : [winEth];
+      const list =
+        Array.isArray(winEth.providers) && winEth.providers.length > 0
+          ? winEth.providers
+          : [winEth];
 
       list.forEach((prov, idx) => {
-        const name = prov.isMetaMask
-          ? "MetaMask"
+        const name = prov.isRabby
+          ? "Rabby Wallet"
+          : prov.isRainbow
+          ? "Rainbow Wallet"
           : prov.isCoinbaseWallet
           ? "Coinbase Wallet"
-          : prov.isRabby
-          ? "Rabby Wallet"
-          : prov.isPhantom
-          ? "Phantom"
-          : prov.isBraveWallet
-          ? "Brave Wallet"
+          : prov.isMetaMask
+          ? "MetaMask"
           : "Browser Wallet";
         const rdns = `injected.${name.toLowerCase().replace(/\s+/g, "-")}.${idx}`;
-        const alreadyListed = Array.from(map.values()).some(
-          (item) => item.provider === prov || item.info.name.toLowerCase() === name.toLowerCase()
-        );
-        if (!alreadyListed) {
-          map.set(rdns, {
-            info: {
-              uuid: rdns,
-              name,
-              icon: "",
-              rdns,
-            },
-            provider: prov,
-          });
-        }
+        map.set(rdns, {
+          info: {
+            uuid: rdns,
+            name,
+            icon: "",
+            rdns,
+          },
+          provider: prov,
+        });
       });
       setDiscoveredWallets(Array.from(map.values()));
     }
@@ -237,54 +292,105 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Resolve specific wallet provider by SupportedWalletId
+  const resolveProviderForWallet = useCallback(
+    (walletId: SupportedWalletId): { provider: EthereumProvider | null; isSpecificallyDetected: boolean } => {
+      if (typeof window === "undefined") {
+        return { provider: null, isSpecificallyDetected: false };
+      }
+
+      const win = window as unknown as {
+        ethereum?: EthereumProvider;
+        rabby?: EthereumProvider;
+        coinbaseWalletExtension?: EthereumProvider;
+        rainbow?: EthereumProvider;
+      };
+
+      const eipMatch = discoveredWallets.find((w) => {
+        const rdns = w.info.rdns.toLowerCase();
+        const name = w.info.name.toLowerCase();
+        if (walletId === "rabbyWallet") {
+          return rdns.includes("rabby") || name.includes("rabby") || Boolean(w.provider.isRabby);
+        }
+        if (walletId === "metaMaskWallet") {
+          return (
+            rdns.includes("metamask") ||
+            name.includes("metamask") ||
+            (Boolean(w.provider.isMetaMask) && !w.provider.isRabby && !w.provider.isRainbow)
+          );
+        }
+        if (walletId === "coinbaseWallet") {
+          return rdns.includes("coinbase") || name.includes("coinbase") || Boolean(w.provider.isCoinbaseWallet);
+        }
+        if (walletId === "rainbowWallet") {
+          return rdns.includes("rainbow") || name.includes("rainbow") || Boolean(w.provider.isRainbow);
+        }
+        return false;
+      });
+
+      if (eipMatch) {
+        return { provider: eipMatch.provider, isSpecificallyDetected: true };
+      }
+
+      if (walletId === "rabbyWallet" && win.rabby && typeof win.rabby.request === "function") {
+        return { provider: win.rabby, isSpecificallyDetected: true };
+      }
+      if (
+        walletId === "coinbaseWallet" &&
+        win.coinbaseWalletExtension &&
+        typeof win.coinbaseWalletExtension.request === "function"
+      ) {
+        return { provider: win.coinbaseWalletExtension, isSpecificallyDetected: true };
+      }
+      if (walletId === "rainbowWallet" && win.rainbow && typeof win.rainbow.request === "function") {
+        return { provider: win.rainbow, isSpecificallyDetected: true };
+      }
+
+      const fallbackEth = getWindowEthereum();
+      if (fallbackEth) {
+        const matchesFlag =
+          (walletId === "rabbyWallet" && Boolean(fallbackEth.isRabby)) ||
+          (walletId === "metaMaskWallet" && Boolean(fallbackEth.isMetaMask)) ||
+          (walletId === "coinbaseWallet" && Boolean(fallbackEth.isCoinbaseWallet)) ||
+          (walletId === "rainbowWallet" && Boolean(fallbackEth.isRainbow));
+        return { provider: fallbackEth, isSpecificallyDetected: matchesFlag };
+      }
+
+      return { provider: null, isSpecificallyDetected: false };
+    },
+    [discoveredWallets]
+  );
+
   // Restore active wallet session on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const savedMode = localStorage.getItem(WALLET_MODE_STORAGE_KEY) as WalletMode;
-    const savedPk = localStorage.getItem(EMBEDDED_PK_STORAGE_KEY) as `0x${string}` | null;
-
-    if (savedMode === "embedded" && savedPk && savedPk.startsWith("0x") && savedPk.length === 66) {
-      try {
-        const account = privateKeyToAccount(savedPk);
-        setEmbeddedPrivateKey(savedPk);
-        setAddress(account.address);
-        setWalletMode("embedded");
-        setChainId(BASE_SEPOLIA_CHAIN_ID);
-        return;
-      } catch {
-        // Ignore invalid key
-      }
-    }
-
+    const savedWalletId = localStorage.getItem(WALLET_ID_STORAGE_KEY) as SupportedWalletId | null;
     const eth = getWindowEthereum();
     if (!eth) return;
 
     let active = true;
-    if (savedMode !== "embedded") {
-      eth
-        .request({ method: "eth_accounts" })
-        .then((accounts) => {
-          if (!active) return;
-          if (Array.isArray(accounts) && typeof accounts[0] === "string" && accounts[0]) {
-            setAddress(accounts[0]);
-            setActiveProvider(eth);
-            setWalletMode("injected");
-          }
-        })
-        .catch(() => {});
+    eth
+      .request({ method: "eth_accounts" })
+      .then((accounts) => {
+        if (!active) return;
+        if (Array.isArray(accounts) && typeof accounts[0] === "string" && accounts[0]) {
+          setAddress(accounts[0]);
+          setActiveProvider(eth);
+          setConnectedWalletId(savedWalletId || "metaMaskWallet");
+        }
+      })
+      .catch(() => {});
 
-      void readChainId(eth);
-    }
+    void readChainId(eth);
 
     const handleAccountsChanged = (accounts: unknown) => {
       if (Array.isArray(accounts) && typeof accounts[0] === "string" && accounts[0]) {
         setAddress(accounts[0]);
-        setWalletMode("injected");
         setErrorMessage(null);
-      } else if (walletMode === "injected") {
+      } else {
         setAddress(null);
-        setWalletMode(null);
+        setConnectedWalletId(null);
       }
     };
 
@@ -313,7 +419,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         // Ignore cleanup errors
       }
     };
-  }, [readChainId, walletMode]);
+  }, [readChainId]);
 
   // Fetch Base Sepolia balance whenever address changes
   useEffect(() => {
@@ -341,6 +447,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
 
   const openConnectModal = useCallback(() => {
     setErrorMessage(null);
+    setErrorDownloadUrl(null);
     setStatusHint(null);
     setIsModalOpen(true);
   }, []);
@@ -348,6 +455,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
   const closeConnectModal = useCallback(() => {
     setIsModalOpen(false);
     setErrorMessage(null);
+    setErrorDownloadUrl(null);
     setStatusHint(null);
   }, []);
 
@@ -355,126 +463,127 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     openConnectModal();
   }, [openConnectModal]);
 
-  const connectWithProvider = useCallback(
-    async (provider: EthereumProvider | null, label: string, forcePermissionPrompt = false) => {
+  const connectWalletOption = useCallback(
+    async (spec: WalletOptionSpec, forcePermissionPrompt = false) => {
       setErrorMessage(null);
+      setErrorDownloadUrl(null);
       setStatusHint(null);
-
-      const target = provider || getWindowEthereum();
-      if (!target) {
-        setErrorMessage(
-          `No ${label} extension detected in this browser. Install MetaMask or click "Instant Base Sepolia Sandbox Wallet" below to connect immediately without an extension.`
-        );
-        return;
-      }
-
       setIsConnecting(true);
-      setStatusHint(
-        `Requesting connection from ${label}... If the popup does not appear automatically, click the ${label} extension icon in the top-right corner of your browser.`
-      );
+      setConnectingId(spec.id);
 
       try {
+        if (spec.id === "walletConnectWallet") {
+          setStatusHint("Initializing WalletConnect QR modal for Base Sepolia...");
+          const wcModule = await import("@walletconnect/ethereum-provider");
+          const EthereumProviderCtor = wcModule.EthereumProvider || wcModule.default;
+          const projectId =
+            process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
+            "3a8170812b534d0ff9d794f19a901d64";
+
+          const wcProvider = await EthereumProviderCtor.init({
+            projectId,
+            chains: [BASE_SEPOLIA_CHAIN_ID],
+            optionalChains: [1, 8453, 11155111],
+            showQrModal: true,
+            rpcMap: {
+              [BASE_SEPOLIA_CHAIN_ID]: BASE_SEPOLIA_RPC,
+            },
+            metadata: {
+              name: "Syllaba",
+              description: "Multi-Agent Academic Task Decomposition & Base Sepolia Study Proofs",
+              url: typeof window !== "undefined" ? window.location.origin : "https://syllaba.xyz",
+              icons: ["https://syllaba.xyz/favicon.ico"],
+            },
+          });
+
+          await wcProvider.enable();
+          const accounts = (await wcProvider.request({ method: "eth_accounts" })) as string[];
+          if (Array.isArray(accounts) && accounts[0]) {
+            const castProvider = wcProvider as unknown as EthereumProvider;
+            setAddress(accounts[0]);
+            setActiveProvider(castProvider);
+            setConnectedWalletId("walletConnectWallet");
+            if (typeof window !== "undefined") {
+              localStorage.setItem(WALLET_ID_STORAGE_KEY, "walletConnectWallet");
+            }
+            await readChainId(castProvider);
+            setStatusHint(null);
+            setIsModalOpen(false);
+          }
+          return;
+        }
+
+        const { provider } = resolveProviderForWallet(spec.id);
+        if (!provider) {
+          setErrorMessage(
+            `${spec.name} extension was not detected in this browser. Install ${spec.name} or choose WalletConnect to scan a QR code from your mobile wallet.`
+          );
+          setErrorDownloadUrl(spec.downloadUrl);
+          return;
+        }
+
+        setStatusHint(
+          `Opening ${spec.name}... If the extension popup does not appear automatically, click the ${spec.name} icon in your browser toolbar.`
+        );
+
         if (forcePermissionPrompt) {
-          await target.request({
+          await provider.request({
             method: "wallet_requestPermissions",
             params: [{ eth_accounts: {} }],
           });
         }
 
-        const accounts = await target.request({ method: "eth_requestAccounts" });
+        const accounts = await provider.request({ method: "eth_requestAccounts" });
         if (Array.isArray(accounts) && typeof accounts[0] === "string" && accounts[0]) {
           setAddress(accounts[0]);
-          setActiveProvider(target);
-          setWalletMode("injected");
+          setActiveProvider(provider);
+          setConnectedWalletId(spec.id);
           if (typeof window !== "undefined") {
-            localStorage.setItem(WALLET_MODE_STORAGE_KEY, "injected");
+            localStorage.setItem(WALLET_ID_STORAGE_KEY, spec.id);
           }
-          await readChainId(target);
+          await readChainId(provider);
           setStatusHint(null);
           setIsModalOpen(false);
         } else {
-          setErrorMessage("No account returned from wallet extension.");
+          setErrorMessage(`No account returned from ${spec.name}.`);
         }
       } catch (err: unknown) {
         const code = (err as { code?: number })?.code;
-        const rawMsg = (err as { message?: string })?.message || "Wallet connection failed.";
+        const rawMsg = (err as { message?: string })?.message || `Could not connect to ${spec.name}.`;
         if (code === -32002) {
           setErrorMessage(
-            `${label} already has a pending connection request open. Click the ${label} extension icon in the top-right toolbar of your browser to approve it.`
+            `${spec.name} already has a pending connection request open. Click the ${spec.name} extension icon in the top-right toolbar of your browser to approve it.`
           );
-        } else if (code === 4001) {
-          setErrorMessage("Connection request was rejected in the wallet popup.");
+        } else if (code === 4001 || rawMsg.toLowerCase().includes("user rejected")) {
+          setErrorMessage(`Connection request was cancelled in ${spec.name}.`);
         } else {
           setErrorMessage(rawMsg);
         }
       } finally {
         setIsConnecting(false);
+        setConnectingId(null);
       }
     },
-    [readChainId]
+    [readChainId, resolveProviderForWallet]
   );
 
-  const connectEmbeddedWallet = useCallback((customPk?: string) => {
-    setErrorMessage(null);
-    setStatusHint(null);
-
-    try {
-      let pk: `0x${string}`;
-      if (customPk && customPk.trim()) {
-        const cleaned = customPk.trim().startsWith("0x")
-          ? customPk.trim()
-          : `0x${customPk.trim()}`;
-        if (cleaned.length !== 66) {
-          setErrorMessage("Private key must be a 64-character hex string (with or without 0x prefix).");
-          return;
-        }
-        pk = cleaned as `0x${string}`;
-      } else {
-        const existing =
-          typeof window !== "undefined"
-            ? (localStorage.getItem(EMBEDDED_PK_STORAGE_KEY) as `0x${string}` | null)
-            : null;
-        pk =
-          existing && existing.startsWith("0x") && existing.length === 66
-            ? existing
-            : generatePrivateKey();
-      }
-
-      const account = privateKeyToAccount(pk);
-      if (typeof window !== "undefined") {
-        localStorage.setItem(EMBEDDED_PK_STORAGE_KEY, pk);
-        localStorage.setItem(WALLET_MODE_STORAGE_KEY, "embedded");
-      }
-
-      setEmbeddedPrivateKey(pk);
-      setAddress(account.address);
-      setWalletMode("embedded");
-      setChainId(BASE_SEPOLIA_CHAIN_ID);
-      setCustomKeyInput("");
-      setShowImportKey(false);
-      setIsModalOpen(false);
-    } catch {
-      setErrorMessage("Could not initialize Base Sepolia embedded wallet.");
-    }
-  }, []);
-
   const disconnectWallet = useCallback(() => {
+    try {
+      void activeProvider?.disconnect?.();
+    } catch {
+      // Ignore disconnect errors
+    }
     setAddress(null);
-    setWalletMode(null);
+    setConnectedWalletId(null);
     setActiveProvider(null);
     setErrorMessage(null);
     setStatusHint(null);
     if (typeof window !== "undefined") {
-      localStorage.removeItem(WALLET_MODE_STORAGE_KEY);
+      localStorage.removeItem(WALLET_ID_STORAGE_KEY);
     }
-  }, []);
+  }, [activeProvider]);
 
   const switchToBaseSepolia = useCallback(async (): Promise<boolean> => {
-    if (walletMode === "embedded") {
-      setChainId(BASE_SEPOLIA_CHAIN_ID);
-      return true;
-    }
-
     const eth = activeProvider || getWindowEthereum();
     if (!eth) return false;
 
@@ -509,7 +618,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
       }
       return false;
     }
-  }, [activeProvider, walletMode]);
+  }, [activeProvider]);
 
   const signPersonalMessage = useCallback(
     async (message: string): Promise<string> => {
@@ -517,14 +626,9 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         throw new Error("Wallet is not connected.");
       }
 
-      if (walletMode === "embedded" && embeddedPrivateKey) {
-        const account = privateKeyToAccount(embeddedPrivateKey);
-        return await account.signMessage({ message });
-      }
-
       const eth = activeProvider || getWindowEthereum();
       if (!eth) {
-        throw new Error("Browser wallet extension is not connected.");
+        throw new Error("Wallet provider is not connected.");
       }
 
       const hexMessage = toHex(message);
@@ -534,7 +638,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
       });
       return String(signature);
     },
-    [activeProvider, address, embeddedPrivateKey, walletMode]
+    [activeProvider, address]
   );
 
   const deployVaultContractOnChain = useCallback(async (): Promise<{
@@ -543,25 +647,6 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
   }> => {
     if (!address) {
       throw new Error("Wallet is not connected.");
-    }
-
-    if (walletMode === "embedded" && embeddedPrivateKey) {
-      const account = privateKeyToAccount(embeddedPrivateKey);
-      const walletClient = createWalletClient({
-        account,
-        chain: baseSepolia,
-        transport: http(BASE_SEPOLIA_RPC),
-      });
-
-      const txHash = await walletClient.sendTransaction({
-        data: SYLLABA_VAULT_BYTECODE,
-      });
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-      return {
-        txHash,
-        contractAddress: (receipt.contractAddress as `0x${string}`) || null,
-      };
     }
 
     const eth = activeProvider || getWindowEthereum();
@@ -604,7 +689,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     }
 
     return { txHash, contractAddress: null };
-  }, [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]);
+  }, [activeProvider, address, chainId, switchToBaseSepolia]);
 
   const commitStudyPlanOnChain = useCallback(
     async (params: {
@@ -626,22 +711,6 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
       });
 
       const valueWei = Number(params.stakeEth) > 0 ? parseEther(params.stakeEth) : BigInt(0);
-
-      if (walletMode === "embedded" && embeddedPrivateKey) {
-        const account = privateKeyToAccount(embeddedPrivateKey);
-        const walletClient = createWalletClient({
-          account,
-          chain: baseSepolia,
-          transport: http(BASE_SEPOLIA_RPC),
-        });
-
-        const txHash = await walletClient.sendTransaction({
-          to: params.vaultAddress,
-          data,
-          value: valueWei,
-        });
-        return txHash;
-      }
 
       const eth = activeProvider || getWindowEthereum();
       if (!eth) {
@@ -666,7 +735,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
 
       return String(txHash);
     },
-    [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]
+    [activeProvider, address, chainId, switchToBaseSepolia]
   );
 
   const verifyMilestoneOnChain = useCallback(
@@ -686,19 +755,6 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         args: [params.roadmapHash, params.milestoneIndex, params.proofHash],
       });
 
-      if (walletMode === "embedded" && embeddedPrivateKey) {
-        const account = privateKeyToAccount(embeddedPrivateKey);
-        const walletClient = createWalletClient({
-          account,
-          chain: baseSepolia,
-          transport: http(BASE_SEPOLIA_RPC),
-        });
-        return await walletClient.sendTransaction({
-          to: params.vaultAddress,
-          data,
-        });
-      }
-
       const eth = activeProvider || getWindowEthereum();
       if (!eth) {
         throw new Error("Wallet is not connected.");
@@ -721,7 +777,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
 
       return String(txHash);
     },
-    [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]
+    [activeProvider, address, chainId, switchToBaseSepolia]
   );
 
   const claimStudyCredentialOnChain = useCallback(
@@ -739,19 +795,6 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         args: [params.roadmapHash],
       });
 
-      if (walletMode === "embedded" && embeddedPrivateKey) {
-        const account = privateKeyToAccount(embeddedPrivateKey);
-        const walletClient = createWalletClient({
-          account,
-          chain: baseSepolia,
-          transport: http(BASE_SEPOLIA_RPC),
-        });
-        return await walletClient.sendTransaction({
-          to: params.vaultAddress,
-          data,
-        });
-      }
-
       const eth = activeProvider || getWindowEthereum();
       if (!eth) {
         throw new Error("Wallet is not connected.");
@@ -774,19 +817,8 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
 
       return String(txHash);
     },
-    [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]
+    [activeProvider, address, chainId, switchToBaseSepolia]
   );
-
-  // Locate explicit MetaMask provider if available
-  const metaMaskProvider =
-    discoveredWallets.find(
-      (w) =>
-        w.info.name.toLowerCase().includes("metamask") ||
-        w.info.rdns.toLowerCase().includes("metamask") ||
-        w.provider.isMetaMask
-    )?.provider || getWindowEthereum();
-
-  const hasInjectedWallet = Boolean(metaMaskProvider) || discoveredWallets.length > 0;
 
   return (
     <Web3Context.Provider
@@ -794,7 +826,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         address,
         chainId,
         chainName: resolveChainName(chainId),
-        walletMode,
+        connectedWalletId,
         balanceEth,
         isConnected: Boolean(address),
         isConnecting,
@@ -829,9 +861,9 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
                   <Wallet className="h-4 w-4 text-brand-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Connect Web3 Wallet</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Connect a Wallet</h3>
                   <p className="text-[11px] text-slate-500">
-                    Base Sepolia Testnet (Chain ID: 84532)
+                    Base Sepolia Network (Chain ID: 84532)
                   </p>
                 </div>
               </div>
@@ -844,109 +876,64 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
               </button>
             </div>
 
-            {/* Body */}
-            <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* Section 1: Browser Extension Wallets */}
+            {/* Body: 5 Requested Wallets */}
+            <div className="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Popular Wallets
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">
+                  EIP-6963 &amp; WalletConnect v2
+                </span>
+              </div>
+
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Browser Wallet Extensions
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      hasInjectedWallet
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-amber-50 text-amber-700 border border-amber-200"
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        hasInjectedWallet ? "bg-emerald-500" : "bg-amber-500"
-                      }`}
-                    />
-                    {hasInjectedWallet ? "Extension Detected" : "No Extension Detected"}
-                  </span>
-                </div>
+                {SUPPORTED_WALLETS.map((spec) => {
+                  const isWc = spec.id === "walletConnectWallet";
+                  const { isSpecificallyDetected } = isWc
+                    ? { isSpecificallyDetected: false }
+                    : resolveProviderForWallet(spec.id);
+                  const isThisLoading = isConnecting && connectingId === spec.id;
 
-                {/* Primary MetaMask / Injected Button */}
-                <button
-                  type="button"
-                  disabled={isConnecting}
-                  onClick={() => void connectWithProvider(metaMaskProvider, "MetaMask")}
-                  className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-400 hover:bg-brand-50/30 transition-all cursor-pointer disabled:opacity-60"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 border border-orange-200 text-orange-600 font-bold text-xs">
-                      MM
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <span>MetaMask / Browser Wallet</span>
-                        {hasInjectedWallet && (
-                          <span className="rounded bg-emerald-100 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-800">
-                            Ready
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500">
-                        {hasInjectedWallet
-                          ? "Click to open MetaMask connection prompt"
-                          : "Requires MetaMask extension in this browser"}
-                      </p>
-                    </div>
-                  </div>
-                  {isConnecting ? (
-                    <Loader2 className="h-4 w-4 text-brand-600 animate-spin" />
-                  ) : (
-                    <span className="text-xs font-semibold text-brand-600">Connect</span>
-                  )}
-                </button>
-
-                {/* Additional EIP-6963 Wallets if multiple extensions are installed */}
-                {discoveredWallets
-                  .filter((w) => !w.info.name.toLowerCase().includes("metamask"))
-                  .map((w) => (
+                  return (
                     <button
-                      key={w.info.uuid}
+                      key={spec.id}
                       type="button"
                       disabled={isConnecting}
-                      onClick={() => void connectWithProvider(w.provider, w.info.name)}
-                      className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-left hover:border-brand-400 hover:bg-brand-50/30 transition-all cursor-pointer"
+                      onClick={() => void connectWalletOption(spec)}
+                      className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-400 hover:bg-brand-50/30 transition-all cursor-pointer disabled:opacity-60"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs">
-                          {w.info.name.slice(0, 2).toUpperCase()}
+                        <div
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg border font-bold text-xs ${spec.badgeClass}`}
+                        >
+                          {isWc ? <QrCode className="h-4 w-4" /> : spec.badgeText}
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-900">{w.info.name}</div>
-                          <p className="text-[10px] text-slate-500">Detected EIP-6963 Wallet</p>
+                          <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <span>{spec.name}</span>
+                            {isSpecificallyDetected && (
+                              <span className="rounded bg-emerald-100 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-800">
+                                Installed
+                              </span>
+                            )}
+                            {isWc && (
+                              <span className="rounded bg-brand-100 px-1.5 py-0.2 text-[10px] font-semibold text-brand-800">
+                                QR Code
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500">{spec.subtitle}</p>
                         </div>
                       </div>
-                      <span className="text-xs font-semibold text-brand-600">Connect</span>
+                      {isThisLoading ? (
+                        <Loader2 className="h-4 w-4 text-brand-600 animate-spin" />
+                      ) : (
+                        <span className="text-xs font-semibold text-brand-600">Connect</span>
+                      )}
                     </button>
-                  ))}
-
-                {hasInjectedWallet && (
-                  <div className="flex items-center justify-between px-1 pt-0.5">
-                    <button
-                      type="button"
-                      disabled={isConnecting}
-                      onClick={() => void connectWithProvider(metaMaskProvider, "MetaMask", true)}
-                      className="text-[11px] font-medium text-brand-600 hover:text-brand-800 underline cursor-pointer"
-                    >
-                      Force MetaMask Account Picker Popup
-                    </button>
-                    <a
-                      href="https://metamask.io/download/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600"
-                    >
-                      <span>MetaMask Help</span>
-                      <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
-                  </div>
-                )}
+                  );
+                })}
               </div>
 
               {/* Status or Error Banner */}
@@ -954,7 +941,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
                 <div className="rounded-xl border border-brand-200 bg-brand-50 p-3 text-xs text-brand-900 flex items-start gap-2.5">
                   <Loader2 className="h-4 w-4 text-brand-600 animate-spin shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-semibold">Waiting for Wallet Extension...</p>
+                    <p className="font-semibold">Waiting for Wallet Confirmation...</p>
                     <p className="text-[11px] text-brand-800 leading-relaxed">{statusHint}</p>
                   </div>
                 </div>
@@ -964,119 +951,31 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-start gap-2.5">
                   <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                   <div className="space-y-1.5">
-                    <p className="font-semibold">Browser Wallet Notice</p>
+                    <p className="font-semibold">Wallet Connection Notice</p>
                     <p className="text-[11px] text-amber-800 leading-relaxed">{errorMessage}</p>
-                    {!hasInjectedWallet && (
+                    {errorDownloadUrl && (
                       <div className="pt-1 flex flex-wrap gap-2">
                         <a
-                          href="https://metamask.io/download/"
+                          href={errorDownloadUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 rounded-lg bg-amber-800 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-900"
                         >
-                          <span>Install MetaMask</span>
+                          <span>Get Wallet Extension</span>
                           <ExternalLink className="h-3 w-3" />
                         </a>
-                        {typeof window !== "undefined" && (
-                          <a
-                            href={`https://metamask.app.link/dapp/${window.location.host}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg border border-amber-400 bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
-                          >
-                            <span>Open in MetaMask Mobile</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
                       </div>
                     )}
                   </div>
                 </div>
               )}
-
-              {/* Divider */}
-              <div className="relative flex py-1 items-center">
-                <div className="grow border-t border-slate-200" />
-                <span className="shrink mx-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Or Instant Zero-Extension Mode
-                </span>
-                <div className="grow border-t border-slate-200" />
-              </div>
-
-              {/* Section 2: Instant Base Sepolia Sandbox / Embedded Wallet */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => connectEmbeddedWallet()}
-                  className="w-full flex items-center justify-between rounded-xl border-2 border-brand-200 bg-brand-50/50 px-4 py-3 text-left hover:border-brand-500 hover:bg-brand-50 transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <span>Instant Base Sepolia Wallet</span>
-                        <span className="rounded bg-brand-100 px-1.5 py-0.2 text-[10px] font-semibold text-brand-800">
-                          1-Click
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-600">
-                        Embedded cryptographic secp256k1 wallet (works without extensions)
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-brand-700">Activate</span>
-                </button>
-
-                {/* Optional Private Key Import for Direct RPC Deployment */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowImportKey((v) => !v)}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-800 cursor-pointer"
-                  >
-                    <KeyRound className="h-3 w-3" />
-                    <span>
-                      {showImportKey
-                        ? "Hide Base Sepolia Testnet Key Import"
-                        : "Connect with Base Sepolia Testnet Private Key"}
-                    </span>
-                  </button>
-
-                  {showImportKey && (
-                    <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                      <p className="text-[11px] text-slate-600">
-                        Paste a funded Base Sepolia testnet private key (kept locally in browser) to deploy{" "}
-                        <span className="font-mono font-semibold">SyllabaProofVault.sol</span> directly via Base Sepolia RPC without popup extensions:
-                      </p>
-                      <div className="flex gap-2">
-                        <input
-                          type="password"
-                          value={customKeyInput}
-                          onChange={(e) => setCustomKeyInput(e.target.value)}
-                          placeholder="0x... (Base Sepolia testnet key only)"
-                          className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-mono text-slate-800"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => connectEmbeddedWallet(customKeyInput)}
-                          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 cursor-pointer"
-                        >
-                          Connect Key
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
             {/* Footer */}
             <div className="border-t border-slate-100 bg-slate-50 px-5 py-3 flex items-center justify-between text-[11px] text-slate-500">
               <span className="inline-flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                <span>EIP-1193 &amp; EIP-191 Verified</span>
+                <span>EIP-1193 &amp; EIP-6963 Verified</span>
               </span>
               <span className="inline-flex items-center gap-1 font-mono">
                 <Layers className="h-3 w-3 text-brand-600" />
