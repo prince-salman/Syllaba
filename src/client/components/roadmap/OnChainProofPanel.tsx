@@ -18,6 +18,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { computeMilestoneProofHash } from "@/shared/utils/hash";
+import { syncRoadmapToCentral } from "@/client/utils/centralRoadmapSync";
 
 const STORAGE_VAULT_KEY = "syllaba_deployed_vault_address";
 
@@ -188,6 +189,7 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
       if (res.ok) {
         const saved: OnChainProofRecord = await res.json();
         setProofs((prev) => [saved, ...prev]);
+        void syncRoadmapToCentral(address, roadmap, txOrSigHash);
         setStatusMessage(
           vaultAddress
             ? "On-chain commitment broadcast to Base Sepolia and logged to Supabase."

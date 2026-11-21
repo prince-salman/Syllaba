@@ -1,16 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Roadmap } from "@/shared/types/roadmap";
 import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader";
 import { RoadmapTimeline } from "@/client/components/roadmap/RoadmapTimeline";
 import { getActiveRoadmap, saveRoadmap, getStoredRoadmaps, setActiveRoadmapId } from "@/client/utils/storage";
+import { fetchCentralRoadmapsByWallet, syncRoadmapToCentral } from "@/client/utils/centralRoadmapSync";
+import { useWeb3 } from "@/components/Web3Providers";
 import { Cpu, ShieldCheck, BookOpen, Clock, ArrowRight } from "lucide-react";
 
 export default function HomePage() {
+  const { address, isConnected } = useWeb3();
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
   const [storedRoadmaps, setStoredRoadmaps] = useState<Roadmap[]>([]);
   const [isClient, setIsClient] = useState(false);
+
+  const hydrateWalletRoadmaps = useCallback(async (walletAddress: string) => {
+    const merged = await fetchCentralRoadmapsByWallet(walletAddress);
+    setStoredRoadmaps(merged);
+    if (!getActiveRoadmap() && merged.length > 0) {
+      setActiveRoadmapId(merged[0].id);
+      setActiveRoadmap(merged[0]);
+    }
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -20,8 +32,17 @@ export default function HomePage() {
     setStoredRoadmaps(all);
   }, []);
 
+  useEffect(() => {
+    if (isConnected && address) {
+      void hydrateWalletRoadmaps(address);
+    }
+  }, [address, hydrateWalletRoadmaps, isConnected]);
+
   const handleRoadmapGenerated = (roadmap: Roadmap) => {
     saveRoadmap(roadmap);
+    if (isConnected && address) {
+      void syncRoadmapToCentral(address, roadmap);
+    }
     setActiveRoadmap(roadmap);
     setStoredRoadmaps(getStoredRoadmaps());
   };
@@ -72,6 +93,9 @@ export default function HomePage() {
               onUpdateRoadmap={(updated) => {
                 setActiveRoadmap(updated);
                 setStoredRoadmaps(getStoredRoadmaps());
+                if (isConnected && address) {
+                  void syncRoadmapToCentral(address, updated);
+                }
               }}
               onNewRoadmap={() => setActiveRoadmap(null)}
             />
