@@ -4,8 +4,8 @@ const PRINT_STAGE_ID = "syllaba-print-stage";
 const PRINTING_BODY_CLASS = "syllaba-printing-cert";
 
 /**
- * Print ONLY a single certificate DOM element stretched gracefully across ONE full
- * A4 landscape diploma sheet (no dashboard clutter, no awkward empty bottom gap).
+ * Print ONLY a single certificate DOM element as a full-bleed, edge-to-edge
+ * A4 landscape (297mm x 210mm) dark-gold diploma with zero white borders.
  */
 export function printCertificateElement(
   element: HTMLElement | null,
@@ -28,25 +28,10 @@ export function printCertificateElement(
 
   const clone = element.cloneNode(true) as HTMLElement;
   clone.querySelectorAll('[data-no-print="true"]').forEach((node) => node.remove());
-
-  // Measure offscreen at ~A4 landscape full printable width (1060px) to guard against rare ultra-long-title overflow
-  stage.style.position = "fixed";
-  stage.style.left = "-9999px";
-  stage.style.top = "0";
-  stage.style.width = "1060px";
-  stage.style.display = "block";
-  stage.style.visibility = "hidden";
+  clone.style.margin = "0";
   stage.appendChild(clone);
+
   document.body.appendChild(stage);
-
-  const measuredHeight = clone.getBoundingClientRect().height;
-  if (measuredHeight > 710) {
-    const scale = Math.max(0.75, Math.floor((710 / measuredHeight) * 100) / 100);
-    (clone.style as CSSStyleDeclaration & { zoom?: string }).zoom = String(scale);
-  }
-
-  // Hand layout control to @media print (full 192mm height x 100% width with space-between)
-  stage.removeAttribute("style");
   document.body.classList.add(PRINTING_BODY_CLASS);
 
   const previousTitle = document.title;

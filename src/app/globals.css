@@ -130,19 +130,22 @@ body {
   display: none;
 }
 
-/* Isolated certificate-only printing (never prints the dashboard or sidebar) */
+/* Isolated certificate-only printing (full-bleed 1-page A4 landscape, zero white borders) */
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 6mm;
+    size: 297mm 210mm;
+    margin: 0mm;
   }
 
   html,
-  body {
-    background: #ffffff !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
+  body,
+  body.syllaba-printing-cert {
+    background: #09090D !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    max-width: 297mm !important;
+    max-height: 210mm !important;
+    overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
@@ -154,28 +157,29 @@ body {
   }
 
   body.syllaba-printing-cert #syllaba-print-stage {
-    display: flex !important;
-    align-items: stretch !important;
-    justify-content: center !important;
-    width: 100% !important;
-    height: 192mm !important;
+    display: block !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 5mm !important;
     box-sizing: border-box !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    background: #ffffff !important;
+    background: #09090D !important;
+    overflow: hidden !important;
   }
 
   body.syllaba-printing-cert #syllaba-print-stage > * {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
+    width: 287mm !important;
+    height: 200mm !important;
+    max-width: 287mm !important;
+    max-height: 200mm !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 14px !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
+    border-radius: 14px !important;
+    padding: 12px !important;
+    margin: 0 !important;
     box-shadow: none !important;
+    overflow: hidden !important;
   }
 
   body.syllaba-printing-cert #syllaba-print-stage > * > div {
@@ -183,6 +187,8 @@ body {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
+    height: 100% !important;
+    border-radius: 10px !important;
     padding: 28px 36px !important;
     box-sizing: border-box !important;
   }
