@@ -129,6 +129,7 @@ export function BlockchainCertificatePanel({
     chainId,
     isConnected,
     openConnectModal,
+    signPersonalMessage,
     anchorCertificateOnChain,
     claimSylCoinsOnChain,
     sylCoinAddress,
@@ -172,6 +173,7 @@ export function BlockchainCertificatePanel({
   const [isClaimingSyl, setIsClaimingSyl] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [coinStatusMsg, setCoinStatusMsg] = useState<string | null>(null);
+  const [showProofJson, setShowProofJson] = useState(false);
 
   // Sync recipientName when user account changes
   useEffect(() => {
@@ -309,7 +311,9 @@ export function BlockchainCertificatePanel({
     );
 
     try {
-      let resolvedCid = `bafkrei${certificateHash.slice(2, 48).toLowerCase()}`;
+      let resolvedCid = `snapshot-${certificateHash.slice(2, 34).toLowerCase()}`;
+      let resolvedStorageMode: "pinata-ipfs" | "canonical-digest" =
+        "canonical-digest";
       try {
         const snapRes = await fetch("/api/ipfs/snapshot", {
           method: "POST",
@@ -319,19 +323,23 @@ export function BlockchainCertificatePanel({
         if (snapRes.ok) {
           const snap = await snapRes.json();
           if (snap.ipfsCid) resolvedCid = snap.ipfsCid;
+          if (snap.storageMode === "pinata-ipfs") {
+            resolvedStorageMode = "pinata-ipfs";
+          }
         }
       } catch {
-        // Fallback deterministic CID
+        // Fallback deterministic canonical digest
       }
 
       const signerAddress =
         address || "0x71C95911E9a5D330f4D621842EC243EE1343292e";
       let txHash: string = keccak256(
         stringToHex(
-          `BASE_SEPOLIA_CERT_TX:${targetTier.id}:${certificateHash}:${Date.now()}`
+          `SYLLABA_ATTESTATION:${targetTier.id}:${certificateHash}:${Date.now()}`
         )
       );
-      let proofType: "onchain-tx" | "eip191-signature" = "onchain-tx";
+      let proofType: "onchain-tx" | "eip191-signature" | "local-attestation" =
+        "local-attestation";
 
       if (!useProtocolRelayer && isConnected && address) {
         const anchored = await anchorCertificateOnChain({
@@ -343,6 +351,11 @@ export function BlockchainCertificatePanel({
         });
         txHash = anchored.txHash;
         proofType = anchored.proofType;
+      } else if (useProtocolRelayer && isConnected && address) {
+        txHash = await signPersonalMessage(
+          `Syllaba Gasless Certificate Attestation\nTier: ${targetTier.name.toUpperCase()}\nRecipient: ${recipientName.trim() || "Scholar"}\nWallet: ${address}\nCourse: ${roadmap.courseTitle}\nFinal Score: ${finalGradeScore}/100\nCertificate Hash: ${certificateHash}\nSnapshot Ref: ${resolvedCid}\nChain: Base Sepolia (84532)`
+        );
+        proofType = "eip191-signature";
       }
 
       try {
@@ -356,7 +369,10 @@ export function BlockchainCertificatePanel({
             ipfsCid: resolvedCid,
             txHash,
             chainId: chainId || 84532,
-            status: `cert-${targetTier.id}-issued`,
+            status:
+              proofType === "onchain-tx"
+                ? `cert-${targetTier.id}-onchain`
+                : `cert-${targetTier.id}-attested`,
           }),
         });
       } catch {
@@ -382,6 +398,7 @@ export function BlockchainCertificatePanel({
         totalTasks: roadmap.totalTasks,
         certificateHash,
         ipfsCid: resolvedCid,
+        ipfsStorageMode: resolvedStorageMode,
         txHash,
         chainId: 84532,
         proofType,
@@ -391,11 +408,23 @@ export function BlockchainCertificatePanel({
       setSelectedPreviewTierId(targetTier.id);
       onSaveCertificate(certRecord);
       setStatusMsg(
-        `Sertifikat Blockchain Tier ${targetTier.name.toUpperCase()} (${totalAccumulatedPoints} Poin & +${totalEarnedSylCoins} $SYL Coin) berhasil dicatat di Base Sepolia!`
+        proofType === "onchain-tx"
+          ? isId
+            ? `Sertifikat Tier ${targetTier.name.toUpperCase()} (${totalAccumulatedPoints} Poin) berhasil di-mint On-Chain ke Base Sepolia! TX siap diverifikasi di BaseScan.`
+            : `Tier ${targetTier.name.toUpperCase()} Certificate (${totalAccumulatedPoints} Pts) broadcasted On-Chain to Base Sepolia! TX verifiable on BaseScan.`
+          : proofType === "eip191-signature"
+          ? isId
+            ? `Sertifikat Tier ${targetTier.name.toUpperCase()} berhasil ditandatangani (EIP-191 Gasless Attestation). Unduh/inspeksi Proof JSON di bawah atau mint dengan Base Sepolia ETH untuk TX BaseScan.`
+            : `Tier ${targetTier.name.toUpperCase()} Certificate signed via EIP-191 Gasless Attestation. Inspect/download the Proof JSON below or mint with testnet ETH for a BaseScan TX.`
+          : isId
+          ? `Bukti lokal Sertifikat Tier ${targetTier.name.toUpperCase()} tercatat. Hubungkan wallet Web3 untuk tanda tangan EIP-191 atau transaksi Base Sepolia.`
+          : `Local certificate attestation recorded for Tier ${targetTier.name.toUpperCase()}. Connect a Web3 wallet for EIP-191 signature or Base Sepolia TX.`
       );
     } catch {
       setStatusMsg(
-        "Transaksi wallet dibatalkan. Gunakan tombol 'Instant Base Sepolia Anchor (Gasless)' jika belum memiliki saldo gas testnet."
+        isId
+          ? "Transaksi wallet dibatalkan. Gunakan tombol 'Sign Cryptographic Attestation (Gasless)' jika belum memiliki saldo gas Base Sepolia."
+          : "Wallet transaction cancelled. Use 'Sign Cryptographic Attestation (Gasless)' if you do not have Base Sepolia testnet ETH yet."
       );
     } finally {
       setIsMinting(false);
@@ -489,7 +518,8 @@ export function BlockchainCertificatePanel({
       );
 
       let txHash: string = claimDigest;
-      let proofType: "onchain-tx" | "eip191-signature" = "onchain-tx";
+      let proofType: "onchain-tx" | "eip191-signature" | "local-attestation" =
+        "local-attestation";
 
       if (!useRelayer && isConnected && address) {
         const res = await claimSylCoinsOnChain({
@@ -502,6 +532,11 @@ export function BlockchainCertificatePanel({
         });
         txHash = res.txHash;
         proofType = res.proofType;
+      } else if (useRelayer && isConnected && address) {
+        txHash = await signPersonalMessage(
+          `SyllabaCoin ($SYL) Gasless Claim\nWallet: ${address}\nAmount: +${unclaimedSylForWallet} $SYL\nTier: ${currentTier.name}\nTotal Points: ${totalAccumulatedPoints}\nClaim Hash: ${claimDigest}\nNetwork: Base Sepolia (84532)`
+        );
+        proofType = "eip191-signature";
       }
 
       try {
@@ -517,7 +552,10 @@ export function BlockchainCertificatePanel({
               : `syl-mint-${unclaimedSylForWallet}-coins`,
             txHash,
             chainId: chainId || 84532,
-            status: `syl-coin-claimed-${unclaimedSylForWallet}`,
+            status:
+              proofType === "onchain-tx"
+                ? `syl-coin-onchain-${unclaimedSylForWallet}`
+                : `syl-coin-claimed-${unclaimedSylForWallet}`,
           }),
         });
       } catch {
@@ -622,10 +660,100 @@ export function BlockchainCertificatePanel({
   const displayWallet =
     cert?.walletAddress ||
     address ||
-    "0x71C9...292e (Connect Wallet to Bind Address)";
-  const displayTxHash = cert?.txHash || certificateHash;
+    "Connect Web3 Wallet to Bind Address";
+  const displayTxHash =
+    cert?.txHash || "Preview Mode (Not Minted Yet)";
   const displayIpfsCid =
-    cert?.ipfsCid || `bafkrei${certificateHash.slice(2, 34).toLowerCase()}`;
+    cert?.ipfsCid || `snapshot-${certificateHash.slice(2, 34).toLowerCase()}`;
+  const hasRealOnChainTx = Boolean(
+    cert &&
+      cert.proofType === "onchain-tx" &&
+      cert.txHash.startsWith("0x") &&
+      cert.txHash.length === 66 &&
+      cert.walletAddress !== "0x71C95911E9a5D330f4D621842EC243EE1343292e"
+  );
+  const hasRealPinataIpfs = Boolean(
+    cert &&
+      cert.ipfsStorageMode === "pinata-ipfs" &&
+      (cert.ipfsCid.startsWith("Qm") || cert.ipfsCid.startsWith("baf"))
+  );
+  const hasValidWalletAddr =
+    /^0x[0-9a-fA-F]{40}$/.test(displayWallet) &&
+    displayWallet !== "0x71C95911E9a5D330f4D621842EC243EE1343292e";
+
+  const proofMetadataPayload = useMemo(
+    () => ({
+      schema: "syllaba.academic.credential.v1",
+      certificateId: displayCertId,
+      tier: activeTierMeta.id,
+      tierName: activeTierMeta.name,
+      recipientName: cert?.recipientName || recipientName.trim() || "Scholar",
+      walletAddress: displayWallet,
+      courseTitle: roadmap.courseTitle,
+      roadmapId: roadmap.id,
+      totalPoints: cert?.totalPointsAtIssue ?? totalAccumulatedPoints,
+      totalSylCoins: cert?.totalSylCoinsAtIssue ?? totalEarnedSylCoins,
+      pptDifficultyPoints:
+        cert?.pptDifficultyPoints ?? currentBreakdown.pptDifficultyPoints,
+      scores: {
+        midExam: cert?.midExamScore ?? midScore,
+        finalExam: cert?.finalExamScore ?? finalScore,
+        finalGrade: cert?.finalGradeScore ?? finalGradeScore,
+      },
+      cryptography: {
+        network: "Base Sepolia",
+        chainId: cert?.chainId ?? 84532,
+        proofType: cert?.proofType ?? "preview",
+        certificateHash,
+        snapshotRef: displayIpfsCid,
+        ipfsStorageMode: cert?.ipfsStorageMode ?? "canonical-digest",
+        txOrSignature: cert?.txHash ?? null,
+      },
+      issuedAt: cert?.issuedAt ?? null,
+      basescanTxUrl: hasRealOnChainTx
+        ? `https://sepolia.basescan.org/tx/${displayTxHash}`
+        : null,
+      pinataIpfsUrl: hasRealPinataIpfs
+        ? `https://gateway.pinata.cloud/ipfs/${displayIpfsCid}`
+        : null,
+    }),
+    [
+      activeTierMeta.id,
+      activeTierMeta.name,
+      cert,
+      certificateHash,
+      currentBreakdown.pptDifficultyPoints,
+      displayCertId,
+      displayIpfsCid,
+      displayTxHash,
+      displayWallet,
+      finalScore,
+      finalGradeScore,
+      hasRealOnChainTx,
+      hasRealPinataIpfs,
+      midScore,
+      recipientName,
+      roadmap.courseTitle,
+      roadmap.id,
+      totalAccumulatedPoints,
+      totalEarnedSylCoins,
+    ]
+  );
+
+  const handleDownloadProofJson = () => {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([JSON.stringify(proofMetadataPayload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${displayCertId}-proof.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
   const gradeLabel =
     finalGradeScore >= 85
       ? "SUMMA CUM LAUDE"
@@ -1064,9 +1192,24 @@ export function BlockchainCertificatePanel({
                   &middot; {c.walletAddress.slice(0, 6)}...
                   {c.walletAddress.slice(-4)}
                 </span>
-                <span className="truncate max-w-[220px] text-emerald-300">
-                  TX: {c.txHash.slice(0, 18)}...
-                </span>
+                {c.proofType === "onchain-tx" &&
+                c.txHash.startsWith("0x") &&
+                c.txHash.length === 66 ? (
+                  <a
+                    href={`https://sepolia.basescan.org/tx/${c.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate max-w-[220px] text-emerald-300 hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>TX: {c.txHash.slice(0, 16)}...</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <span className="truncate max-w-[240px] text-slate-400">
+                    {c.proofType === "eip191-signature" ? "EIP-191 SIG:" : "PROOF:"}{" "}
+                    {c.txHash.slice(0, 16)}...
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -1255,7 +1398,7 @@ export function BlockchainCertificatePanel({
                 className="inline-flex items-center gap-1.5 rounded-xl border border-[#FACC15] bg-[#FEF3C7] hover:bg-[#FDE047] px-3.5 py-2.5 text-xs font-extrabold text-[#111111] transition cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Instant Base Sepolia Anchor (Gasless)</span>
+                <span>Sign Cryptographic Attestation (Gasless)</span>
               </button>
             )}
 
@@ -1549,13 +1692,17 @@ export function BlockchainCertificatePanel({
                   style={{ color: activeTierMeta.primaryHex }}
                   className="font-bold shrink-0"
                 >
-                  BASE SEPOLIA PROOF:
+                  {hasRealOnChainTx
+                    ? "BASE SEPOLIA TX:"
+                    : cert?.proofType === "eip191-signature"
+                    ? "EIP-191 SIGNATURE:"
+                    : "VERIFICATION PROOF:"}
                 </span>
                 <span className="truncate">{displayTxHash}</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 pt-1 font-sans">
-                {displayTxHash.length === 66 && (
+                {hasRealOnChainTx ? (
                   <a
                     href={`https://sepolia.basescan.org/tx/${displayTxHash}`}
                     target="_blank"
@@ -1563,12 +1710,23 @@ export function BlockchainCertificatePanel({
                     style={{ color: activeTierMeta.primaryHex }}
                     className="inline-flex items-center gap-1 text-[11px] font-bold hover:underline"
                   >
-                    <span>Verify on BaseScan Explorer</span>
+                    <span>Verify TX on BaseScan Explorer</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
-                )}
-                {(displayIpfsCid.startsWith("Qm") ||
-                  displayIpfsCid.startsWith("baf")) && (
+                ) : hasValidWalletAddr ? (
+                  <a
+                    href={`https://sepolia.basescan.org/address/${displayWallet}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: activeTierMeta.primaryHex }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold hover:underline"
+                  >
+                    <span>Verify Wallet on BaseScan</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : null}
+
+                {hasRealPinataIpfs && (
                   <a
                     href={`https://gateway.pinata.cloud/ipfs/${displayIpfsCid}`}
                     target="_blank"
@@ -1579,7 +1737,35 @@ export function BlockchainCertificatePanel({
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowProofJson((prev) => !prev)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 hover:underline cursor-pointer"
+                >
+                  <Database className="w-3 h-3" />
+                  <span>
+                    {showProofJson
+                      ? "Hide Proof Metadata (.json)"
+                      : "Inspect Proof Metadata (.json)"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadProofJson}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-200 hover:text-white hover:underline cursor-pointer"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download Proof (.json)</span>
+                </button>
               </div>
+
+              {showProofJson && (
+                <pre className="mt-2 max-h-56 overflow-auto rounded-xl border border-white/15 bg-black/70 p-3 text-[10px] leading-relaxed text-emerald-200 whitespace-pre-wrap break-all">
+                  {JSON.stringify(proofMetadataPayload, null, 2)}
+                </pre>
+              )}
             </div>
 
             {/* Embossed Seal & Cryptographic QR Code */}
@@ -1593,9 +1779,13 @@ export function BlockchainCertificatePanel({
                 >
                   <ShieldCheck className="w-3 h-3" />
                   <span>
-                    {cert
+                    {hasRealOnChainTx
                       ? `${activeTierMeta.name.toUpperCase()} ON-CHAIN`
-                      : `${activeTierMeta.name.toUpperCase()} SEAL`}
+                      : cert?.proofType === "eip191-signature"
+                      ? `${activeTierMeta.name.toUpperCase()} EIP-191 SIGNED`
+                      : cert
+                      ? `${activeTierMeta.name.toUpperCase()} ATTESTED`
+                      : `${activeTierMeta.name.toUpperCase()} PREVIEW`}
                   </span>
                 </div>
                 <span className="text-[10px] text-slate-400 mt-1">

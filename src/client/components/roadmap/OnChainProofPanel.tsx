@@ -493,7 +493,11 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
         ) : (
           <div className="divide-y divide-slate-100">
             {proofs.map((proof) => {
-              const isTxHash = proof.txHash.length === 66;
+              const isTxHash =
+                proof.txHash.startsWith("0x") &&
+                proof.txHash.length === 66 &&
+                (proof.status.includes("onchain") ||
+                  proof.status.includes("deployed"));
               const isIpfsCid =
                 Boolean(proof.ipfsCid) &&
                 (proof.ipfsCid!.startsWith("Qm") || proof.ipfsCid!.startsWith("bafy"));

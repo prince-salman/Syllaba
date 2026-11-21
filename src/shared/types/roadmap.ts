@@ -159,10 +159,11 @@ export interface BlockchainCertificateRecord {
   totalTasks: number;
   certificateHash: string;
   ipfsCid: string;
+  ipfsStorageMode?: "pinata-ipfs" | "canonical-digest";
   txHash: string;
   vaultAddress?: string;
   chainId: number;
-  proofType: "onchain-tx" | "eip191-signature";
+  proofType: "onchain-tx" | "eip191-signature" | "local-attestation";
   issuedAt: string;
 }
 
@@ -173,7 +174,7 @@ export interface SyllabaCoinClaimRecord {
   amountSyl: number;
   txHash: string;
   chainId: number;
-  proofType: "onchain-tx" | "eip191-signature";
+  proofType: "onchain-tx" | "eip191-signature" | "local-attestation";
   claimedAt: string;
 }
 
