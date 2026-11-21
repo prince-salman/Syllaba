@@ -4,9 +4,8 @@ const PRINT_STAGE_ID = "syllaba-print-stage";
 const PRINTING_BODY_CLASS = "syllaba-printing-cert";
 
 /**
- * Print ONLY a single certificate DOM element on ONE clean A4 landscape page,
- * isolating it in a top-level portal container outside the dashboard layout and
- * auto-scaling to fit printable height so it never spills onto a second page.
+ * Print ONLY a single certificate DOM element stretched gracefully across ONE full
+ * A4 landscape diploma sheet (no dashboard clutter, no awkward empty bottom gap).
  */
 export function printCertificateElement(
   element: HTMLElement | null,
@@ -27,31 +26,26 @@ export function printCertificateElement(
   const stage = document.createElement("div");
   stage.id = PRINT_STAGE_ID;
 
-  // Measure offscreen at A4 landscape content width (~960px) to guarantee 1-page fit
+  const clone = element.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('[data-no-print="true"]').forEach((node) => node.remove());
+
+  // Measure offscreen at ~A4 landscape full printable width (1060px) to guard against rare ultra-long-title overflow
   stage.style.position = "fixed";
   stage.style.left = "-9999px";
   stage.style.top = "0";
-  stage.style.width = "960px";
+  stage.style.width = "1060px";
   stage.style.display = "block";
   stage.style.visibility = "hidden";
-
-  const clone = element.cloneNode(true) as HTMLElement;
-  clone.style.margin = "0 auto";
-  clone.style.width = "100%";
-  clone.style.maxWidth = "960px";
-  clone.querySelectorAll('[data-no-print="true"]').forEach((node) => node.remove());
   stage.appendChild(clone);
-
   document.body.appendChild(stage);
 
-  // Target printable A4 landscape height (~640px leaves comfortable safety margin even with browser headers/footers)
   const measuredHeight = clone.getBoundingClientRect().height;
-  if (measuredHeight > 630) {
-    const scale = Math.max(0.68, Math.floor((630 / measuredHeight) * 100) / 100);
+  if (measuredHeight > 710) {
+    const scale = Math.max(0.75, Math.floor((710 / measuredHeight) * 100) / 100);
     (clone.style as CSSStyleDeclaration & { zoom?: string }).zoom = String(scale);
   }
 
-  // Clear temporary offscreen measurement styles so @media print rules control print layout
+  // Hand layout control to @media print (full 192mm height x 100% width with space-between)
   stage.removeAttribute("style");
   document.body.classList.add(PRINTING_BODY_CLASS);
 
