@@ -443,8 +443,8 @@ export function BlockchainCertificatePanel({
                   <Gem className="w-3 h-3 text-amber-700" />
                   <span>
                     {isId
-                      ? "Tukar Sertifikat Bronze (20+ Poin) & $SYL di Sidebar"
-                      : "Exchange Bronze Tier (20+ Pts) & $SYL in Sidebar"}
+                      ? "Tukar Sertifikat Bronze (5+ Poin) & $SYL di Sidebar"
+                      : "Exchange Bronze Tier (5+ Pts) & $SYL in Sidebar"}
                   </span>
                   <ArrowRight className="w-3 h-3" />
                 </button>
@@ -455,7 +455,7 @@ export function BlockchainCertificatePanel({
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed">
               {isId
-                ? `Sertifikat ini khusus membuktikan kelulusan kamu pada materi PPT "${roadmap.courseTitle}". Setelah lulus semua tugas & 2 ujian AI, sertifikat kelulusan PPT ini langsung terbuka — sekaligus menyetor +${breakdown.pptDifficultyPoints} Poin dan +${breakdown.pendingSylCoins} $SYL ke menu Tukar Sertifikat (Bronze 20 Poin+) di Sidebar.`
+                ? `Sertifikat ini khusus membuktikan kelulusan kamu pada materi PPT "${roadmap.courseTitle}". Setelah lulus semua tugas & 2 ujian AI, sertifikat kelulusan PPT ini langsung terbuka — sekaligus menyetor +${breakdown.pptDifficultyPoints} Poin dan +${breakdown.pendingSylCoins} $SYL ke menu Tukar Sertifikat (Bronze 5 Poin+) di Sidebar.`
                 : `This certificate exclusively certifies your graduation for "${roadmap.courseTitle}", while contributing +${breakdown.pptDifficultyPoints} Pts and +${breakdown.pendingSylCoins} $SYL toward Tier Exchange in the Sidebar.`}
             </p>
           </div>

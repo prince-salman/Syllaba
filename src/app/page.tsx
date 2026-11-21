@@ -274,8 +274,8 @@ export default function HomePage() {
     }
     if (sidebarView === "tier-exchange") {
       return lang === "id"
-        ? "Akumulasi poin lintas PPT untuk menukar Sertifikat Tier (Bronze 20+ → Emerald) & $SYL Coin."
-        : "Accumulate points across PPT courses to exchange Tier Certificates (Bronze 20+ → Emerald) & $SYL Coins.";
+        ? "Akumulasi poin lintas PPT untuk menukar Sertifikat Tier (Bronze 5+ → Emerald) & $SYL Coin."
+        : "Accumulate points across PPT courses to exchange Tier Certificates (Bronze 5+ → Emerald) & $SYL Coins.";
     }
     if (sidebarView === "settings-account" || sidebarView === "settings-language") {
       return copy.settingsSub;

@@ -186,12 +186,12 @@ export function GlassySidebar({
               onClick={() => onSelectView("tier-exchange")}
               title={
                 lang === "id"
-                  ? "Tukar Sertifikat (Bronze 20+ Poin) & $SYL"
+                  ? "Tukar Sertifikat (Bronze 5+ Poin) & $SYL"
                   : "Tier Certificate Exchange & $SYL"
               }
               aria-label={
                 lang === "id"
-                  ? "Tukar Sertifikat (Bronze 20+ Poin) & $SYL"
+                  ? "Tukar Sertifikat (Bronze 5+ Poin) & $SYL"
                   : "Tier Certificate Exchange & $SYL"
               }
               className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${

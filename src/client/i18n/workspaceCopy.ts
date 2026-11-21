@@ -138,7 +138,7 @@ const EN_COPY: WorkspaceCopy = {
   unlockedEndStatus: "Unlocked!",
   lockedEndStatus: (pts) => `Unlocked at End (+${pts} Pts)`,
   tierLadderLine:
-    "Tiers: Bronze (20) · Silver (40) · Gold (65) · Platinum (95) · Diamond (130) · Emerald (175)",
+    "Tiers: Bronze (5) · Silver (40) · Gold (65) · Platinum (95) · Diamond (130) · Emerald (175)",
   midExamLabel: (day) => `1. Mid-Session Exam (Day ${day})`,
   finalExamLabel: (day) => `2. Final-Session Exam (Day ${day})`,
   certSidebarLabel: "3. Blockchain Certificate & $SYL",
@@ -253,7 +253,7 @@ const ID_COPY: WorkspaceCopy = {
   unlockedEndStatus: "Sudah Cair!",
   lockedEndStatus: (pts) => `Cair di Akhir (+${pts} Poin)`,
   tierLadderLine:
-    "Tier: Bronze (20) · Silver (40) · Gold (65) · Platinum (95) · Diamond (130) · Emerald (175)",
+    "Tier: Bronze (5) · Silver (40) · Gold (65) · Platinum (95) · Diamond (130) · Emerald (175)",
   midExamLabel: (day) => `1. Ujian Tengah Sesi (Hari ${day})`,
   finalExamLabel: (day) => `2. Ujian Akhir Sesi (Hari ${day})`,
   certSidebarLabel: "3. Sertifikat Blockchain & $SYL",

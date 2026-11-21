@@ -34,9 +34,9 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
   {
     id: "bronze",
     name: "Bronze",
-    badgeTitle: "Bronze Tier · 20 Poin",
+    badgeTitle: "Bronze Tier · 5 Poin",
     credentialTitle: "BRONZE SCHOLAR BLOCKCHAIN CREDENTIAL",
-    minPoints: 20,
+    minPoints: 5,
     nextPoints: 40,
     primaryHex: "#E09F67",
     secondaryHex: "#CD7F32",
@@ -46,7 +46,7 @@ export const CERTIFICATE_TIERS: CertificateTierMeta[] = [
     pillTextClass: "text-[#F5CBA7]",
     glowRgba: "rgba(205,127,50,0.8)",
     description:
-      "Terbuka setelah mengumpulkan 20 Poin dari penyelesaian akhir PPT (1-5 Poin per PPT).",
+      "Terbuka setelah mengumpulkan 5 Poin dari penyelesaian akhir PPT (1-5 Poin per PPT).",
   },
   {
     id: "silver",

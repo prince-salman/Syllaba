@@ -597,10 +597,14 @@ export function TierCertificateExchangePanel({
             <h2 className="text-lg font-extrabold text-slate-900 mt-1">
               {isId
                 ? `Total Poin Kamu: ${totalAccumulatedPoints} Poin · Tier Aktif: ${
-                    isBronzeUnlocked ? currentTier.name.toUpperCase() : "Belum Bronze (Min. 20 Poin)"
+                    isBronzeUnlocked
+                      ? currentTier.name.toUpperCase()
+                      : `Belum Bronze (Min. ${CERTIFICATE_TIERS[0].minPoints} Poin)`
                   }`
                 : `Total Points: ${totalAccumulatedPoints} Pts · Tier: ${
-                    isBronzeUnlocked ? currentTier.name.toUpperCase() : "Below Bronze (Min. 20 Pts)"
+                    isBronzeUnlocked
+                      ? currentTier.name.toUpperCase()
+                      : `Below Bronze (Min. ${CERTIFICATE_TIERS[0].minPoints} Pts)`
                   }`}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -608,11 +612,11 @@ export function TierCertificateExchangePanel({
                 ? isId
                   ? `Kumpulkan ${Math.max(
                       0,
-                      20 - totalAccumulatedPoints
+                      CERTIFICATE_TIERS[0].minPoints - totalAccumulatedPoints
                     )} poin lagi dari kelulusan berbagai PPT (1-5 Poin per PPT lulus) untuk menukar Sertifikat Bronze.`
                   : `Earn ${Math.max(
                       0,
-                      20 - totalAccumulatedPoints
+                      CERTIFICATE_TIERS[0].minPoints - totalAccumulatedPoints
                     )} more points by graduating from PPT courses to unlock Bronze Tier exchange.`
                 : nextTier
                 ? isId
@@ -1143,7 +1147,7 @@ export function TierCertificateExchangePanel({
                     ? `Issued: ${new Date(
                         ownedTierCert.issuedAt
                       ).toLocaleDateString()}`
-                    : "Ready at 20+ Pts"}
+                    : `Ready at ${activeTierMeta.minPoints}+ Pts`}
                 </span>
                 <span
                   style={{ color: activeTierMeta.primaryHex }}
