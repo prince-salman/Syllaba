@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/client/components/layout/Header";
-import { Footer } from "@/client/components/layout/Footer";
 import { Web3Providers } from "@/components/Web3Providers";
+import { AuthProvider } from "@/client/components/auth/AuthProvider";
+import { AppShell } from "@/client/components/layout/AppShell";
 
 export const metadata: Metadata = {
   title: "Syllaba - Multi-Agent Academic Pacing & On-Chain Study Proof",
-  description: "Transform course syllabi and assignment instructions into anti-burnout daily study roadmaps with verifiable on-chain proofs.",
+  description:
+    "Transform course syllabi and assignment instructions into anti-burnout daily study roadmaps with verifiable on-chain proofs.",
 };
 
 export default function RootLayout({
@@ -16,13 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col antialiased">
+      <body className="min-h-screen flex flex-col antialiased bg-[#F4F7F5] text-[#111815]">
         <Web3Providers>
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
         </Web3Providers>
       </body>
     </html>

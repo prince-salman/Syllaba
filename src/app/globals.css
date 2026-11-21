@@ -6,22 +6,46 @@
 
 :root {
   --font-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --syllaba-primary-dark: #125B3A;
+  --syllaba-primary-mid: #1F7A4F;
+  --syllaba-primary-mint: #52B788;
+  --syllaba-surface-dark: #0D1913;
+  --syllaba-canvas: #F4F7F5;
+  --syllaba-card: #FFFFFF;
+  --syllaba-border: #E5ECE8;
+  --syllaba-text: #111815;
+  --syllaba-muted: #6B7872;
+  --syllaba-lavender: #8D90F2;
+  --syllaba-lavender-soft: #E9E9FD;
+  --syllaba-blush: #D9386A;
+  --syllaba-blush-soft: #F4E0E6;
+  --syllaba-cream-soft: #F6EDCA;
+  --syllaba-mint-soft: #DDF1E4;
+  --syllaba-sky-soft: #DCEBF7;
 }
 
 body {
   font-family: var(--font-jakarta);
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--syllaba-canvas);
+  color: var(--syllaba-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+.bg-emerald-bento {
+  background: linear-gradient(135deg, #0D1913 0%, #125B3A 55%, #1F7A4F 100%);
+}
+
+.bg-emerald-kpi {
+  background: linear-gradient(135deg, #1F7A4F 0%, #125B3A 60%, #0E442B 100%);
+}
+
 .bg-dot-matrix {
-  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-image: radial-gradient(#d3ded8 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 ::selection {
-  background-color: #ccfbf1;
-  color: #0f766e;
+  background-color: #DDF1E4;
+  color: #125B3A;
 }
