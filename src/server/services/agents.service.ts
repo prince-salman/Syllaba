@@ -444,7 +444,10 @@ async function fetchOpenAlexForTopic(roadmapId: string, topic: string): Promise<
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(
       topic
     )}&filter=is_oa:true&per-page=2&select=id,title,publication_year,open_access,doi,primary_location`;
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "SyllabaAcademicCurator/1.0 (https://syllaba.xyz; contact@syllaba.xyz)" },
+    });
     if (!res.ok) return [];
 
     const data = await res.json();
@@ -487,7 +490,10 @@ async function fetchWikipediaForTopic(roadmapId: string, topic: string): Promise
     const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
       topic
     )}&limit=1&namespace=0&format=json`;
-    const res = await fetch(searchUrl, { signal: controller.signal });
+    const res = await fetch(searchUrl, {
+      signal: controller.signal,
+      headers: { "User-Agent": "SyllabaAcademicCurator/1.0 (https://syllaba.xyz; contact@syllaba.xyz)" },
+    });
     if (!res.ok) return [];
 
     const data = await res.json();

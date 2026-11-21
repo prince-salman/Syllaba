@@ -93,6 +93,16 @@ interface Web3ContextValue {
     deadline: bigint;
     stakeEth: string;
   }) => Promise<string>;
+  verifyMilestoneOnChain: (params: {
+    vaultAddress: `0x${string}`;
+    roadmapHash: `0x${string}`;
+    milestoneIndex: bigint;
+    proofHash: `0x${string}`;
+  }) => Promise<string>;
+  claimStudyCredentialOnChain: (params: {
+    vaultAddress: `0x${string}`;
+    roadmapHash: `0x${string}`;
+  }) => Promise<string>;
 }
 
 const Web3Context = createContext<Web3ContextValue>({
@@ -112,6 +122,8 @@ const Web3Context = createContext<Web3ContextValue>({
   signPersonalMessage: async () => "",
   deployVaultContractOnChain: async () => ({ txHash: "", contractAddress: null }),
   commitStudyPlanOnChain: async () => "",
+  verifyMilestoneOnChain: async () => "",
+  claimStudyCredentialOnChain: async () => "",
 });
 
 export function useWeb3() {
@@ -657,6 +669,114 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]
   );
 
+  const verifyMilestoneOnChain = useCallback(
+    async (params: {
+      vaultAddress: `0x${string}`;
+      roadmapHash: `0x${string}`;
+      milestoneIndex: bigint;
+      proofHash: `0x${string}`;
+    }): Promise<string> => {
+      if (!address) {
+        throw new Error("Wallet is not connected.");
+      }
+
+      const data = encodeFunctionData({
+        abi: SYLLABA_VAULT_ABI,
+        functionName: "verifyMilestone",
+        args: [params.roadmapHash, params.milestoneIndex, params.proofHash],
+      });
+
+      if (walletMode === "embedded" && embeddedPrivateKey) {
+        const account = privateKeyToAccount(embeddedPrivateKey);
+        const walletClient = createWalletClient({
+          account,
+          chain: baseSepolia,
+          transport: http(BASE_SEPOLIA_RPC),
+        });
+        return await walletClient.sendTransaction({
+          to: params.vaultAddress,
+          data,
+        });
+      }
+
+      const eth = activeProvider || getWindowEthereum();
+      if (!eth) {
+        throw new Error("Wallet is not connected.");
+      }
+
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        await switchToBaseSepolia();
+      }
+
+      const txHash = await eth.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: address,
+            to: params.vaultAddress,
+            data,
+          },
+        ],
+      });
+
+      return String(txHash);
+    },
+    [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]
+  );
+
+  const claimStudyCredentialOnChain = useCallback(
+    async (params: {
+      vaultAddress: `0x${string}`;
+      roadmapHash: `0x${string}`;
+    }): Promise<string> => {
+      if (!address) {
+        throw new Error("Wallet is not connected.");
+      }
+
+      const data = encodeFunctionData({
+        abi: SYLLABA_VAULT_ABI,
+        functionName: "claimStudyCredential",
+        args: [params.roadmapHash],
+      });
+
+      if (walletMode === "embedded" && embeddedPrivateKey) {
+        const account = privateKeyToAccount(embeddedPrivateKey);
+        const walletClient = createWalletClient({
+          account,
+          chain: baseSepolia,
+          transport: http(BASE_SEPOLIA_RPC),
+        });
+        return await walletClient.sendTransaction({
+          to: params.vaultAddress,
+          data,
+        });
+      }
+
+      const eth = activeProvider || getWindowEthereum();
+      if (!eth) {
+        throw new Error("Wallet is not connected.");
+      }
+
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        await switchToBaseSepolia();
+      }
+
+      const txHash = await eth.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: address,
+            to: params.vaultAddress,
+            data,
+          },
+        ],
+      });
+
+      return String(txHash);
+    },
+    [activeProvider, address, chainId, embeddedPrivateKey, switchToBaseSepolia, walletMode]
+  );
+
   // Locate explicit MetaMask provider if available
   const metaMaskProvider =
     discoveredWallets.find(
@@ -687,6 +807,8 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         signPersonalMessage,
         deployVaultContractOnChain,
         commitStudyPlanOnChain,
+        verifyMilestoneOnChain,
+        claimStudyCredentialOnChain,
       }}
     >
       {children}

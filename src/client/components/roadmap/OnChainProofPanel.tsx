@@ -7,6 +7,7 @@ import { useWeb3 } from "@/components/Web3Providers";
 import { SYLLABA_VAULT_ADDRESS } from "@/shared/contracts/syllabaVault";
 import { Button } from "@/client/components/common/Button";
 import {
+  Award,
   CheckCircle2,
   Cpu,
   Database,
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+import { computeMilestoneProofHash } from "@/shared/utils/hash";
 
 const STORAGE_VAULT_KEY = "syllaba_deployed_vault_address";
 
@@ -33,6 +35,8 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
     signPersonalMessage,
     deployVaultContractOnChain,
     commitStudyPlanOnChain,
+    verifyMilestoneOnChain,
+    claimStudyCredentialOnChain,
   } = useWeb3();
 
   const [proofs, setProofs] = useState<OnChainProofRecord[]>([]);
@@ -41,6 +45,8 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
   const [stakeEth, setStakeEth] = useState<string>("0");
   const [isDeploying, setIsDeploying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifyingMilestone, setIsVerifyingMilestone] = useState(false);
+  const [isClaimingCredential, setIsClaimingCredential] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -185,13 +191,131 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
         setStatusMessage(
           vaultAddress
             ? "On-chain commitment broadcast to Base Sepolia and logged to Supabase."
-            : "Snapshot hashed and cryptographic commitment signed with MetaMask."
+            : "Snapshot hashed and cryptographic commitment signed."
         );
       }
     } catch {
       setStatusMessage("Transaction or wallet signature cancelled.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyMilestone = async () => {
+    if (!isConnected || !address) {
+      openConnectModal();
+      return;
+    }
+
+    setIsVerifyingMilestone(true);
+    setStatusMessage(null);
+
+    try {
+      const milestoneIndex = Math.max(
+        0,
+        roadmap.dailySchedules.findIndex((d) => d.tasks.some((t) => t.isCompleted))
+      );
+      const activeIdx = milestoneIndex === -1 ? 0 : milestoneIndex;
+      const proofHash = computeMilestoneProofHash({
+        roadmapId: roadmap.id,
+        milestoneIndex: activeIdx,
+        completedTasks: roadmap.completedTasks,
+        walletAddress: address,
+      });
+
+      let txOrSigHash: string;
+      let proofStatus: string;
+
+      if (vaultAddress) {
+        txOrSigHash = await verifyMilestoneOnChain({
+          vaultAddress,
+          roadmapHash,
+          milestoneIndex: BigInt(activeIdx),
+          proofHash,
+        });
+        proofStatus = "milestone-onchain";
+      } else {
+        txOrSigHash = await signPersonalMessage(
+          `Syllaba Milestone Verification\nCourse: ${roadmap.courseTitle}\nMilestone Index: ${activeIdx + 1}\nProof Hash: ${proofHash}\nCompleted Tasks: ${roadmap.completedTasks}/${roadmap.totalTasks}`
+        );
+        proofStatus = "milestone-verified";
+      }
+
+      const res = await fetch("/api/proofs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roadmapId: roadmap.id,
+          walletAddress: address,
+          roadmapHash: proofHash,
+          ipfsCid: latestCid || `milestone-${activeIdx + 1}-${roadmap.id}`,
+          txHash: txOrSigHash,
+          chainId: chainId || 84532,
+          status: proofStatus,
+        }),
+      });
+
+      if (res.ok) {
+        const saved: OnChainProofRecord = await res.json();
+        setProofs((prev) => [saved, ...prev]);
+        setStatusMessage(`Milestone #${activeIdx + 1} verified and recorded to proof ledger.`);
+      }
+    } catch {
+      setStatusMessage("Milestone verification cancelled or requires prior on-chain commitment.");
+    } finally {
+      setIsVerifyingMilestone(false);
+    }
+  };
+
+  const handleClaimCredential = async () => {
+    if (!isConnected || !address) {
+      openConnectModal();
+      return;
+    }
+
+    setIsClaimingCredential(true);
+    setStatusMessage(null);
+
+    try {
+      let txOrSigHash: string;
+      let proofStatus: string;
+
+      if (vaultAddress) {
+        txOrSigHash = await claimStudyCredentialOnChain({
+          vaultAddress,
+          roadmapHash,
+        });
+        proofStatus = "credential-claimed-onchain";
+      } else {
+        txOrSigHash = await signPersonalMessage(
+          `Syllaba Proof-of-Study Credential Claim\nCourse: ${roadmap.courseTitle}\nRoadmap Hash: ${roadmapHash}\nHolder: ${address}\nTasks Completed: ${roadmap.completedTasks}/${roadmap.totalTasks}`
+        );
+        proofStatus = "credential-claimed";
+      }
+
+      const res = await fetch("/api/proofs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roadmapId: roadmap.id,
+          walletAddress: address,
+          roadmapHash,
+          ipfsCid: latestCid || `credential-${roadmap.id}`,
+          txHash: txOrSigHash,
+          chainId: chainId || 84532,
+          status: proofStatus,
+        }),
+      });
+
+      if (res.ok) {
+        const saved: OnChainProofRecord = await res.json();
+        setProofs((prev) => [saved, ...prev]);
+        setStatusMessage("Proof-of-Study Credential claimed and anchored to ledger.");
+      }
+    } catch {
+      setStatusMessage("Credential claim requires all milestones verified before deadline.");
+    } finally {
+      setIsClaimingCredential(false);
     }
   };
 
@@ -317,6 +441,28 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
                   ? "Commit Study Plan On-Chain"
                   : "Snapshot & Sign Study Proof"}
               </span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              isLoading={isVerifyingMilestone}
+              onClick={handleVerifyMilestone}
+            >
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span>Verify Milestone</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              isLoading={isClaimingCredential}
+              onClick={handleClaimCredential}
+            >
+              <Award className="h-4 w-4 text-brand-600" />
+              <span>Claim Study Credential</span>
             </Button>
           </div>
         </div>

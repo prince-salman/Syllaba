@@ -17,6 +17,8 @@
 # misc
 .DS_Store
 *.pem
+*.key
+HANDOFF_*.md
 
 # debug
 npm-debug.log*
@@ -25,13 +27,10 @@ yarn-error.log*
 
 # environment and secret files
 .env
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
+.env.*
 *.env
 *.env.local
+!.env.example
 
 # typescript
 *.tsbuildinfo
