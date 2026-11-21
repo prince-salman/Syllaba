@@ -47,7 +47,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
     setSyllabusText(text);
     setFileName(name);
     setSelectedPresetId("");
-    const detectedTitle = name.replace(/\.(pdf|txt)$/i, "").replace(/[-_]/g, " ");
+    const detectedTitle = name.replace(/\.(pdf|docx|pptx|txt)$/i, "").replace(/[-_]/g, " ");
     setCourseTitle(detectedTitle);
   };
 
@@ -60,7 +60,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!syllabusText.trim()) {
-      setErrorMessage("Please upload a PDF, select a preset course, or paste your syllabus content.");
+      setErrorMessage("Please upload a PDF/DOCX/PPTX file, select a preset course, or paste your syllabus content.");
       return;
     }
 
@@ -204,7 +204,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           }`}
         >
           <UploadCloud className="w-4 h-4" />
-          <span>Upload PDF</span>
+          <span>Upload File</span>
         </button>
         <button
           type="button"
