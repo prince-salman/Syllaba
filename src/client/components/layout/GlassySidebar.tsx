@@ -15,10 +15,13 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut,
+  Menu,
+  PanelLeftClose,
   Plus,
   Settings,
   Sparkles,
   User as UserIcon,
+  X,
 } from "lucide-react";
 
 export type SidebarView =
@@ -30,6 +33,8 @@ export type SidebarView =
   | "help";
 
 interface GlassySidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
   user: User | null;
   walletAddress: string | null;
   isWalletConnected: boolean;
@@ -44,6 +49,8 @@ interface GlassySidebarProps {
 }
 
 export function GlassySidebar({
+  isOpen,
+  onClose,
   user,
   walletAddress,
   isWalletConnected,
@@ -62,6 +69,8 @@ export function GlassySidebar({
   const isSettingsActive =
     activeView === "settings-account" || activeView === "settings-language";
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+
+  if (!isOpen) return null;
 
   const handleToggleSettings = () => {
     setSettingsOpen((prev) => !prev);
@@ -88,13 +97,29 @@ export function GlassySidebar({
 
   return (
     <aside
-      className={`lg:col-span-3 xl:col-span-2 border-b lg:border-b-0 lg:border-r p-4 sm:p-5 flex flex-col justify-between gap-5 transition-colors ${
+      className={`hidden lg:flex w-64 xl:w-72 shrink-0 border-r p-4 xl:p-5 flex-col justify-between gap-5 transition-all duration-200 ${
         isAuthenticated
           ? "border-white/50 bg-gradient-to-b from-white/85 via-[#FFFDF5]/80 to-[#FEF9C3]/65 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
           : "border-[#E5E5E0] bg-[#FFFDF8]/90 backdrop-blur-xl"
       }`}
     >
       <div className="space-y-5">
+        {/* Collapse Toggle Row */}
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#666660]">
+            {isId ? "Navigasi" : "Navigation"}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-1 rounded-lg border border-black/10 bg-white/80 px-2 py-1 text-[11px] font-semibold text-[#111111] hover:bg-[#FEF3C7] transition cursor-pointer"
+            title={isId ? "Tutup Sidebar" : "Collapse Sidebar"}
+          >
+            <PanelLeftClose className="h-3.5 w-3.5" />
+            <span>{isId ? "Tutup" : "Hide"}</span>
+          </button>
+        </div>
+
         {/* Glassy Profile Header (Name ID / Username) */}
         <div
           className={`rounded-2xl p-3.5 border transition-all ${
@@ -146,7 +171,7 @@ export function GlassySidebar({
               onClick={() => onSelectView("dashboard")}
               className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition relative cursor-pointer ${
                 activeView === "dashboard"
-                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/40"
                   : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
               }`}
             >
@@ -164,7 +189,7 @@ export function GlassySidebar({
               onClick={() => onSelectView("uploader")}
               className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition relative cursor-pointer ${
                 activeView === "uploader"
-                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/40"
                   : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
               }`}
             >
@@ -172,7 +197,7 @@ export function GlassySidebar({
                 <Plus className="h-4 w-4" />
                 <span>{isId ? "Silabus Baru" : "New Syllabus"}</span>
               </span>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#111111] text-white text-[10px]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#111111] text-[#FACC15] text-[10px] font-bold">
                 +
               </span>
             </button>
@@ -208,7 +233,7 @@ export function GlassySidebar({
                     onClick={() => onSelectRoadmap(r.id)}
                     className={`w-full flex items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs font-semibold transition cursor-pointer ${
                       isSelected
-                        ? "bg-[#111111] text-white shadow-xs"
+                        ? "bg-[#111111] text-[#FACC15] shadow-xs"
                         : "text-[#52524C] hover:bg-white/70 hover:text-[#111111]"
                     }`}
                   >
@@ -247,7 +272,7 @@ export function GlassySidebar({
             onClick={() => onSelectView("history")}
             className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition cursor-pointer ${
               activeView === "history"
-                ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/40"
                 : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
             }`}
           >
@@ -265,7 +290,7 @@ export function GlassySidebar({
               onClick={handleToggleSettings}
               className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition cursor-pointer ${
                 isSettingsActive
-                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/40"
                   : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
               }`}
             >
@@ -325,7 +350,7 @@ export function GlassySidebar({
             onClick={() => onSelectView("help")}
             className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition cursor-pointer ${
               activeView === "help"
-                ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/40"
                 : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
             }`}
           >
@@ -338,7 +363,7 @@ export function GlassySidebar({
         </div>
       </div>
 
-      {/* Bottom Glass Card + Logout (if logged in) */}
+      {/* Bottom Glass Card + Logout */}
       <div className="space-y-3">
         <div className="rounded-2xl bg-emerald-bento p-3.5 text-white relative overflow-hidden shadow-sm">
           <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#F5B700]/25 blur-xl pointer-events-none" />
@@ -392,5 +417,283 @@ export function GlassySidebar({
         </p>
       </div>
     </aside>
+  );
+}
+
+interface MobileBottomNavProps {
+  user: User | null;
+  walletAddress: string | null;
+  isWalletConnected: boolean;
+  displayName: string;
+  activeView: SidebarView;
+  onSelectView: (view: SidebarView) => void;
+  storedRoadmaps: Roadmap[];
+  activeRoadmapId?: string | null;
+  onSelectRoadmap: (roadmapId: string) => void;
+  onSignOut: () => void;
+  onDisconnectWallet: () => void;
+}
+
+export function MobileBottomNav({
+  user,
+  walletAddress,
+  isWalletConnected,
+  displayName,
+  activeView,
+  onSelectView,
+  storedRoadmaps,
+  activeRoadmapId,
+  onSelectRoadmap,
+  onSignOut,
+  onDisconnectWallet,
+}: MobileBottomNavProps) {
+  const { lang, setLang } = useLanguage();
+  const isId = lang === "id";
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const isSettingsActive =
+    activeView === "settings-account" || activeView === "settings-language";
+
+  const handleSelect = (view: SidebarView) => {
+    onSelectView(view);
+    setDrawerOpen(false);
+  };
+
+  return (
+    <>
+      {/* Slide-up Glassy Drawer for Mobile Account, Courses, Language, Help, Login/Logout */}
+      {drawerOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-end"
+          onClick={() => setDrawerOpen(false)}
+        >
+          <div
+            className="w-full rounded-t-3xl border-t border-white/60 bg-white/95 backdrop-blur-2xl p-5 pb-24 space-y-4 max-h-[82vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#111111] text-[#FACC15] font-extrabold text-sm">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-[#111111] truncate">
+                    {displayName}
+                  </p>
+                  <p className="text-[11px] text-[#666660] truncate">
+                    {user?.email
+                      ? `@${user.email.split("@")[0]}`
+                      : isWalletConnected && walletAddress
+                      ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                      : isId
+                      ? "Mode Tamu"
+                      : "Guest Session"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="rounded-full p-2 bg-[#F7F7F5] text-[#111111]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {storedRoadmaps.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#666660]">
+                  {isId ? "Kursus Tersimpan" : "Saved Courses"} ({storedRoadmaps.length})
+                </p>
+                <div className="space-y-1">
+                  {storedRoadmaps.slice(0, 4).map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectRoadmap(r.id);
+                        setDrawerOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold ${
+                        activeRoadmapId === r.id
+                          ? "bg-[#111111] text-[#FACC15]"
+                          : "bg-[#F7F7F5] text-[#111111]"
+                      }`}
+                    >
+                      <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{r.courseTitle}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 pt-2 border-t border-[#E5E5E0]">
+              {!user && !isWalletConnected && (
+                <Link
+                  href="/login"
+                  onClick={() => setDrawerOpen(false)}
+                  className="w-full flex items-center justify-between rounded-xl bg-[#FACC15] px-4 py-2.5 text-xs font-bold text-[#111111]"
+                >
+                  <span className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    <span>Login</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleSelect("settings-account")}
+                className="w-full flex items-center justify-between rounded-xl bg-[#F7F7F5] px-4 py-2.5 text-xs font-semibold text-[#111111]"
+              >
+                <span className="flex items-center gap-2">
+                  <UserIcon className="h-4 w-4" />
+                  <span>Setting &gt; Account</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#666660]" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLang(lang === "en" ? "id" : "en")}
+                className="w-full flex items-center justify-between rounded-xl bg-[#F7F7F5] px-4 py-2.5 text-xs font-semibold text-[#111111]"
+              >
+                <span className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  <span>Setting &gt; Language</span>
+                </span>
+                <span className="rounded-md bg-[#111111] text-[#FACC15] px-2 py-0.5 text-[10px] font-mono uppercase">
+                  {lang}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelect("help")}
+                className="w-full flex items-center justify-between rounded-xl bg-[#F7F7F5] px-4 py-2.5 text-xs font-semibold text-[#111111]"
+              >
+                <span className="flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4" />
+                  <span>Help / Contact Us</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#666660]" />
+              </button>
+
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSignOut();
+                    setDrawerOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between rounded-xl border border-black/15 bg-white px-4 py-2.5 text-xs font-bold text-[#111111]"
+                >
+                  <span className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4 text-[#D97706]" />
+                    <span>Logout</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : isWalletConnected ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDisconnectWallet();
+                    setDrawerOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between rounded-xl border border-black/15 bg-white px-4 py-2.5 text-xs font-bold text-[#111111]"
+                >
+                  <span className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4 text-[#D97706]" />
+                    <span>Disconnect Wallet</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Bottom Navigation Dock for Mobile */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-xl px-2 py-1.5 shadow-[0_-8px_30px_-14px_rgba(0,0,0,0.2)]">
+        <div className="mx-auto max-w-md grid grid-cols-5 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleSelect("dashboard")}
+            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+              activeView === "dashboard" ? "text-[#111111]" : "text-[#666660]"
+            }`}
+          >
+            <LayoutDashboard
+              className={`h-4 w-4 mb-0.5 ${
+                activeView === "dashboard" ? "text-[#D97706]" : "text-[#666660]"
+              }`}
+            />
+            <span>{isId ? "Dasbor" : "Home"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSelect("history")}
+            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+              activeView === "history" ? "text-[#111111]" : "text-[#666660]"
+            }`}
+          >
+            <History
+              className={`h-4 w-4 mb-0.5 ${
+                activeView === "history" ? "text-[#D97706]" : "text-[#666660]"
+              }`}
+            />
+            <span>History</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSelect("uploader")}
+            className="flex flex-col items-center justify-center -mt-4"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111111] text-[#FACC15] shadow-md border-2 border-[#FACC15]">
+              <Plus className="h-5 w-5" />
+            </span>
+            <span className="text-[10px] font-extrabold text-[#111111] mt-0.5">
+              {isId ? "Baru" : "New"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSelect("settings-account")}
+            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+              isSettingsActive ? "text-[#111111]" : "text-[#666660]"
+            }`}
+          >
+            <Settings
+              className={`h-4 w-4 mb-0.5 ${
+                isSettingsActive ? "text-[#D97706]" : "text-[#666660]"
+              }`}
+            />
+            <span>Setting</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDrawerOpen((prev) => !prev)}
+            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+              drawerOpen || activeView === "help" ? "text-[#111111]" : "text-[#666660]"
+            }`}
+          >
+            <Menu
+              className={`h-4 w-4 mb-0.5 ${
+                drawerOpen || activeView === "help" ? "text-[#D97706]" : "text-[#666660]"
+              }`}
+            />
+            <span>Menu</span>
+          </button>
+        </div>
+      </nav>
+    </>
   );
 }

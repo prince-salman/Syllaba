@@ -24,6 +24,7 @@ import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import {
   GlassySidebar,
+  MobileBottomNav,
   SidebarView,
 } from "@/client/components/layout/GlassySidebar";
 import {
@@ -41,6 +42,7 @@ import {
   UploadCloud,
   ListChecks,
   BookOpen,
+  PanelLeftOpen,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -53,6 +55,7 @@ export default function HomePage() {
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
   const [storedRoadmaps, setStoredRoadmaps] = useState<Roadmap[]>([]);
   const [sidebarView, setSidebarView] = useState<SidebarView>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [isClient, setIsClient] = useState(false);
 
   const currentScope = useMemo(
@@ -239,8 +242,10 @@ export default function HomePage() {
         isGlassActive ? "bg-glass-canvas" : "bg-[#F7F7F5]"
       }`}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[calc(100vh-4.75rem)] w-full">
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4.75rem)] w-full">
         <GlassySidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
           user={user}
           walletAddress={address}
           isWalletConnected={isConnected}
@@ -255,14 +260,27 @@ export default function HomePage() {
         />
 
         {/* Full-Width Main Workspace Area */}
-        <section className="lg:col-span-9 xl:col-span-10 px-5 py-6 sm:px-8 lg:px-10 bg-white/95">
+        <section className="flex-1 min-w-0 px-5 py-6 pb-28 sm:px-8 lg:px-10 lg:pb-10 bg-white/95">
           {/* Top Greeting & Date Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5E5E0]">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111111]">
-                {isId ? `Halo, ${displayName}` : `Hello, ${displayName}`}
-              </h1>
-              <p className="mt-1 text-sm text-[#666660]">{greetingSubtitle}</p>
+            <div className="flex items-start gap-3">
+              {!sidebarOpen && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="hidden lg:inline-flex items-center gap-1.5 rounded-xl border border-black/10 bg-[#F7F7F5] hover:bg-[#FEF3C7] px-3 py-2 text-xs font-bold text-[#111111] transition cursor-pointer mt-0.5 shrink-0"
+                  title={isId ? "Buka Sidebar" : "Open Sidebar"}
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                  <span>{isId ? "Menu" : "Sidebar"}</span>
+                </button>
+              )}
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111111]">
+                  {isId ? `Halo, ${displayName}` : `Hello, ${displayName}`}
+                </h1>
+                <p className="mt-1 text-sm text-[#666660]">{greetingSubtitle}</p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2.5 self-start sm:self-auto">
@@ -519,6 +537,20 @@ export default function HomePage() {
           )}
         </section>
       </div>
+
+      <MobileBottomNav
+        user={user}
+        walletAddress={address}
+        isWalletConnected={isConnected}
+        displayName={displayName}
+        activeView={sidebarView}
+        onSelectView={handleSelectSidebarView}
+        storedRoadmaps={storedRoadmaps}
+        activeRoadmapId={activeRoadmap?.id}
+        onSelectRoadmap={handleSelectStoredRoadmap}
+        onSignOut={() => void handleSignOut()}
+        onDisconnectWallet={disconnectWallet}
+      />
     </div>
   );
 }
