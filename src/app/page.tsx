@@ -40,6 +40,7 @@ import {
   HistoryPanel,
   SettingsPanel,
 } from "@/client/components/dashboard/WorkspacePanels";
+import { TierCertificateExchangePanel } from "@/client/components/roadmap/TierCertificateExchangePanel";
 import {
   Plus,
   Sparkles,
@@ -271,6 +272,11 @@ export default function HomePage() {
     if (sidebarView === "history") {
       return copy.historySub;
     }
+    if (sidebarView === "tier-exchange") {
+      return lang === "id"
+        ? "Akumulasi poin lintas PPT untuk menukar Sertifikat Tier (Bronze 20+ → Emerald) & $SYL Coin."
+        : "Accumulate points across PPT courses to exchange Tier Certificates (Bronze 20+ → Emerald) & $SYL Coins.";
+    }
     if (sidebarView === "settings-account" || sidebarView === "settings-language") {
       return copy.settingsSub;
     }
@@ -349,6 +355,15 @@ export default function HomePage() {
                 onRenameRoadmap={(id, title) => void handleRenameRoadmap(id, title)}
                 onDeleteRoadmap={(id) => void handleDeleteRoadmap(id)}
                 onCreateNew={() => setSidebarView("uploader")}
+              />
+            </div>
+          )}
+
+          {sidebarView === "tier-exchange" && (
+            <div className="mt-6">
+              <TierCertificateExchangePanel
+                roadmaps={storedRoadmaps}
+                currentScope={currentScope}
               />
             </div>
           )}
@@ -480,6 +495,7 @@ export default function HomePage() {
                   }
                 }}
                 onNewRoadmap={() => setSidebarView("uploader")}
+                onOpenTierExchange={() => setSidebarView("tier-exchange")}
               />
             </div>
           )}

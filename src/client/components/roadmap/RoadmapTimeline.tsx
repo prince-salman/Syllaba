@@ -53,6 +53,7 @@ interface RoadmapTimelineProps {
   roadmap: Roadmap;
   onUpdateRoadmap: (updated: Roadmap) => void;
   onNewRoadmap: () => void;
+  onOpenTierExchange?: () => void;
 }
 
 type WorkspaceTab = "timeline" | "certificate" | "materials" | "proofs";
@@ -72,6 +73,7 @@ export function RoadmapTimeline({
   roadmap,
   onUpdateRoadmap,
   onNewRoadmap,
+  onOpenTierExchange,
 }: RoadmapTimelineProps) {
   const { lang } = useLanguage();
   const wcopy = getWorkspaceCopy(lang);
@@ -622,6 +624,7 @@ export function RoadmapTimeline({
                 roadmap={roadmap}
                 onSaveCertificate={handleSaveCertificate}
                 onOpenExam={(stg) => setActiveExamModalStage(stg)}
+                onOpenTierExchange={onOpenTierExchange}
               />
             </ScrollReveal>
           )}

@@ -1,4 +1,5 @@
 import {
+  BlockchainCertificateRecord,
   CertificateTierId,
   PptDifficultyAnalysis,
   Roadmap,
@@ -364,6 +365,104 @@ export function computeGlobalAcademicPoints(
 
 const SYL_CLAIMS_PREFIX = "syllaba_coin_claims_v1";
 const SYL_REDEMPTIONS_PREFIX = "syllaba_coin_redemptions_v1";
+const SYL_TIER_CERTS_PREFIX = "syllaba_tier_certs_v1";
+
+export function computeGlobalPointsAcrossRoadmaps(
+  historyRoadmaps: Roadmap[],
+  activeOwnerScope?: string
+): {
+  allBreakdowns: RoadmapPointBreakdown[];
+  totalAccumulatedPoints: number;
+  totalEarnedSylCoins: number;
+  tierBonusSylCoins: number;
+  currentTier: CertificateTierMeta;
+  nextTier: CertificateTierMeta | null;
+  isBronzeUnlocked: boolean;
+} {
+  const map = new Map<string, Roadmap>();
+  for (const r of historyRoadmaps) {
+    if (!r || !r.id) continue;
+    const rScope =
+      r.ownerScope || (r as Roadmap & { _ownerScope?: string })._ownerScope;
+    if (activeOwnerScope && rScope && rScope !== activeOwnerScope) {
+      continue;
+    }
+    map.set(r.id, r);
+  }
+
+  const allBreakdowns = Array.from(map.values()).map(
+    computeRoadmapPointBreakdown
+  );
+  const totalAccumulatedPoints = allBreakdowns.reduce(
+    (sum, item) => sum + item.totalEarnedFromRoadmap,
+    0
+  );
+  const tierResolution = resolveTierByPoints(totalAccumulatedPoints);
+  const tierBonusMap: Record<CertificateTierId, number> = {
+    bronze: 100,
+    silver: 250,
+    gold: 500,
+    platinum: 900,
+    diamond: 1500,
+    emerald: 2500,
+  };
+  const tierBonusSylCoins = tierResolution.isBronzeUnlocked
+    ? tierBonusMap[tierResolution.currentTier.id]
+    : 0;
+  const roadmapSylSum = allBreakdowns.reduce(
+    (sum, item) => sum + item.totalSylFromRoadmap,
+    0
+  );
+
+  return {
+    allBreakdowns,
+    totalAccumulatedPoints,
+    totalEarnedSylCoins: roadmapSylSum + tierBonusSylCoins,
+    tierBonusSylCoins,
+    currentTier: tierResolution.currentTier,
+    nextTier: tierResolution.nextTier,
+    isBronzeUnlocked: tierResolution.isBronzeUnlocked,
+  };
+}
+
+export function getStoredTierCertificates(
+  scope = "guest"
+): Partial<Record<CertificateTierId, BlockchainCertificateRecord>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(`${SYL_TIER_CERTS_PREFIX}:${scope}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Partial<
+      Record<CertificateTierId, BlockchainCertificateRecord>
+    >;
+  } catch {
+    return {};
+  }
+}
+
+export function saveTierCertificateRecord(
+  cert: BlockchainCertificateRecord,
+  scope = "guest"
+): Partial<Record<CertificateTierId, BlockchainCertificateRecord>> {
+  const existing = getStoredTierCertificates(scope);
+  const next: Partial<Record<CertificateTierId, BlockchainCertificateRecord>> = {
+    ...existing,
+    [cert.tier]: { ...cert, ownerScope: scope },
+  };
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(
+        `${SYL_TIER_CERTS_PREFIX}:${scope}`,
+        JSON.stringify(next)
+      );
+    } catch {
+      // Ignore storage quota error
+    }
+  }
+  return next;
+}
 
 export function getStoredSylClaims(scope = "guest"): SyllabaCoinClaimRecord[] {
   if (typeof window === "undefined") return [];

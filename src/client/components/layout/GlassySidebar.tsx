@@ -7,6 +7,7 @@ import { Roadmap } from "@/shared/types/roadmap";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
 import {
+  Award,
   Check,
   ChevronDown,
   ChevronRight,
@@ -32,6 +33,7 @@ import {
 export type SidebarView =
   | "dashboard"
   | "uploader"
+  | "tier-exchange"
   | "history"
   | "settings-account"
   | "settings-language"
@@ -177,6 +179,28 @@ export function GlassySidebar({
               }`}
             >
               <Plus className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectView("tier-exchange")}
+              title={
+                lang === "id"
+                  ? "Tukar Sertifikat (Bronze 20+ Poin) & $SYL"
+                  : "Tier Certificate Exchange & $SYL"
+              }
+              aria-label={
+                lang === "id"
+                  ? "Tukar Sertifikat (Bronze 20+ Poin) & $SYL"
+                  : "Tier Certificate Exchange & $SYL"
+              }
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "tier-exchange"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <Award className="h-4 w-4" />
             </button>
           </nav>
 
@@ -426,6 +450,40 @@ export function GlassySidebar({
               </span>
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#111111] text-[#FACC15] text-[10px] font-bold">
                 +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectView("tier-exchange")}
+              className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition relative cursor-pointer ${
+                activeView === "tier-exchange"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs border border-[#FACC15]/40"
+                  : "text-[#52524C] hover:bg-[#FEF3C7]/70 hover:text-[#111111]"
+              }`}
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Award
+                  className={`h-4 w-4 shrink-0 ${
+                    activeView === "tier-exchange"
+                      ? "text-[#FACC15]"
+                      : "text-amber-700"
+                  }`}
+                />
+                <span className="truncate">
+                  {lang === "id"
+                    ? "Tukar Sertifikat & $SYL"
+                    : "Tier Exchange & $SYL"}
+                </span>
+              </span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[9px] font-black shrink-0 ${
+                  activeView === "tier-exchange"
+                    ? "bg-[#FACC15] text-[#111111]"
+                    : "bg-[#FEF3C7] text-[#92400E]"
+                }`}
+              >
+                Bronze+
               </span>
             </button>
           </nav>
@@ -966,6 +1024,26 @@ export function MobileBottomNav({
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               )}
+
+              <button
+                type="button"
+                onClick={() => handleSelect("tier-exchange")}
+                className={`w-full flex items-center justify-between rounded-xl px-4 py-2.5 text-xs font-bold ${
+                  activeView === "tier-exchange"
+                    ? "bg-[#111111] text-[#FACC15]"
+                    : "bg-[#FEF3C7] text-[#111111]"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-amber-700" />
+                  <span>
+                    {lang === "id"
+                      ? "Tukar Sertifikat (Bronze+) & $SYL"
+                      : "Tier Exchange (Bronze+) & $SYL"}
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
 
               <button
                 type="button"
