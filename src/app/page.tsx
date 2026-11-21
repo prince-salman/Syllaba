@@ -5,7 +5,7 @@ import { Roadmap } from "@/shared/types/roadmap";
 import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader";
 import { RoadmapTimeline } from "@/client/components/roadmap/RoadmapTimeline";
 import { getActiveRoadmap, saveRoadmap, getStoredRoadmaps, setActiveRoadmapId } from "@/client/utils/storage";
-import { BookOpen, Cpu, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Cpu, ShieldCheck, BookOpen, Clock, ArrowRight } from "lucide-react";
 
 export default function HomePage() {
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
@@ -41,96 +41,113 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-      {activeRoadmap ? (
-        <div className="space-y-6">
-          {storedRoadmaps.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              <span className="text-xs font-semibold text-slate-500 shrink-0">
-                Saved Courses:
-              </span>
-              {storedRoadmaps.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => handleSelectStoredRoadmap(r.id)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors shrink-0 cursor-pointer ${
-                    r.id === activeRoadmap.id
-                      ? "bg-brand-600 text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  {r.courseTitle}
-                </button>
-              ))}
-            </div>
-          )}
+    <div className={activeRoadmap ? "bg-slate-50/70 min-h-[calc(100vh-4rem)]" : "bg-dot-matrix min-h-[calc(100vh-4rem)]"}>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        {activeRoadmap ? (
+          <div className="space-y-6">
+            {storedRoadmaps.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0 mr-1">
+                  Saved Courses
+                </span>
+                {storedRoadmaps.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => handleSelectStoredRoadmap(r.id)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer border ${
+                      r.id === activeRoadmap.id
+                        ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
+                    }`}
+                  >
+                    {r.courseTitle}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          <RoadmapTimeline
-            roadmap={activeRoadmap}
-            onUpdateRoadmap={(updated) => {
-              setActiveRoadmap(updated);
-              setStoredRoadmaps(getStoredRoadmaps());
-            }}
-            onNewRoadmap={() => setActiveRoadmap(null)}
-          />
-        </div>
-      ) : (
-        <div className="space-y-10">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50/80 px-3 py-1 text-xs font-medium text-brand-800 mb-4">
-              <Cpu className="w-3.5 h-3.5" />
-              <span>Multi-Agent Academic Pacing &amp; On-Chain Proof</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              Turn Overwhelming Syllabi Into Verified 15-Minute Daily Roadmaps
-            </h1>
-            <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-              Upload course syllabi or rubrics. Syllaba extracts modules, slices deep work into anti-burnout micro-tasks, curates open-access scholarly references, and anchors study commitments on-chain.
-            </p>
+            <RoadmapTimeline
+              roadmap={activeRoadmap}
+              onUpdateRoadmap={(updated) => {
+                setActiveRoadmap(updated);
+                setStoredRoadmaps(getStoredRoadmaps());
+              }}
+              onNewRoadmap={() => setActiveRoadmap(null)}
+            />
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="rounded-lg bg-brand-50 p-2 text-brand-600 shrink-0">
-                <BookOpen className="w-4 h-4" />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start pt-2 lg:pt-6">
+            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-semibold text-brand-800 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-brand-500" />
+                <span>Multi-Agent Academic Pacing</span>
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">15-30m Micro-Task Slicing</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Deterministic TypeScript validator caps daily study at 150 minutes with rest intervals.
+
+              <div className="space-y-3">
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
+                  Turn Dense Syllabi Into Verified 15-Minute Daily Sprints
+                </h1>
+                <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+                  Syllaba extracts course deadlines, breaks heavy modules into anti-burnout micro-tasks, curates open-access research papers, and anchors your study commitment hash on-chain.
                 </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Autonomous Execution Architecture
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700 border border-brand-200">
+                      <Cpu className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-semibold text-slate-900">Agent 1, 2 &amp; 4: Slicer + Pacing Validator</p>
+                      <p className="text-slate-500 mt-0.5">Caps daily load at 150 mins with 15-30m micro-tasks.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <BookOpen className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-semibold text-slate-900">Agent 3: OpenAlex &amp; Wikipedia Curator</p>
+                      <p className="text-slate-500 mt-0.5">Pairs verified open-access literature directly to modules.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-semibold text-slate-900">On-Chain Proof Ledger</p>
+                      <p className="text-slate-500 mt-0.5">Deterministic keccak256 commitment signed via MetaMask.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 pt-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-brand-600" />
+                  15-30m micro-tasks
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <ArrowRight className="h-3.5 w-3.5 text-brand-600" />
+                  Zero-guilt auto reschedule
+                </span>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600 shrink-0">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">OpenAlex &amp; Wikipedia Curator</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Automatically matches verified open-access research papers to each course module.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="rounded-lg bg-blue-50 p-2 text-blue-600 shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Cryptographic Study Proof</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Sign verifiable study commitments with MetaMask on Base Sepolia and archive proofs.
-                </p>
-              </div>
+            <div className="lg:col-span-7">
+              <SyllabusUploader onRoadmapGenerated={handleRoadmapGenerated} />
             </div>
           </div>
-
-          <SyllabusUploader onRoadmapGenerated={handleRoadmapGenerated} />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Roadmap, RoadmapTask } from "@/shared/types/roadmap";
 import { RoadmapHeader } from "./RoadmapHeader";
 import { DailyTaskGroup } from "./DailyTaskGroup";
@@ -11,7 +11,9 @@ import { BurnoutRiskMeter } from "@/client/components/analytics/BurnoutRiskMeter
 import { FocusTimerModal } from "@/client/components/focus/FocusTimerModal";
 import { RescheduleModal } from "./RescheduleModal";
 import { updateTaskCompletion, updateSubtaskCompletion, saveRoadmap } from "@/client/utils/storage";
-import { BookOpen, CalendarDays, ShieldCheck } from "lucide-react";
+import { BookOpen, CalendarDays, ShieldCheck, FileKey2, ArrowUpRight } from "lucide-react";
+import { keccak256, stringToHex } from "viem";
+import { useAccount } from "wagmi";
 
 interface RoadmapTimelineProps {
   roadmap: Roadmap;
@@ -30,6 +32,18 @@ export function RoadmapTimeline({
   const [selectedTaskForTimer, setSelectedTaskForTimer] = useState<RoadmapTask | null>(null);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const { isConnected } = useAccount();
+
+  const roadmapHash = useMemo(() => {
+    const canonical = JSON.stringify({
+      id: roadmap.id,
+      courseTitle: roadmap.courseTitle,
+      totalDays: roadmap.totalDays,
+      totalTasks: roadmap.totalTasks,
+      targetEndDate: roadmap.targetEndDate,
+    });
+    return keccak256(stringToHex(canonical));
+  }, [roadmap.id, roadmap.courseTitle, roadmap.totalDays, roadmap.totalTasks, roadmap.targetEndDate]);
 
   const handleToggleTask = (taskId: string, completed: boolean) => {
     const updated = updateTaskCompletion(roadmap.id, taskId, completed);
@@ -134,7 +148,7 @@ export function RoadmapTimeline({
           {activeTab === "timeline" && (
             <>
               <ProgressOverview roadmap={roadmap} />
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-1">
                 {roadmap.dailySchedules.map((schedule) => (
                   <DailyTaskGroup
                     key={schedule.dayNumber}
@@ -156,7 +170,7 @@ export function RoadmapTimeline({
         </div>
 
         <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-20">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-xs">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Course Velocity
@@ -190,6 +204,39 @@ export function RoadmapTimeline({
           </div>
 
           <BurnoutRiskMeter metrics={roadmap.burnoutMetrics} />
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileKey2 className="h-4 w-4 text-brand-600" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Study Proof Digest
+                </h3>
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                  isConnected
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-slate-100 text-slate-600 border-slate-200"
+                }`}
+              >
+                {isConnected ? "Wallet Ready" : "Connect Wallet"}
+              </span>
+            </div>
+
+            <p className="font-mono text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 truncate">
+              {roadmapHash}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("proofs")}
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700 transition-colors cursor-pointer"
+            >
+              <span>Open On-Chain Proof Ledger</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </aside>
       </div>
 
