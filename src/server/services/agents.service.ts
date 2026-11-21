@@ -14,8 +14,8 @@ import { generateId } from "@/shared/utils";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { saveCuratedResourcesToDb, saveRoadmapToDb } from "@/server/db/proofs.repo";
 
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
-const AGENT_TIMEOUT_MS = 14000;
+const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-4-argon"];
+const AGENT_TIMEOUT_MS = 18000;
 
 async function generateJsonWithGemini(
   apiKey: string,
@@ -178,7 +178,8 @@ ${syllabusText.slice(0, 14000)}
 Rules:
 1. Group content by the actual slides or sections in the document (e.g., "Slide 1-2: <Exact Slide Heading>" or "Slide 3: <Exact Slide Heading>").
 2. Each module's "topics" array MUST contain the exact specific bullet points, definitions, formulas, examples, or sub-concepts written on those slides (4 to 8 specific items per module).
-3. Do NOT output generic placeholders like "Core concepts" or "Introduction". Use the exact terminology and language of the document.
+3. Wrap all mathematical formulas, complexities, equations, Greek symbols, or chemical notations in inline LaTeX delimiters $...$ (for example: $T(n) = aT(n/b) + f(n)$, $O(n \\log n)$, $(4n+2)\\ \\pi$, $MRS = \\frac{MU_x}{MU_y}$).
+4. Do NOT output generic placeholders like "Core concepts" or "Introduction". Use the exact terminology and language of the document.
 
 Return JSON matching:
 {
@@ -444,11 +445,15 @@ ${JSON.stringify(extraction.modules)}
 Raw Uploaded PPT / Document Content:
 ${rawSlideContext}
 
-STRICT SPECIFICITY RULES:
-1. Every task "title" MUST name the specific slide/section and exact concept from the PPT (e.g., "Slide 3-4: Thesis Statement & Controlling Idea in Essay Introductions").
-2. Every task "description" MUST summarize the actual bullet points or formulas from those slides.
-3. Every item in "subtasks" (2 to 4 subtasks per task) MUST be a concrete study action referencing the specific points on that slide (never write generic strings like "Step 1" or "Read chapter").
-4. Distribute the slides progressively from Day 1 to Day ${targetDays}.
+STRICT SPECIFICITY & LATEX RULES:
+1. Every task "title" MUST name the specific slide/section and exact concept from the PPT (e.g., "Slide 3-4: Thesis Statement & Controlling Idea in Essay Introductions" or "Slide 2: Master Theorem $T(n) = aT(n/b) + f(n)$").
+2. Every task "description" MUST summarize the actual bullet points, definitions, mechanisms, or formulas from those slides.
+3. Every item in "subtasks" (3 to 4 detailed breakdown steps per task) MUST be a step-by-step micro-guide quoting the specific concepts, terms, formulas, and examples on that slide:
+   - Step 1: Specific concept/definition from the slide
+   - Step 2: Technical mechanism, formula derivation, or structure analysis from the slide
+   - Step 3: Concrete example or practice application directly based on the slide
+4. Format ALL mathematical formulas, equations, asymptotic bounds, Greek symbols, or chemical notations in inline LaTeX delimiters $...$ (e.g. $O(n \\log n)$, $\\frac{\\partial U}{\\partial x}$, $(4n+2)\\ \\pi$).
+5. Distribute the slides progressively from Day 1 to Day ${targetDays}. Never write generic text like "Step 1", "Read chapter", or "Complete focused sprint".
 
 Return JSON:
 {

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { RoadmapTask } from "@/shared/types/roadmap";
 import { CategoryBadge, CognitiveBadge } from "@/client/components/common/Badge";
+import { LatexText } from "@/client/components/common/LatexText";
 import { formatMinutes } from "@/shared/utils";
 import { Check, Clock, ChevronDown, ChevronUp, Timer } from "lucide-react";
 
@@ -19,7 +20,7 @@ export function TaskItem({
   onToggleSubtask,
   onOpenFocusTimer,
 }: TaskItemProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <div
@@ -53,17 +54,19 @@ export function TaskItem({
                 task.isCompleted ? "line-through text-slate-400" : "text-slate-900"
               }`}
             >
-              {task.title}
+              <LatexText text={task.title} />
             </h4>
             {task.moduleTitle && (
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-                {task.moduleTitle}
+              <span className="rounded-md bg-[#FEF3C7] border border-[#FACC15]/40 px-2 py-0.5 text-[10px] font-bold text-[#111111]">
+                <LatexText text={task.moduleTitle} />
               </span>
             )}
           </div>
 
           {task.description && (
-            <p className="mt-1 text-xs text-slate-500 line-clamp-2">{task.description}</p>
+            <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+              <LatexText text={task.description} />
+            </p>
           )}
 
           <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -78,10 +81,10 @@ export function TaskItem({
               <button
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800 transition-colors cursor-pointer ml-1"
+                className="inline-flex items-center gap-1 rounded-md bg-[#F7F7F5] hover:bg-[#FEF3C7]/70 px-2 py-0.5 text-xs font-bold text-[#111111] transition-colors cursor-pointer ml-1"
               >
                 <span>
-                  {task.subtasks.filter((s) => s.isCompleted).length}/{task.subtasks.length} steps
+                  Breakdown Steps ({task.subtasks.filter((s) => s.isCompleted).length}/{task.subtasks.length})
                 </span>
                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
@@ -89,13 +92,13 @@ export function TaskItem({
           </div>
 
           {isExpanded && task.subtasks.length > 0 && (
-            <ul className="mt-2.5 space-y-1.5 pl-2.5 border-l-2 border-brand-200">
+            <ul className="mt-2.5 space-y-2 rounded-xl bg-[#FFFDF8] border border-[#E5E5E0] p-3 pl-3.5 border-l-4 border-l-[#FACC15]">
               {task.subtasks.map((subtask) => (
-                <li key={subtask.id} className="flex items-center gap-2 text-xs text-slate-700">
+                <li key={subtask.id} className="flex items-start gap-2.5 text-xs text-slate-800 leading-relaxed">
                   <button
                     type="button"
                     onClick={() => onToggleSubtask(task.id, subtask.id, !subtask.isCompleted)}
-                    className="-m-1 p-1 touch-manipulation flex items-center justify-center shrink-0 cursor-pointer"
+                    className="mt-0.5 -m-1 p-1 touch-manipulation flex items-center justify-center shrink-0 cursor-pointer"
                     aria-pressed={subtask.isCompleted}
                   >
                     <span
@@ -108,8 +111,8 @@ export function TaskItem({
                       {subtask.isCompleted && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                     </span>
                   </button>
-                  <span className={subtask.isCompleted ? "line-through text-slate-400" : "text-slate-700"}>
-                    {subtask.title}
+                  <span className={subtask.isCompleted ? "line-through text-slate-400" : "text-slate-800"}>
+                    <LatexText text={subtask.title} />
                   </span>
                 </li>
               ))}

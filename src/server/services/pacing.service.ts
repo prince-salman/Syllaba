@@ -6,14 +6,25 @@ interface SyllabusSection {
   items: string[];
 }
 
+function enrichWithLatex(input: string): string {
+  if (!input || input.includes("$")) return input;
+  return input
+    .replace(/\b(O|Theta|Omega)\(n\s*log\s*n\)/gi, "$$\\$1(n \\log n)$$")
+    .replace(/\b(O|Theta|Omega)\(n\^2\)/gi, "$$\\$1(n^2)$$")
+    .replace(/\b(O|Theta|Omega)\(2\^n\)/gi, "$$\\$1(2^n)$$")
+    .replace(/\bT\(n\)\s*=\s*a\s*T\(n\/b\)\s*\+\s*f\(n\)/gi, "$$T(n) = aT(n/b) + f(n)$$")
+    .replace(/\((4n\s*\+\s*2)\)/gi, "$$(4n + 2)$$")
+    .replace(/\[4\+2\]/g, "$$[4+2]$$");
+}
+
 function splitIntoSpecificPoints(rawLine: string): string[] {
-  const cleaned = rawLine.replace(/^[-*•●▪▸\d.)]+\s*/, "").trim();
+  const cleaned = enrichWithLatex(rawLine.replace(/^[-*•●▪▸\d.)]+\s*/, "").trim());
   if (!cleaned) return [];
-  if (cleaned.length <= 160) return [cleaned];
+  if (cleaned.length <= 180) return [cleaned];
 
   return cleaned
     .split(/(?:[•●▪▸;|]|\.\s+)/)
-    .map((chunk) => chunk.trim())
+    .map((chunk) => enrichWithLatex(chunk.trim()))
     .filter((chunk) => chunk.length > 3)
     .slice(0, 8);
 }
@@ -146,13 +157,32 @@ export function generateHeuristicRoadmap(
             }`
           : `${section.title}: ${shortLead}`;
 
+      const stagePrefixes = [
+        `Langkah 1 (Konsep & Definisi ${section.title})`,
+        `Langkah 2 (Analisis Struktur / Rumus)`,
+        `Langkah 3 (Bedah Contoh & Implementasi Slide)`,
+        `Langkah 4 (Latihan & Pembuktian Mandiri)`,
+      ];
+
       const specificSubtasks =
         chunk.length >= 2
-          ? chunk.map((pt) => `Pelajari & kuasai poin materi: ${pt}`)
+          ? [
+              ...chunk.map(
+                (pt, idx) => `${stagePrefixes[idx % stagePrefixes.length]}: ${pt}`
+              ),
+              ...(chunk.length === 2
+                ? [
+                    `Langkah 3 (Sintesis & Evaluasi ${cleanSectionTopic}): Rangkum keterkaitan antara "${chunk[0].slice(
+                      0,
+                      55
+                    )}" dan "${chunk[1].slice(0, 55)}"`,
+                  ]
+                : []),
+            ]
           : [
-              `Pahami materi utama pada ${section.title}: ${leadPoint}`,
-              `Catat poin penting & contoh spesifik dari "${cleanSectionTopic}"`,
-              `Uji pemahaman mandiri untuk materi "${shortLead}"`,
+              `Langkah 1 (Konsep Utama ${section.title}): ${leadPoint}`,
+              `Langkah 2 (Analisis Mendalam): Bedah komponen teknis, definisi, atau rumus pada "${cleanSectionTopic}"`,
+              `Langkah 3 (Aplikasi & Latihan): Kerjakan contoh kasus dari ${section.title} terkait "${shortLead}"`,
             ];
 
       rawTasks.push({

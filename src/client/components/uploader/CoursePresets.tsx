@@ -18,32 +18,25 @@ export const PRESET_COURSES: PresetCourse[] = [
     category: "Computer Science",
     icon: Terminal,
     text: `Course: CS 161 - Design & Analysis of Algorithms
-Instructor: Dr. Miller
+Slide 1: Asymptotic Complexity & Recurrence Bounds
+- Big-O $O(g(n))$, $\\Omega(g(n))$, and tight bound $\\Theta(g(n))$ formal definitions
+- Master Theorem recurrence $T(n) = aT(n/b) + f(n)$ across cases $f(n) = O(n^{\\log_b a - \\epsilon})$
+- Recursion tree summation $\\sum_{i=0}^{\\log_b n} a^i f(n / b^i)$ and Akra-Bazzi method
 
-Week 1: Asymptotic Analysis and Recurrence Relations
-- Big-O, Omega, and Theta notations
-- Master Theorem and recursion trees
-- Reading: CLRS Chapters 1-4
-- Problem Set 1: Recurrence bounding
+Slide 2: Divide and Conquer & Matrix Multiplication
+- Merge Sort $T(n) = 2T(n/2) + \\Theta(n) \\Rightarrow \\Theta(n \\log n)$ and Quicksort randomized pivot
+- Strassen Matrix Multiplication reducing $8$ multiplications to $7$ ($O(n^{\\log_2 7}) \\approx O(n^{2.807})$)
+- Deterministic Median-of-Medians selection in worst-case $O(n)$ linear time
 
-Week 2: Divide and Conquer Algorithms
-- Merge sort and Quick sort optimizations
-- Strassen's matrix multiplication
-- Finding the median in linear time
-- Problem Set 2: Custom divide-and-conquer strategy
+Slide 3: Dynamic Programming & Memoization State Transitions
+- Bellman optimality & 0/1 Knapsack recurrence $DP[i][w] = \\max(DP[i-1][w], v_i + DP[i-1][w - w_i])$
+- Longest Common Subsequence (LCS) table in $O(m \\cdot n)$ and sequence reconstruction
+- Matrix Chain Multiplication $m[i,j] = \\min_{i \\le k < j} \\{m[i,k] + m[k+1,j] + p_{i-1}p_k p_j\\}$
 
-Week 3: Dynamic Programming
-- Optimal substructure and overlapping subproblems
-- 0/1 Knapsack, Longest Common Subsequence
-- Matrix chain multiplication
-- Reading: CLRS Chapter 15
-- Midterm Project: Implement dynamic programming memoization cache
-
-Week 4: Greedy Algorithms & Graph Fundamentals
-- Huffman coding and activity selection
-- Minimum Spanning Trees (Kruskal and Prim)
-- Dijkstra and Bellman-Ford shortest paths
-- Final Assessment & Practice Benchmark`,
+Slide 4: Greedy Choice & Shortest-Path Graph Algorithms
+- Huffman prefix-free tree construction with priority queue $O(n \\log n)$
+- Kruskal and Prim Minimum Spanning Tree (MST) cut property in $O(E \\log V)$
+- Dijkstra non-negative weights vs Bellman-Ford relaxation $\\text{dist}[v] \\le \\text{dist}[u] + w(u,v)$`,
   },
   {
     id: "chem230",
@@ -52,25 +45,20 @@ Week 4: Greedy Algorithms & Graph Fundamentals
     category: "Chemistry",
     icon: FlaskConical,
     text: `Course: CHEM 230 - Organic Chemistry & Reaction Mechanisms
-Department: Chemistry & Chemical Biology
+Slide 1: Conjugated Pi Systems & Pericyclic Diels-Alder
+- HOMO-LUMO frontier molecular orbital (FMO) overlap in 1,3-butadiene ($\\psi_1.. \\psi_4$)
+- Suprafacial $[4+2]$ Diels-Alder cycloaddition endo/exo stereoselectivity and s-cis conformation
+- Woodward-Fieser rules for UV-Vis $\\lambda_{\\max}$ and molar absorptivity $\\varepsilon = \\frac{A}{c \\cdot l}$
 
-Unit 1: Conjugated Systems and Pericyclic Reactions
-- Molecular orbital theory and 1,3-butadiene
-- Diels-Alder [4+2] cycloadditions and stereochemical selectivity
-- Ultraviolet-visible spectroscopy of conjugated dienes
-- Assigned Lab: Synthesis of bicyclic adduct
+Slide 2: Aromaticity & Electrophilic Aromatic Substitution (EAS)
+- Huckel planar conjugation rule $(4n + 2)\\ \\pi$ electrons ($n = 0, 1, 2, \\dots$) vs $4n$ antiaromaticity
+- Sigma-complex (arenium ion) rate-determining step $\\Delta G^{\\ddagger}$ in nitration ($\\text{NO}_2^+$) and sulfonation
+- Ortho/para activating ($-\\text{OH}, -\\text{OCH}_3$) vs meta deactivating ($-\\text{NO}_2, -\\text{CF}_3$) directing effects
 
-Unit 2: Aromaticity and Electrophilic Aromatic Substitution
-- Huckel's rule (4n+2) criteria
-- Halogenation, nitration, sulfonation, and Friedel-Crafts alkylation/acylation
-- Directing effects of activating and deactivating substituents
-- Synthesis problem set: Multi-step benzene derivatives
-
-Unit 3: Carbonyl Chemistry & Enolates
-- Nucleophilic addition to aldehydes and ketones
-- Carboxylic acid derivatives and Fischer esterification
-- Aldol, Claisen, and Michael additions
-- Comprehensive Exam Review and Mechanism Drill`,
+Slide 3: Carbonyl Nucleophilic Addition & Enolate Condensations
+- Bürgi-Dunitz trajectory ($\\approx 107^{\\circ}$) nucleophilic attack on aldehydes/ketones
+- Keto-enol tautomerism equilibrium $K_{\\text{eq}} = \\frac{[\\text{Enol}]}{[\\text{Keto}]}$ and kinetic ($\\text{LDA}, -78^{\\circ}\\text{C}$) vs thermodynamic enolates
+- Aldol condensation $\\beta$-hydroxy carbonyl dehydration and Claisen ester condensation`,
   },
   {
     id: "econ202",
@@ -79,25 +67,20 @@ Unit 3: Carbonyl Chemistry & Enolates
     category: "Economics",
     icon: TrendingUp,
     text: `Course: ECON 202 - Intermediate Microeconomic Analysis
-Instructor: Prof. Anderson
+Slide 1: Consumer Utility Maximization & Lagrangian Dual
+- Constrained optimization $\\mathcal{L}(x_1, x_2, \\lambda) = U(x_1, x_2) + \\lambda(I - P_1 x_1 - P_2 x_2)$
+- Tangency condition $MRS_{12} = \\frac{\\partial U / \\partial x_1}{\\partial U / \\partial x_2} = \\frac{P_1}{P_2}$ under Cobb-Douglas $U = x_1^{\\alpha} x_2^{1-\\alpha}$
+- Slutsky decomposition $\\frac{\\partial x_1}{\\partial P_1} = \\frac{\\partial h_1}{\\partial P_1} - x_1 \\frac{\\partial x_1}{\\partial I}$ (substitution vs income effect)
 
-Module 1: Consumer Choice and Utility Maximization
-- Indifference curves and budget constraints
-- Income and substitution effects (Slutsky equation)
-- Compensated and uncompensated demand curves
-- Assignment 1: Utility optimization mathematical derivations
+Slide 2: Production Isoquants, Cost Functions & Monopoly Pricing
+- Marginal Rate of Technical Substitution $MRTS_{LK} = \\frac{MP_L}{MP_K} = \\frac{w}{r}$ and returns to scale
+- Monopoly Lerner Index $L = \\frac{P - MC}{P} = -\\frac{1}{\\varepsilon_d}$ and Deadweight Loss (DWL) integral
+- First-, second-, and third-degree price discrimination $MR_1(q_1) = MR_2(q_2) = MC(Q)$
 
-Module 2: Production Theory and Market Structures
-- Isoquants, marginal rate of technical substitution
-- Cost minimization in short vs long run
-- Perfect competition vs Monopoly equilibrium
-- Deadweight loss and price discrimination
-
-Module 3: Game Theory & Market Strategy
-- Simultaneous games, Nash equilibrium, and prisoner's dilemma
-- Sequential games and backward induction
-- Oligopoly models: Cournot, Bertrand, and Stackelberg
-- Final Term Paper: Empirical analysis of digital platform monopolies`,
+Slide 3: Strategic Game Theory & Oligopoly Equilibria
+- Nash Equilibrium best-response correspondence $s_i^* \\in BR_i(s_{-i}^*)$ and mixed-strategy indifference
+- Cournot quantity competition $q_i^* = \\frac{a - c}{3b}$ vs Bertrand price competition ($P = MC$)
+- Stackelberg sequential leader-follower backward induction via Subgame Perfect Nash Equilibrium (SPNE)`,
   },
 ];
 
