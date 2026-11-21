@@ -1,8 +1,8 @@
 import { Roadmap } from "@/shared/types/roadmap";
 import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
 
-const STORAGE_KEY_ROADMAPS = "syllaba_roadmaps_v1";
-const STORAGE_KEY_ACTIVE_ID = "syllaba_active_roadmap_id";
+const STORAGE_PREFIX = "syllaba_roadmaps_v2";
+const ACTIVE_ID_PREFIX = "syllaba_active_roadmap_id_v2";
 const STORAGE_KEY_API_KEY = "syllaba_gemini_api_key";
 
 export interface SupabaseSyncStatus {
@@ -25,14 +25,33 @@ function isValidRoadmap(item: unknown): item is Roadmap {
   );
 }
 
+export function resolveOwnerScope(
+  walletAddress?: string | null,
+  authUserId?: string | null
+): string {
+  const wallet = walletAddress?.trim().toLowerCase();
+  if (wallet) return `wallet_${wallet}`;
+  const uid = authUserId?.trim();
+  if (uid) return `user_${uid}`;
+  return "guest";
+}
+
+function roadmapsKey(scope = "guest"): string {
+  return `${STORAGE_PREFIX}:${scope}`;
+}
+
+function activeIdKey(scope = "guest"): string {
+  return `${ACTIVE_ID_PREFIX}:${scope}`;
+}
+
 export function getLastSupabaseSyncStatus(): SupabaseSyncStatus | null {
   return lastSyncStatus;
 }
 
-export function getStoredRoadmaps(): Roadmap[] {
+export function getStoredRoadmaps(scope = "guest"): Roadmap[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_ROADMAPS);
+    const raw = localStorage.getItem(roadmapsKey(scope));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -43,20 +62,22 @@ export function getStoredRoadmaps(): Roadmap[] {
   }
 }
 
-export function saveRoadmaps(roadmaps: Roadmap[]): void {
+export function saveRoadmaps(roadmaps: Roadmap[], scope = "guest"): void {
   if (typeof window === "undefined") return;
   try {
     const valid = roadmaps.filter(isValidRoadmap);
-    localStorage.setItem(STORAGE_KEY_ROADMAPS, JSON.stringify(valid));
+    localStorage.setItem(roadmapsKey(scope), JSON.stringify(valid));
   } catch (err) {
     console.error("[storage] Failed to write roadmaps to localStorage:", err);
   }
 }
 
 export async function syncRoadmapToSupabase(
-  roadmap: Roadmap
+  roadmap: Roadmap,
+  scope = "guest"
 ): Promise<SupabaseSyncStatus> {
   const now = new Date().toISOString();
+  const scopedId = `${scope}__${roadmap.id}`;
 
   if (!isSupabaseConfigured || !supabase) {
     const status: SupabaseSyncStatus = {
@@ -73,9 +94,9 @@ export async function syncRoadmapToSupabase(
   try {
     const { error } = await supabase.from("roadmaps").upsert(
       {
-        id: roadmap.id,
+        id: scopedId,
         course_title: roadmap.courseTitle,
-        payload: roadmap,
+        payload: { ...roadmap, _ownerScope: scope },
         updated_at: now,
       },
       { onConflict: "id" }
@@ -116,8 +137,10 @@ export async function syncRoadmapToSupabase(
   }
 }
 
-export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
-  const localRoadmaps = getStoredRoadmaps();
+export async function hydrateRoadmapsFromSupabase(
+  scope = "guest"
+): Promise<Roadmap[]> {
+  const localRoadmaps = getStoredRoadmaps(scope);
 
   if (!isSupabaseConfigured || !supabase) {
     return localRoadmaps;
@@ -126,7 +149,8 @@ export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
   try {
     const { data, error } = await supabase
       .from("roadmaps")
-      .select("payload")
+      .select("id, payload")
+      .like("id", `${scope}__%`)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -141,7 +165,6 @@ export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
       .filter(isValidRoadmap);
 
     if (remoteRoadmaps.length === 0) {
-      saveRoadmaps(localRoadmaps);
       return localRoadmaps;
     }
 
@@ -156,7 +179,7 @@ export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
     }
 
     const merged = Array.from(mergedMap.values());
-    saveRoadmaps(merged);
+    saveRoadmaps(merged, scope);
     return merged;
   } catch (err) {
     console.error("[storage] Unexpected error reading Supabase roadmaps:", err);
@@ -164,34 +187,34 @@ export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
   }
 }
 
-export function saveRoadmap(roadmap: Roadmap): void {
+export function saveRoadmap(roadmap: Roadmap, scope = "guest"): void {
   if (!isValidRoadmap(roadmap)) return;
-  const roadmaps = getStoredRoadmaps();
+  const roadmaps = getStoredRoadmaps(scope);
   const index = roadmaps.findIndex((r) => r.id === roadmap.id);
   if (index >= 0) {
     roadmaps[index] = roadmap;
   } else {
     roadmaps.unshift(roadmap);
   }
-  saveRoadmaps(roadmaps);
-  setActiveRoadmapId(roadmap.id);
+  saveRoadmaps(roadmaps, scope);
+  setActiveRoadmapId(roadmap.id, scope);
 
-  void syncRoadmapToSupabase(roadmap);
+  void syncRoadmapToSupabase(roadmap, scope);
 }
 
-export function getActiveRoadmapId(): string | null {
+export function getActiveRoadmapId(scope = "guest"): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+  return localStorage.getItem(activeIdKey(scope));
 }
 
-export function setActiveRoadmapId(id: string): void {
+export function setActiveRoadmapId(id: string, scope = "guest"): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY_ACTIVE_ID, id);
+  localStorage.setItem(activeIdKey(scope), id);
 }
 
-export function getActiveRoadmap(): Roadmap | null {
-  const id = getActiveRoadmapId();
-  const roadmaps = getStoredRoadmaps();
+export function getActiveRoadmap(scope = "guest"): Roadmap | null {
+  const id = getActiveRoadmapId(scope);
+  const roadmaps = getStoredRoadmaps(scope);
   if (id) {
     const found = roadmaps.find((r) => r.id === id);
     if (found) return found;
@@ -202,9 +225,10 @@ export function getActiveRoadmap(): Roadmap | null {
 export function updateTaskCompletion(
   roadmapId: string,
   taskId: string,
-  completed: boolean
+  completed: boolean,
+  scope = "guest"
 ): Roadmap | null {
-  const roadmaps = getStoredRoadmaps();
+  const roadmaps = getStoredRoadmaps(scope);
   const roadmap = roadmaps.find((r) => r.id === roadmapId);
   if (!roadmap) return null;
 
@@ -221,7 +245,7 @@ export function updateTaskCompletion(
 
   roadmap.completedTasks = totalCompleted;
   roadmap.updatedAt = new Date().toISOString();
-  saveRoadmap(roadmap);
+  saveRoadmap(roadmap, scope);
   return roadmap;
 }
 
@@ -229,9 +253,10 @@ export function updateSubtaskCompletion(
   roadmapId: string,
   taskId: string,
   subtaskId: string,
-  completed: boolean
+  completed: boolean,
+  scope = "guest"
 ): Roadmap | null {
-  const roadmaps = getStoredRoadmaps();
+  const roadmaps = getStoredRoadmaps(scope);
   const roadmap = roadmaps.find((r) => r.id === roadmapId);
   if (!roadmap) return null;
 
@@ -250,7 +275,7 @@ export function updateSubtaskCompletion(
 
   roadmap.completedTasks = totalCompleted;
   roadmap.updatedAt = new Date().toISOString();
-  saveRoadmap(roadmap);
+  saveRoadmap(roadmap, scope);
   return roadmap;
 }
 
