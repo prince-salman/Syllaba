@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   PanelLeftClose,
+  PanelLeftOpen,
   Pencil,
   Plus,
   Settings,
@@ -39,6 +40,7 @@ export type SidebarView =
 interface GlassySidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onToggle?: () => void;
   user: User | null;
   walletAddress: string | null;
   isWalletConnected: boolean;
@@ -57,6 +59,7 @@ interface GlassySidebarProps {
 export function GlassySidebar({
   isOpen,
   onClose,
+  onToggle,
   user,
   walletAddress,
   isWalletConnected,
@@ -80,7 +83,13 @@ export function GlassySidebar({
     activeView === "settings-account" || activeView === "settings-language";
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
 
-  if (!isOpen) return null;
+  const handleToggleSidebar = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      onClose();
+    }
+  };
 
   const handleToggleSettings = () => {
     setSettingsOpen((prev) => !prev);
@@ -102,6 +111,216 @@ export function GlassySidebar({
     : "Syllaba";
 
   const isAuthenticated = Boolean(user || isWalletConnected);
+
+  if (!isOpen) {
+    return (
+      <aside
+        className={`hidden lg:flex w-[4.5rem] shrink-0 border-r py-4 px-2.5 flex-col items-center justify-between gap-4 transition-all duration-200 ${
+          isAuthenticated
+            ? "border-white/50 bg-gradient-to-b from-white/85 via-[#FFFDF5]/80 to-[#FEF9C3]/65 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
+            : "border-[#E5E5E0] bg-[#FFFDF8]/90 backdrop-blur-xl"
+        }`}
+      >
+        <div className="flex flex-col items-center gap-3 w-full">
+          {/* Expand Sidebar Button */}
+          <button
+            type="button"
+            onClick={handleToggleSidebar}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/90 text-[#111111] hover:bg-[#FEF3C7] transition cursor-pointer shadow-2xs"
+            title={copy.sidebarBtn}
+            aria-label={copy.sidebarBtn}
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+
+          {/* Compact Profile Avatar */}
+          <button
+            type="button"
+            onClick={() => onSelectView("settings-account")}
+            title={`${displayName} (${secondaryIdentifier})`}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold border transition cursor-pointer ${
+              isAuthenticated
+                ? "bg-[#111111] border-[#111111] text-[#FACC15] shadow-xs"
+                : "bg-[#FEF3C7] border-[#F5B700]/40 text-[#111111]"
+            }`}
+          >
+            {displayName.charAt(0).toUpperCase()}
+          </button>
+
+          <div className="h-px w-8 bg-[#E5E5E0]" />
+
+          {/* Core Workspace Icons */}
+          <nav className="flex flex-col items-center gap-1.5 w-full">
+            <button
+              type="button"
+              onClick={() => onSelectView("dashboard")}
+              title={copy.dashboard}
+              aria-label={copy.dashboard}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "dashboard"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectView("uploader")}
+              title={copy.newSyllabus}
+              aria-label={copy.newSyllabus}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "uploader"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </nav>
+
+          {/* Courses Quick Icons */}
+          {storedRoadmaps.length > 0 && (
+            <>
+              <div className="h-px w-8 bg-[#E5E5E0]" />
+              <div className="flex flex-col items-center gap-1.5 w-full">
+                {storedRoadmaps.slice(0, 4).map((r) => {
+                  const isSelected =
+                    activeView === "dashboard" && activeRoadmapId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => onSelectRoadmap(r.id)}
+                      title={r.courseTitle}
+                      className={`relative flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold transition cursor-pointer ${
+                        isSelected
+                          ? "bg-[#FACC15] text-[#111111] border border-[#111111]/20 shadow-2xs"
+                          : "bg-white/70 text-[#52524C] hover:bg-white hover:text-[#111111] border border-black/5"
+                      }`}
+                    >
+                      <FolderKanban className="h-3.5 w-3.5" />
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="h-px w-8 bg-[#E5E5E0]" />
+
+          {/* 1-4 Account & Tools Icons */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            {!user && !isWalletConnected && (
+              <Link
+                href="/login"
+                title={copy.login}
+                aria-label={copy.login}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FEF3C7] text-[#111111] hover:bg-[#FACC15] border border-[#FACC15]/60 transition"
+              >
+                <LogIn className="h-4 w-4" />
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onSelectView("history")}
+              title={copy.history}
+              aria-label={copy.history}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "history"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <History className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectView("settings-account")}
+              title={`${copy.setting} > ${copy.account}`}
+              aria-label={`${copy.setting} > ${copy.account}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "settings-account"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectView("settings-language")}
+              title={`${copy.setting} > ${copy.language} (${lang.toUpperCase()})`}
+              aria-label={`${copy.setting} > ${copy.language}`}
+              className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "settings-language"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <Globe className="h-4 w-4" />
+              <span className="absolute -bottom-0.5 -right-0.5 rounded bg-[#111111] px-1 text-[8px] font-mono font-bold uppercase text-[#FACC15] border border-white">
+                {lang}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectView("help")}
+              title={copy.helpContact}
+              aria-label={copy.helpContact}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition cursor-pointer ${
+                activeView === "help"
+                  ? "bg-[#111111] text-[#FACC15] shadow-xs"
+                  : "text-[#52524C] hover:bg-white/80 hover:text-[#111111]"
+              }`}
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Actions: New Sprint + Logout */}
+        <div className="flex flex-col items-center gap-2 w-full">
+          <button
+            type="button"
+            onClick={() => onSelectView("uploader")}
+            title={copy.startSprint}
+            aria-label={copy.startSprint}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111111] text-[#FACC15] hover:bg-[#262626] shadow-xs transition cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4" />
+          </button>
+
+          {user ? (
+            <button
+              type="button"
+              onClick={onSignOut}
+              title={copy.logout}
+              aria-label={copy.logout}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/80 text-[#D97706] hover:bg-[#FEF3C7] hover:text-[#111111] transition cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          ) : isWalletConnected ? (
+            <button
+              type="button"
+              onClick={onDisconnectWallet}
+              title={copy.disconnectWallet}
+              aria-label={copy.disconnectWallet}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white/80 text-[#D97706] hover:bg-[#FEF3C7] hover:text-[#111111] transition cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside

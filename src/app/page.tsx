@@ -50,7 +50,6 @@ import {
   UploadCloud,
   ListChecks,
   BookOpen,
-  PanelLeftOpen,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -294,6 +293,7 @@ export default function HomePage() {
         <GlassySidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          onToggle={() => setSidebarOpen((prev) => !prev)}
           user={user}
           walletAddress={address}
           isWalletConnected={isConnected}
@@ -314,17 +314,6 @@ export default function HomePage() {
           {/* Top Greeting & Date Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-[#E5E5E0]">
             <div className="flex items-start gap-3 min-w-0">
-              {!sidebarOpen && (
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  className="hidden lg:inline-flex items-center gap-1.5 rounded-xl border border-black/10 bg-[#F7F7F5] hover:bg-[#FEF3C7] px-3 py-2 text-xs font-bold text-[#111111] transition cursor-pointer mt-0.5 shrink-0"
-                  title={copy.sidebarBtn}
-                >
-                  <PanelLeftOpen className="h-4 w-4" />
-                  <span>{copy.sidebarBtn}</span>
-                </button>
-              )}
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-[#111111] break-words">
                   {copy.hello}, {displayName}
