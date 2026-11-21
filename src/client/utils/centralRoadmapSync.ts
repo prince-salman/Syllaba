@@ -5,6 +5,7 @@ import { Roadmap } from "@/shared/types/roadmap";
 import {
   saveRoadmap as saveLocalRoadmap,
   getStoredRoadmaps as getLocalRoadmaps,
+  resolveOwnerScope,
 } from "@/client/utils/storage";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -55,9 +56,12 @@ export async function fetchCentralRoadmapsByWallet(
   walletAddress: string
 ): Promise<Roadmap[]> {
   const normalized = normalizeWalletAddress(walletAddress);
-  const localRoadmaps = getLocalRoadmaps();
+  if (!normalized) return [];
 
-  if (!normalized || !supabase) {
+  const scope = resolveOwnerScope(normalized, null);
+  const localRoadmaps = getLocalRoadmaps(scope);
+
+  if (!supabase) {
     return localRoadmaps;
   }
 
@@ -84,7 +88,7 @@ export async function fetchCentralRoadmapsByWallet(
     const merged = new Map<string, Roadmap>();
     for (const rm of remoteRoadmaps) {
       merged.set(rm.id, rm);
-      saveLocalRoadmap(rm);
+      saveLocalRoadmap(rm, scope);
     }
     for (const local of localRoadmaps) {
       if (!merged.has(local.id)) {
