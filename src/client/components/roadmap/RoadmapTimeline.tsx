@@ -610,7 +610,7 @@ export function RoadmapTimeline({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-snug">
-                  Tier: Bronze (10) &middot; Silver (20) &middot; Gold (35) &middot; Platinum (50) &middot; Diamond (75) &middot; Emerald (100)
+                  Tier: Bronze (20) &middot; Silver (40) &middot; Gold (65) &middot; Platinum (95) &middot; Diamond (130) &middot; Emerald (175)
                 </p>
               </div>
 

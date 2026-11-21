@@ -768,7 +768,7 @@ export function BlockchainCertificatePanel({
               +{tierBonusSylCoins} $SYL
             </div>
             <div className="text-[11px] text-slate-400">
-              Aktif setelah mencapai minimal 10 Poin (Bronze)
+              Aktif setelah mencapai minimal 20 Poin (Bronze)
             </div>
           </div>
         </div>
@@ -922,8 +922,8 @@ export function BlockchainCertificatePanel({
               {!isBronzeUnlocked
                 ? `Kumpulkan ${Math.max(
                     0,
-                    10 - totalAccumulatedPoints
-                  )} poin lagi (total 10 Poin) dari penyelesaian PPT & Ujian AI untuk membuka Sertifikat Bronze!`
+                    20 - totalAccumulatedPoints
+                  )} poin lagi (total 20 Poin) dari penyelesaian akhir PPT & Ujian AI untuk membuka Sertifikat Bronze!`
                 : nextTier
                 ? `Tier ${currentTier.name} telah terbuka! Kumpulkan ${Math.max(
                     0,
@@ -931,7 +931,7 @@ export function BlockchainCertificatePanel({
                   )} poin lagi untuk naik ke Tier ${nextTier.name} (${
                     nextTier.minPoints
                   } Poin).`
-                : "Selamat! Kamu telah mencapai tingkat tertinggi: EMERALD SOVEREIGN (140+ Poin)!"}
+                : "Selamat! Kamu telah mencapai tingkat tertinggi: EMERALD SOVEREIGN (175+ Poin)!"}
             </p>
           </div>
 
