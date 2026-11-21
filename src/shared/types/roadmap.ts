@@ -162,6 +162,7 @@ export interface BlockchainCertificateRecord {
   ipfsStorageMode?: "pinata-ipfs" | "canonical-digest";
   txHash: string;
   vaultAddress?: string;
+  sbtContractAddress?: string;
   chainId: number;
   proofType: "onchain-tx" | "eip191-signature" | "local-attestation";
   issuedAt: string;

@@ -53,7 +53,10 @@ export function BlockchainCertificatePanel({
     openConnectModal,
     signPersonalMessage,
     anchorCertificateOnChain,
+    syllabaSbtAddress,
+    deploySbtContractOnChain,
   } = useWeb3();
+  const [isDeployingSbt, setIsDeployingSbt] = useState(false);
 
   const currentScope = useMemo(
     () => resolveOwnerScope(isConnected ? address : null, user?.id ?? null),
@@ -181,6 +184,7 @@ export function BlockchainCertificatePanel({
       );
       let proofType: "onchain-tx" | "eip191-signature" | "local-attestation" =
         "local-attestation";
+      let sbtAddressUsed: string | undefined;
 
       if (!useProtocolRelayer && isConnected && address) {
         const anchored = await anchorCertificateOnChain({
@@ -189,9 +193,12 @@ export function BlockchainCertificatePanel({
           courseTitle: `${roadmap.courseTitle} [PPT COMPLETION]`,
           recipientName: recipientName.trim() || "Scholar",
           finalGradeScore,
+          certKind: "COURSE_PASS",
+          points: breakdown.pptDifficultyPoints,
         });
         txHash = anchored.txHash;
         proofType = anchored.proofType;
+        sbtAddressUsed = anchored.sbtAddress;
       } else if (useProtocolRelayer && isConnected && address) {
         txHash = await signPersonalMessage(
           `Syllaba Course Completion Certificate\nCourse: ${roadmap.courseTitle}\nRecipient: ${recipientName.trim() || "Scholar"}\nWallet: ${address}\nFinal Score: ${finalGradeScore}/100\nCertificate Hash: ${certificateHash}\nSnapshot Ref: ${resolvedCid}\nChain: Base Sepolia (84532)`
@@ -239,6 +246,7 @@ export function BlockchainCertificatePanel({
         ipfsCid: resolvedCid,
         ipfsStorageMode: resolvedStorageMode,
         txHash,
+        sbtContractAddress: sbtAddressUsed || syllabaSbtAddress,
         chainId: 84532,
         proofType,
         issuedAt: new Date().toISOString(),
@@ -606,6 +614,56 @@ export function BlockchainCertificatePanel({
               <Download className="w-3.5 h-3.5" />
               <span>Print / PDF</span>
             </button>
+
+            {!syllabaSbtAddress && (
+              <button
+                type="button"
+                disabled={isDeployingSbt}
+                onClick={async () => {
+                  if (!isConnected || !address) {
+                    openConnectModal();
+                    return;
+                  }
+                  setIsDeployingSbt(true);
+                  setStatusMsg(
+                    isId
+                      ? "Mengirim transaksi deploy ERC-721 SyllabaCertificateSBT ke Base Sepolia..."
+                      : "Deploying ERC-721 SyllabaCertificateSBT to Base Sepolia..."
+                  );
+                  try {
+                    const res = await deploySbtContractOnChain();
+                    setStatusMsg(
+                      res.contractAddress
+                        ? isId
+                          ? `Smart Contract ERC-721 SBT Sertifikat aktif di Base Sepolia: ${res.contractAddress}. Klik Mint Sertifikat untuk menerima NFT!`
+                          : `ERC-721 SBT Certificate Contract deployed at ${res.contractAddress}!`
+                        : `SBT deploy TX sent (${res.txHash.slice(0, 14)}...).`
+                    );
+                  } catch {
+                    setStatusMsg(
+                      isId
+                        ? "Deploy SBT dibatalkan atau membutuhkan sedikit ETH Base Sepolia."
+                        : "SBT deploy cancelled or needs Base Sepolia ETH gas."
+                    );
+                  } finally {
+                    setIsDeployingSbt(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/60 bg-emerald-50 hover:bg-emerald-100 px-3 py-2.5 text-xs font-extrabold text-emerald-900 transition cursor-pointer"
+              >
+                {isDeployingSbt ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deploying SBT...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Deploy ERC-721 SBT</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -839,6 +897,18 @@ export function BlockchainCertificatePanel({
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 hover:underline"
                   >
                     <span>Inspect IPFS Metadata</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+
+                {hasRealOnChainTx && cert?.sbtContractAddress && (
+                  <a
+                    href={`https://sepolia.basescan.org/token/${cert.sbtContractAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FACC15] hover:underline"
+                  >
+                    <span>Inspect ERC-721 SBT Contract</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}

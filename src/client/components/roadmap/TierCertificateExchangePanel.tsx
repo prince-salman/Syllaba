@@ -62,12 +62,15 @@ export function TierCertificateExchangePanel({
     openConnectModal,
     signPersonalMessage,
     anchorCertificateOnChain,
+    syllabaSbtAddress,
+    deploySbtContractOnChain,
     claimSylCoinsOnChain,
     sylCoinAddress,
     onChainSylBalance,
     deployCoinContractOnChain,
     watchSylTokenInWallet,
   } = useWeb3();
+  const [isDeployingSbt, setIsDeployingSbt] = useState(false);
 
   const defaultName =
     (typeof user?.user_metadata?.full_name === "string" &&
@@ -324,7 +327,28 @@ export function TierCertificateExchangePanel({
     );
 
     try {
-      const resolvedCid = `snapshot-${certificateHash.slice(2, 34).toLowerCase()}`;
+      let resolvedCid = `snapshot-${certificateHash.slice(2, 34).toLowerCase()}`;
+      let resolvedStorageMode: "pinata-ipfs" | "canonical-digest" =
+        "canonical-digest";
+      const representativeRoadmap = roadmaps[0];
+      if (representativeRoadmap) {
+        try {
+          const snapRes = await fetch("/api/ipfs/snapshot", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roadmap: representativeRoadmap }),
+          });
+          if (snapRes.ok) {
+            const snap = await snapRes.json();
+            if (snap.ipfsCid) resolvedCid = snap.ipfsCid;
+            if (snap.storageMode === "pinata-ipfs") {
+              resolvedStorageMode = "pinata-ipfs";
+            }
+          }
+        } catch {
+          // Canonical digest fallback
+        }
+      }
       const signerAddress =
         address || "0x71C95911E9a5D330f4D621842EC243EE1343292e";
       let txHash: string = keccak256(
@@ -334,6 +358,7 @@ export function TierCertificateExchangePanel({
       );
       let proofType: "onchain-tx" | "eip191-signature" | "local-attestation" =
         "local-attestation";
+      let sbtAddressUsed: string | undefined;
 
       if (!useGasless && isConnected && address) {
         const anchored = await anchorCertificateOnChain({
@@ -342,9 +367,12 @@ export function TierCertificateExchangePanel({
           courseTitle: `Syllaba ${activeTierMeta.name.toUpperCase()} Tier Credential (${completedCoursesCount} PPTs)`,
           recipientName: recipientName.trim() || "Scholar",
           finalGradeScore: Math.min(100, totalAccumulatedPoints),
+          certKind: `TIER_${activeTierMeta.id.toUpperCase()}`,
+          points: totalAccumulatedPoints,
         });
         txHash = anchored.txHash;
         proofType = anchored.proofType;
+        sbtAddressUsed = anchored.sbtAddress;
       } else if (useGasless && isConnected && address) {
         txHash = await signPersonalMessage(
           `Syllaba Tier Certificate Redemption\nTier: ${activeTierMeta.name.toUpperCase()} (${activeTierMeta.minPoints}+ Points)\nAccumulated Points: ${totalAccumulatedPoints}\nHolder: ${recipientName.trim() || "Scholar"}\nWallet: ${address}\nCertificate Hash: ${certificateHash}\nNetwork: Base Sepolia (84532)`
@@ -371,8 +399,9 @@ export function TierCertificateExchangePanel({
         totalTasks: totalAccumulatedPoints,
         certificateHash,
         ipfsCid: resolvedCid,
-        ipfsStorageMode: "canonical-digest",
+        ipfsStorageMode: resolvedStorageMode,
         txHash,
+        sbtContractAddress: sbtAddressUsed || syllabaSbtAddress,
         chainId: chainId || 84532,
         proofType,
         issuedAt: new Date().toISOString(),
@@ -767,6 +796,56 @@ export function TierCertificateExchangePanel({
               <Download className="w-3.5 h-3.5" />
               <span>Print / PDF</span>
             </button>
+
+            {!syllabaSbtAddress && (
+              <button
+                type="button"
+                disabled={isDeployingSbt}
+                onClick={async () => {
+                  if (!isConnected || !address) {
+                    openConnectModal();
+                    return;
+                  }
+                  setIsDeployingSbt(true);
+                  setStatusMsg(
+                    isId
+                      ? "Mengirim transaksi deploy ERC-721 SyllabaCertificateSBT ke Base Sepolia..."
+                      : "Deploying ERC-721 SyllabaCertificateSBT to Base Sepolia..."
+                  );
+                  try {
+                    const res = await deploySbtContractOnChain();
+                    setStatusMsg(
+                      res.contractAddress
+                        ? isId
+                          ? `Smart Contract ERC-721 SBT Sertifikat aktif di Base Sepolia: ${res.contractAddress}!`
+                          : `ERC-721 SBT Certificate Contract deployed at ${res.contractAddress}!`
+                        : `SBT deploy TX sent (${res.txHash.slice(0, 14)}...).`
+                    );
+                  } catch {
+                    setStatusMsg(
+                      isId
+                        ? "Deploy SBT dibatalkan atau membutuhkan sedikit ETH Base Sepolia."
+                        : "SBT deploy cancelled or needs Base Sepolia ETH gas."
+                    );
+                  } finally {
+                    setIsDeployingSbt(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/60 bg-emerald-50 hover:bg-emerald-100 px-3 py-2.5 text-xs font-extrabold text-emerald-900 transition cursor-pointer"
+              >
+                {isDeployingSbt ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deploying SBT...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Deploy ERC-721 SBT</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -944,6 +1023,18 @@ export function TierCertificateExchangePanel({
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 hover:underline"
                   >
                     <span>Inspect IPFS Metadata</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+
+                {hasRealOnChainTx && ownedTierCert?.sbtContractAddress && (
+                  <a
+                    href={`https://sepolia.basescan.org/token/${ownedTierCert.sbtContractAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FACC15] hover:underline"
+                  >
+                    <span>Inspect ERC-721 SBT Contract</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
