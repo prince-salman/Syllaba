@@ -29,7 +29,7 @@ import {
   useSwitchChain,
   useWalletClient,
 } from "wagmi";
-import { baseSepolia } from "wagmi/chains";
+import { base, baseSepolia, mainnet, sepolia } from "wagmi/chains";
 import { encodeFunctionData, formatEther, parseEther } from "viem";
 import { SYLLABA_VAULT_ABI, SYLLABA_VAULT_BYTECODE } from "@/shared/contracts/syllabaVault";
 
@@ -62,9 +62,12 @@ const connectors = connectorsForWallets(
 
 const wagmiConfig = createConfig({
   connectors,
-  chains: [baseSepolia],
+  chains: [mainnet, base, baseSepolia, sepolia],
   transports: {
+    [mainnet.id]: http(),
+    [base.id]: http(),
     [baseSepolia.id]: http(BASE_SEPOLIA_RPC),
+    [sepolia.id]: http(),
   },
   ssr: true,
 });
