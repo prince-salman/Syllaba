@@ -164,13 +164,13 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
   };
 
   return (
-    <Card className="max-w-4xl mx-auto border-slate-200 shadow-md">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+    <Card className="w-full max-w-4xl mx-auto p-4 sm:p-5 border-slate-200 shadow-md overflow-hidden">
+      <div className="mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
             Generate Anti-Burnout Study Roadmap
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Three specialized AI agents decompose your syllabus into 15-30 minute micro-tasks with curated scholarly sources.
           </p>
         </div>
@@ -181,41 +181,41 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         </span>
       </div>
 
-      <div className="flex border-b border-slate-200 mb-6 gap-2">
+      <div className="flex border-b border-slate-200 mb-5 sm:mb-6 gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("presets")}
-          className={`flex items-center gap-2 pb-3 px-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
             activeTab === "presets"
               ? "border-brand-600 text-brand-700"
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 shrink-0" />
           <span>Quick Presets</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("pdf")}
-          className={`flex items-center gap-2 pb-3 px-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
             activeTab === "pdf"
               ? "border-brand-600 text-brand-700"
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          <UploadCloud className="w-4 h-4" />
+          <UploadCloud className="w-4 h-4 shrink-0" />
           <span>Upload File</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("paste")}
-          className={`flex items-center gap-2 pb-3 px-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
             activeTab === "paste"
               ? "border-brand-600 text-brand-700"
               : "border-transparent text-slate-500 hover:text-slate-700"
           }`}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-4 h-4 shrink-0" />
           <span>Paste Text</span>
         </button>
       </div>

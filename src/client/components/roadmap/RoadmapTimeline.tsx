@@ -165,17 +165,17 @@ export function RoadmapTimeline({
         onNewRoadmap={onNewRoadmap}
       />
 
-      <div className="flex items-center gap-1 border-b border-[#E5E5E0] overflow-x-auto">
+      <div className="flex items-center gap-1 border-b border-[#E5E5E0] overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("timeline")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors shrink-0 cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
             activeTab === "timeline"
               ? "border-[#111111] text-[#111111]"
               : "border-transparent text-[#666660] hover:text-[#111111]"
           }`}
         >
-          <CalendarDays className="h-4 w-4" />
+          <CalendarDays className="h-4 w-4 shrink-0" />
           <span>Daily Study Plan</span>
           <span className="rounded-full bg-[#F7F7F5] px-2 py-0.5 text-[11px] font-semibold text-[#52524C]">
             {roadmap.totalTasks}
@@ -185,13 +185,13 @@ export function RoadmapTimeline({
         <button
           type="button"
           onClick={() => setActiveTab("materials")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors shrink-0 cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
             activeTab === "materials"
               ? "border-[#111111] text-[#111111]"
               : "border-transparent text-[#666660] hover:text-[#111111]"
           }`}
         >
-          <BookOpen className="h-4 w-4" />
+          <BookOpen className="h-4 w-4 shrink-0" />
           <span>Reading Materials</span>
           <span className="rounded-full bg-[#F7F7F5] px-2 py-0.5 text-[11px] font-semibold text-[#52524C]">
             {curatedCount}
@@ -201,19 +201,19 @@ export function RoadmapTimeline({
         <button
           type="button"
           onClick={() => setActiveTab("proofs")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors shrink-0 cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
             activeTab === "proofs"
               ? "border-[#111111] text-[#111111]"
               : "border-transparent text-[#666660] hover:text-[#111111]"
           }`}
         >
-          <ShieldCheck className="h-4 w-4" />
+          <ShieldCheck className="h-4 w-4 shrink-0" />
           <span>Progress Proof</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 min-w-0 space-y-4">
           {activeTab === "timeline" && (
             <>
               <div className="space-y-4">
@@ -276,7 +276,7 @@ export function RoadmapTimeline({
           )}
         </div>
 
-        <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-20">
+        <aside className="lg:col-span-4 min-w-0 space-y-4 lg:sticky lg:top-20">
           <ScrollReveal delayMs={80}>
             <BurnoutRiskMeter metrics={roadmap.burnoutMetrics} />
           </ScrollReveal>

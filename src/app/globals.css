@@ -24,12 +24,27 @@
   --syllaba-sky-soft: #F4F4F5;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-jakarta);
   background-color: var(--syllaba-canvas);
   color: var(--syllaba-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .bg-emerald-bento {

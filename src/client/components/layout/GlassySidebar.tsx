@@ -837,47 +837,47 @@ export function MobileBottomNav({
       )}
 
       {/* Fixed Bottom Navigation Dock for Mobile */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-xl px-2 py-1.5 shadow-[0_-8px_30px_-14px_rgba(0,0,0,0.2)]">
-        <div className="mx-auto max-w-md grid grid-cols-5 items-center gap-1">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-xl px-1.5 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_-14px_rgba(0,0,0,0.2)]">
+        <div className="mx-auto max-w-md grid grid-cols-5 items-center gap-0.5">
           <button
             type="button"
             onClick={() => handleSelect("dashboard")}
-            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+            className={`min-w-0 flex flex-col items-center justify-center rounded-xl py-1.5 px-1 text-[10px] font-bold transition ${
               activeView === "dashboard" ? "text-[#111111]" : "text-[#666660]"
             }`}
           >
             <LayoutDashboard
-              className={`h-4 w-4 mb-0.5 ${
+              className={`h-4 w-4 mb-0.5 shrink-0 ${
                 activeView === "dashboard" ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>{copy.homeShort}</span>
+            <span className="w-full truncate text-center leading-tight">{copy.homeShort}</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleSelect("history")}
-            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+            className={`min-w-0 flex flex-col items-center justify-center rounded-xl py-1.5 px-1 text-[10px] font-bold transition ${
               activeView === "history" ? "text-[#111111]" : "text-[#666660]"
             }`}
           >
             <History
-              className={`h-4 w-4 mb-0.5 ${
+              className={`h-4 w-4 mb-0.5 shrink-0 ${
                 activeView === "history" ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>{copy.history}</span>
+            <span className="w-full truncate text-center leading-tight">{copy.history}</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleSelect("uploader")}
-            className="flex flex-col items-center justify-center -mt-4"
+            className="min-w-0 flex flex-col items-center justify-center -mt-4 px-1"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111111] text-[#FACC15] shadow-md border-2 border-[#FACC15]">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111111] text-[#FACC15] shadow-md border-2 border-[#FACC15] shrink-0">
               <Plus className="h-5 w-5" />
             </span>
-            <span className="text-[10px] font-extrabold text-[#111111] mt-0.5">
+            <span className="w-full truncate text-center text-[10px] font-extrabold text-[#111111] mt-0.5 leading-tight">
               {copy.newShort}
             </span>
           </button>
@@ -885,31 +885,31 @@ export function MobileBottomNav({
           <button
             type="button"
             onClick={() => handleSelect("settings-account")}
-            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+            className={`min-w-0 flex flex-col items-center justify-center rounded-xl py-1.5 px-1 text-[10px] font-bold transition ${
               isSettingsActive ? "text-[#111111]" : "text-[#666660]"
             }`}
           >
             <Settings
-              className={`h-4 w-4 mb-0.5 ${
+              className={`h-4 w-4 mb-0.5 shrink-0 ${
                 isSettingsActive ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>{copy.setting}</span>
+            <span className="w-full truncate text-center leading-tight">{copy.setting}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setDrawerOpen((prev) => !prev)}
-            className={`flex flex-col items-center justify-center rounded-xl py-1.5 text-[10px] font-bold transition ${
+            className={`min-w-0 flex flex-col items-center justify-center rounded-xl py-1.5 px-1 text-[10px] font-bold transition ${
               drawerOpen || activeView === "help" ? "text-[#111111]" : "text-[#666660]"
             }`}
           >
             <Menu
-              className={`h-4 w-4 mb-0.5 ${
+              className={`h-4 w-4 mb-0.5 shrink-0 ${
                 drawerOpen || activeView === "help" ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>Menu</span>
+            <span className="w-full truncate text-center leading-tight">Menu</span>
           </button>
         </div>
       </nav>
