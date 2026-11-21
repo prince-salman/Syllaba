@@ -6,6 +6,8 @@ import { CategoryBadge, CognitiveBadge } from "@/client/components/common/Badge"
 import { LatexText } from "@/client/components/common/LatexText";
 import { formatMinutes } from "@/shared/utils";
 import { Check, Clock, ChevronDown, ChevronUp, Lock, Timer } from "lucide-react";
+import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 
 interface TaskItemProps {
   task: RoadmapTask;
@@ -22,6 +24,8 @@ export function TaskItem({
   onToggleSubtask,
   onOpenFocusTimer,
 }: TaskItemProps) {
+  const { lang } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -107,7 +111,10 @@ export function TaskItem({
                 className="inline-flex items-center gap-1 rounded-md bg-[#F7F7F5] hover:bg-[#FEF3C7]/70 px-2 py-0.5 text-xs font-bold text-[#111111] transition-colors cursor-pointer ml-1"
               >
                 <span>
-                  Breakdown Steps ({task.subtasks.filter((s) => s.isCompleted).length}/{task.subtasks.length})
+                  {wcopy.breakdownStepsLabel(
+                    task.subtasks.filter((s) => s.isCompleted).length,
+                    task.subtasks.length
+                  )}
                 </span>
                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
@@ -173,7 +180,9 @@ export function TaskItem({
             ) : (
               <Timer className="w-3.5 h-3.5 text-brand-600" />
             )}
-            <span className="hidden sm:inline">{isLocked ? "Locked" : "Focus"}</span>
+            <span className="hidden sm:inline">
+              {isLocked ? wcopy.lockedBtn : wcopy.focusBtn}
+            </span>
           </button>
         </div>
       </div>

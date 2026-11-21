@@ -37,6 +37,17 @@ import {
 } from "lucide-react";
 import { keccak256, stringToHex } from "viem";
 import { useWeb3 } from "@/components/Web3Providers";
+import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
+import { formatDate } from "@/shared/utils";
+
+function getLocalTodayYmd(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 interface RoadmapTimelineProps {
   roadmap: Roadmap;
@@ -62,6 +73,10 @@ export function RoadmapTimeline({
   onUpdateRoadmap,
   onNewRoadmap,
 }: RoadmapTimelineProps) {
+  const { lang } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
+  const isId = lang === "id";
+  const localTodayYmd = useMemo(() => getLocalTodayYmd(), []);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("timeline");
   const [selectedTaskForTimer, setSelectedTaskForTimer] =
     useState<RoadmapTask | null>(null);
@@ -134,23 +149,40 @@ export function RoadmapTimeline({
 
   const getDayLockState = (
     dayNumber: number
-  ): { isLocked: boolean; lockReason?: string } => {
+  ): { isLocked: boolean; isWaitingNextDay?: boolean; lockReason?: string } => {
     if (dayNumber <= 1) return { isLocked: false };
 
+    const targetSchedule = roadmap.dailySchedules.find(
+      (d) => d.dayNumber === dayNumber
+    );
+
+    // 1. Sequential Prerequisite Lock: previous days must be completed first
     const firstIncompletePrior = roadmap.dailySchedules.find(
       (d) => d.dayNumber < dayNumber && !isScheduleDone(d)
     );
+
+    // 2. Calendar Next-Day Lock: Day N stays locked until its scheduled calendar day (even if Day N-1 finishes early today)
+    if (targetSchedule?.date && targetSchedule.date > localTodayYmd) {
+      return {
+        isLocked: true,
+        isWaitingNextDay: true,
+        lockReason: wcopy.lockedUntilTomorrowReason(formatDate(targetSchedule.date)),
+      };
+    }
+
     if (firstIncompletePrior) {
       return {
         isLocked: true,
-        lockReason: `Terkunci — Selesaikan seluruh tugas pada Hari ${firstIncompletePrior.dayNumber} terlebih dahulu secara berurutan.`,
+        isWaitingNextDay: false,
+        lockReason: wcopy.lockedPriorDayReason(firstIncompletePrior.dayNumber),
       };
     }
 
     if (dayNumber > midExamDay && !roadmap.exams?.mid?.submission?.passed) {
       return {
         isLocked: true,
-        lockReason: `Terkunci — Selesaikan & lulus Ujian Tengah Sesi (5 PG + 2 Esai) setelah Hari ${midExamDay} terlebih dahulu untuk membuka Hari ${dayNumber}.`,
+        isWaitingNextDay: false,
+        lockReason: wcopy.lockedMidExamReason(midExamDay, dayNumber),
       };
     }
 
@@ -349,7 +381,7 @@ export function RoadmapTimeline({
           }`}
         >
           <CalendarDays className="h-4 w-4 shrink-0" />
-          <span>Daily Study Plan</span>
+          <span>{wcopy.tabTimeline}</span>
           <span className="rounded-full bg-[#F7F7F5] px-2 py-0.5 text-[11px] font-semibold text-[#52524C]">
             {roadmap.totalTasks}
           </span>
@@ -365,7 +397,7 @@ export function RoadmapTimeline({
           }`}
         >
           <Award className="h-4 w-4 shrink-0 text-amber-600" />
-          <span>Certificate &amp; $SYL Coin</span>
+          <span>{wcopy.tabCertificate}</span>
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
               roadmap.certificate
@@ -376,8 +408,11 @@ export function RoadmapTimeline({
             }`}
           >
             {pptPointBreakdown.isFullyCompletedAtEnd
-              ? `+${pptPointBreakdown.pptDifficultyPoints} Poin · +${pptPointBreakdown.totalSylFromRoadmap} $SYL`
-              : `${pptPointBreakdown.pptDifficultyPoints}/5 Poin (Akhir)`}
+              ? wcopy.earnedSummary(
+                  pptPointBreakdown.pptDifficultyPoints,
+                  pptPointBreakdown.totalSylFromRoadmap
+                )
+              : wcopy.lockedEndStatus(pptPointBreakdown.pptDifficultyPoints)}
           </span>
         </button>
 
@@ -391,7 +426,7 @@ export function RoadmapTimeline({
           }`}
         >
           <BookOpen className="h-4 w-4 shrink-0" />
-          <span>Reading Materials</span>
+          <span>{wcopy.tabMaterials}</span>
           <span className="rounded-full bg-[#F7F7F5] px-2 py-0.5 text-[11px] font-semibold text-[#52524C]">
             {curatedCount}
           </span>
@@ -407,7 +442,7 @@ export function RoadmapTimeline({
           }`}
         >
           <ShieldCheck className="h-4 w-4 shrink-0" />
-          <span>Progress Proof</span>
+          <span>{wcopy.tabProofs}</span>
         </button>
       </div>
 
@@ -430,6 +465,7 @@ export function RoadmapTimeline({
                         <DailyTaskGroup
                           schedule={schedule}
                           isLocked={lockState.isLocked}
+                          isWaitingNextDay={lockState.isWaitingNextDay}
                           lockReason={lockState.lockReason}
                           onToggleTask={handleToggleTask}
                           onToggleSubtask={handleToggleSubtask}
@@ -443,7 +479,11 @@ export function RoadmapTimeline({
                             stage="mid"
                             triggerDayNumber={midExamDay}
                             isLocked={midExamLocked}
-                            lockReason={`Terkunci — Selesaikan seluruh tugas Hari 1 s/d Hari ${midExamDay} terlebih dahulu untuk membuka Ujian Tengah Sesi (5 PG + 2 Esai).`}
+                            lockReason={
+                              isId
+                                ? `Terkunci — Selesaikan seluruh tugas Hari 1 s/d Hari ${midExamDay} terlebih dahulu untuk membuka Ujian Tengah Sesi (5 PG + 2 Esai).`
+                                : `Locked — Complete all daily tasks through Day ${midExamDay} first to unlock the Mid-Session Exam (5 MC + 2 Essays).`
+                            }
                             exam={roadmap.exams?.mid}
                             onOpenExam={(stg) => setActiveExamModalStage(stg)}
                           />
@@ -457,7 +497,11 @@ export function RoadmapTimeline({
                               stage="final"
                               triggerDayNumber={finalExamDay}
                               isLocked={finalExamLocked}
-                              lockReason={`Terkunci — Selesaikan seluruh tugas hingga Hari ${finalExamDay} dan lulus Ujian Tengah Sesi untuk membuka Ujian Akhir Sesi (5 PG + 2 Esai).`}
+                              lockReason={
+                                isId
+                                  ? `Terkunci — Selesaikan seluruh tugas hingga Hari ${finalExamDay} dan lulus Ujian Tengah Sesi untuk membuka Ujian Akhir Sesi (5 PG + 2 Esai).`
+                                  : `Locked — Complete all tasks through Day ${finalExamDay} and pass the Mid-Session Exam to unlock the Final Exam (5 MC + 2 Essays).`
+                              }
                               exam={roadmap.exams?.final}
                               onOpenExam={(stg) => setActiveExamModalStage(stg)}
                             />
@@ -475,7 +519,7 @@ export function RoadmapTimeline({
                               <div className="space-y-1">
                                 <div className="inline-flex items-center gap-1.5 rounded-full bg-[#FACC15] text-[#111111] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
                                   <Award className="w-3.5 h-3.5" />
-                                  <span>Base Sepolia On-Chain Credential</span>
+                                  <span>Base Sepolia On-Chain Credential &amp; $SYL</span>
                                 </div>
                                 <h4
                                   className={`text-base font-extrabold ${
@@ -484,8 +528,9 @@ export function RoadmapTimeline({
                                       : "text-slate-900"
                                   }`}
                                 >
-                                  Sertifikat Akademik Blockchain —{" "}
-                                  {roadmap.courseTitle}
+                                  {isId
+                                    ? `Sertifikat Blockchain & $SYL Coin — ${roadmap.courseTitle}`
+                                    : `Blockchain Certificate & $SYL Coin — ${roadmap.courseTitle}`}
                                 </h4>
                                 <p
                                   className={`text-xs ${
@@ -495,10 +540,16 @@ export function RoadmapTimeline({
                                   }`}
                                 >
                                   {roadmap.certificate
-                                    ? `Sertifikat telah diterbitkan di Base Sepolia (ID: ${roadmap.certificate.certificateId}).`
+                                    ? isId
+                                      ? `Sertifikat telah diterbitkan di Base Sepolia (ID: ${roadmap.certificate.certificateId}).`
+                                      : `Certificate issued on Base Sepolia (ID: ${roadmap.certificate.certificateId}).`
                                     : isCertificateUnlocked
-                                    ? "Seluruh tugas harian, Ujian Tengah Sesi, dan Ujian Akhir Sesi telah tuntas! Klaim Sertifikat Blockchain sekarang."
-                                    : "Selesaikan seluruh hari belajar secara berurutan serta lulus Ujian Tengah Sesi & Akhir Sesi untuk membuka sertifikat ini."}
+                                    ? isId
+                                      ? "Seluruh tugas harian, Ujian Tengah Sesi, dan Ujian Akhir Sesi tuntas! Poin PPT & $SYL Coin sudah cair — klaim Sertifikat Blockchain sekarang."
+                                      : "All daily tasks, Mid-Session Exam, and Final Exam completed! PPT Points & $SYL Coins unlocked — claim your Blockchain Certificate now."
+                                    : isId
+                                    ? "Selesaikan seluruh hari belajar sesuai jadwal harian serta lulus Ujian Tengah & Ujian Akhir Sesi untuk mencairkan poin akhir (1-5 Poin PPT) & membuka sertifikat ini."
+                                    : "Complete all daily sprints in order and pass both Mid & Final AI Exams to earn your final PPT points (1-5 pts) and unlock this certificate."}
                                 </p>
                               </div>
 
@@ -514,10 +565,16 @@ export function RoadmapTimeline({
                                 <Award className="w-4 h-4" />
                                 <span>
                                   {roadmap.certificate
-                                    ? "Lihat Sertifikat Blockchain"
+                                    ? isId
+                                      ? "Lihat Sertifikat & $SYL"
+                                      : "View Certificate & $SYL"
                                     : isCertificateUnlocked
-                                    ? "Klaim Sertifikat Blockchain"
-                                    : "Lihat Preview Sertifikat"}
+                                    ? isId
+                                      ? "Klaim Sertifikat & $SYL"
+                                      : "Claim Certificate & $SYL"
+                                    : isId
+                                    ? "Preview Sertifikat & Poin"
+                                    : "Preview Certificate & Points"}
                                 </span>
                               </button>
                             </div>
@@ -547,9 +604,10 @@ export function RoadmapTimeline({
                     className="inline-flex items-center gap-2 rounded-xl border border-[#E5E5E0] bg-[#F7F7F5] hover:bg-[#FEF3C7]/70 hover:border-[#F5B700]/40 px-4 py-2.5 text-xs font-semibold text-[#111111] transition cursor-pointer"
                   >
                     <span>
-                      Showing {visibleDaysCount} of{" "}
-                      {roadmap.dailySchedules.length} days — Scroll or click to
-                      reveal more
+                      {wcopy.showingDaysProgress(
+                        visibleDaysCount,
+                        roadmap.dailySchedules.length
+                      )}
                     </span>
                     <ChevronDown className="h-3.5 w-3.5" />
                   </button>
@@ -572,6 +630,14 @@ export function RoadmapTimeline({
             <ScrollReveal>
               <CuratedResourcesPanel
                 resources={roadmap.curatedResources || []}
+                roadmap={roadmap}
+                onUpdateResources={(nextResources) =>
+                  onUpdateRoadmap({
+                    ...roadmap,
+                    curatedResources: nextResources,
+                    updatedAt: new Date().toISOString(),
+                  })
+                }
               />
             </ScrollReveal>
           )}
@@ -590,27 +656,27 @@ export function RoadmapTimeline({
                 <div className="flex items-center gap-2">
                   <BrainCircuit className="h-4 w-4 text-[#111111]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[#666660]">
-                    Sequential Exams &amp; Certificate
+                    {wcopy.seqExamsCertTitle}
                   </h3>
                 </div>
                 <span className="rounded-full bg-[#FEF3C7] border border-[#FACC15]/50 px-2 py-0.5 text-[10px] font-bold text-[#111111]">
-                  PPT Difficulty: {pptPointBreakdown.pptDifficultyPoints}/5 Poin
+                  {wcopy.pptWeightBadge(pptPointBreakdown.pptDifficultyPoints)}
                 </span>
               </div>
 
               <div className="rounded-xl bg-[#111111] text-white p-3 space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[#FACC15] font-extrabold">
-                    Bobot PPT (AI): {pptPointBreakdown.pptDifficultyPoints}/5 Poin
+                    {wcopy.pptWeightBadge(pptPointBreakdown.pptDifficultyPoints)}
                   </span>
                   <span className="font-bold text-emerald-300">
                     {pptPointBreakdown.isFullyCompletedAtEnd
-                      ? `+${pptPointBreakdown.totalEarnedFromRoadmap} Poin Cair!`
-                      : `Cair di Akhir (+${pptPointBreakdown.pptDifficultyPoints} Poin)`}
+                      ? `${wcopy.unlockedEndStatus} (+${pptPointBreakdown.totalEarnedFromRoadmap})`
+                      : wcopy.lockedEndStatus(pptPointBreakdown.pptDifficultyPoints)}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-snug">
-                  Tier: Bronze (20) &middot; Silver (40) &middot; Gold (65) &middot; Platinum (95) &middot; Diamond (130) &middot; Emerald (175)
+                  {wcopy.tierLadderLine}
                 </p>
               </div>
 
@@ -629,14 +695,14 @@ export function RoadmapTimeline({
                 >
                   <div>
                     <div className="font-bold">
-                      1. Mid-Session Exam (Hari {midExamDay})
+                      {wcopy.midExamLabel(midExamDay)}
                     </div>
                     <div className="text-[11px] opacity-80">
                       {midPassed
-                        ? `Lulus · Skor ${roadmap.exams?.mid?.submission?.totalScore}/100`
+                        ? wcopy.passedScore(roadmap.exams?.mid?.submission?.totalScore || 0)
                         : areDaysCompletedUpTo(midExamDay)
-                        ? "Siap Dikerjakan (5 PG + 2 Esai)"
-                        : `Terkunci (Selesaikan Hari 1-${midExamDay})`}
+                        ? wcopy.readyToTakeExam
+                        : wcopy.lockedExamPriorDays(midExamDay)}
                     </div>
                   </div>
                   {midPassed ? (
@@ -662,14 +728,14 @@ export function RoadmapTimeline({
                 >
                   <div>
                     <div className="font-bold">
-                      2. Final-Session Exam (Hari {finalExamDay})
+                      {wcopy.finalExamLabel(finalExamDay)}
                     </div>
                     <div className="text-[11px] opacity-80">
                       {finalPassed
-                        ? `Lulus · Skor ${roadmap.exams?.final?.submission?.totalScore}/100`
+                        ? wcopy.passedScore(roadmap.exams?.final?.submission?.totalScore || 0)
                         : areDaysCompletedUpTo(finalExamDay) && midPassed
-                        ? "Siap Dikerjakan (5 PG + 2 Esai)"
-                        : `Terkunci (Selesaikan Hari 1-${finalExamDay})`}
+                        ? wcopy.readyToTakeExam
+                        : wcopy.lockedExamPriorDays(finalExamDay)}
                     </div>
                   </div>
                   {finalPassed ? (
@@ -688,14 +754,14 @@ export function RoadmapTimeline({
                 >
                   <div>
                     <div className="font-bold text-[#FACC15]">
-                      3. Blockchain Certificate
+                      {wcopy.certSidebarLabel}
                     </div>
                     <div className="text-[11px] text-slate-300">
                       {roadmap.certificate
-                        ? `Minted (${roadmap.certificate.certificateId})`
+                        ? wcopy.mintedStatus(roadmap.certificate.certificateId)
                         : isCertificateUnlocked
-                        ? "Siap Klaim di Base Sepolia!"
-                        : "Preview Sertifikat On-Chain"}
+                        ? wcopy.readyToClaimCert
+                        : wcopy.previewOnChainCert}
                     </div>
                   </div>
                   <Award className="w-4 h-4 text-[#FACC15] shrink-0" />
@@ -714,7 +780,7 @@ export function RoadmapTimeline({
                 <div className="flex items-center gap-2">
                   <FileKey2 className="h-4 w-4 text-[#111111]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[#666660]">
-                    Study Proof
+                    {wcopy.studyProofTitle}
                   </h3>
                 </div>
                 <span
@@ -724,12 +790,12 @@ export function RoadmapTimeline({
                       : "bg-[#F7F7F5] text-[#666660] border-[#E5E5E0]"
                   }`}
                 >
-                  {isConnected ? "Wallet Connected" : "Optional"}
+                  {isConnected ? wcopy.walletConnected : wcopy.optionalTag}
                 </span>
               </div>
 
               <p className="text-xs text-[#666660] leading-relaxed">
-                Save a tamper-proof snapshot of this study roadmap on-chain.
+                {wcopy.studyProofDesc}
               </p>
 
               <p className="font-mono text-[11px] text-[#52524C] bg-[#F7F7F5] border border-[#E5E5E0] rounded-lg px-2.5 py-2 truncate">
@@ -741,7 +807,7 @@ export function RoadmapTimeline({
                 onClick={() => setActiveTab("proofs")}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-[#E5E5E0] bg-[#F7F7F5] px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#FEF3C7]/70 hover:border-[#F5B700]/40 transition-colors cursor-pointer"
               >
-                <span>Open Progress Proof</span>
+                <span>{wcopy.openProgressProof}</span>
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </button>
             </div>

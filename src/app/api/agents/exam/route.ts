@@ -43,10 +43,11 @@ function buildFallbackExam(
   courseTitle: string,
   stage: ExamStage,
   triggerDayNumber: number,
-  tasks: RoadmapTask[]
+  tasks: RoadmapTask[],
+  language?: string
 ): MilestoneExam {
   const combinedText = `${courseTitle} ${tasks.map((t) => `${t.title} ${t.description}`).join(" ")}`;
-  const isId = detectIndonesianText(combinedText);
+  const isId = language ? language === "id" : detectIndonesianText(combinedText);
 
   const sourceTasks =
     tasks.length > 0
@@ -172,9 +173,10 @@ async function generateExamWithGemini(
   courseTitle: string,
   stage: ExamStage,
   triggerDayNumber: number,
-  tasks: RoadmapTask[]
+  tasks: RoadmapTask[],
+  language?: string
 ): Promise<MilestoneExam> {
-  const fallback = buildFallbackExam(courseTitle, stage, triggerDayNumber, tasks);
+  const fallback = buildFallbackExam(courseTitle, stage, triggerDayNumber, tasks, language);
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return fallback;
 
@@ -186,18 +188,30 @@ async function generateExamWithGemini(
     .join("\n\n");
 
   const combinedText = `${courseTitle} ${taskDigest}`;
-  const isId = detectIndonesianText(combinedText);
+  const isId = language ? language === "id" : detectIndonesianText(combinedText);
+  const langName =
+    language === "zh"
+      ? "Simplified Chinese (简体中文)"
+      : language === "ar"
+      ? "Modern Standard Arabic (العربية)"
+      : language === "es"
+      ? "Spanish (Español)"
+      : language === "pt"
+      ? "Portuguese (Português)"
+      : isId
+      ? "natural academic Bahasa Indonesia (100% Indonesian, do NOT mix English)"
+      : "clear academic English (100% English, do NOT mix Indonesian)";
 
   const systemInstruction = `You are Syllaba Academic Examiner AI.
 Your job is to create a rigorous, 100% slide-specific academic assessment consisting of EXACTLY 7 questions:
-- 5 Multiple Choice Questions (Pilihan Ganda, numbered 1 to 5, each with 4 options, correctIndex 0-3, and detailed explanation)
-- 2 Essay Questions (Soal Esai Analitis, numbered 6 to 7, with expectedKeywords and comprehensive sampleAnswer)
+- 5 Multiple Choice Questions (numbered 1 to 5, each with 4 options, correctIndex 0-3, and detailed explanation)
+- 2 Analytical Essay Questions (numbered 6 to 7, with expectedKeywords and comprehensive sampleAnswer)
 
 STRICT RULES:
 1. Every single question MUST directly test the specific slide concepts, definitions, mechanisms, and mathematical formulas found in the provided study tasks.
-2. Every question MUST cite the exact Slide/Module reference in "slideReference" (e.g., "Slide 1: Pendahuluan Agentic AI").
-3. MANDATORY LATEX FORMULAS: Use valid inline LaTeX ($...$) in prompts, options, explanations, and sampleAnswers for equations, variables, functions, complexity bounds, or formal relationships (e.g., "$E[U(s,a)] = \\sum_{s'} P(s'|s,a)R(s,a,s')$", "$L(\\theta) = \\frac{1}{N}\\sum_{i=1}^N (y_i - \\hat{y}_i)^2$").
-4. Write the questions, options, explanations, and sample answers in ${isId ? "Bahasa Indonesia" : "English"}.
+2. Every question MUST cite the exact Slide/Module reference in "slideReference".
+3. MANDATORY LATEX FORMULAS: Use valid inline LaTeX ($...$) in prompts, options, explanations, and sampleAnswers for equations, variables, functions, complexity bounds, or formal relationships.
+4. CRITICAL LANGUAGE RULE: Write EVERY field (title, prompts, options, explanations, expectedKeywords, sampleAnswers) 100% in ${langName}.
 5. Return ONLY valid JSON matching the schema.`;
 
   const prompt = `Generate the ${stage === "mid" ? "Mid-Session Exam (first half of course)" : "Final Comprehensive Exam (second half & synthesis of course)"} for:
@@ -324,7 +338,8 @@ Return JSON with this exact structure:
 function gradeExamDeterministically(
   exam: MilestoneExam,
   mcAnswers: Record<string, number>,
-  essayAnswers: Record<string, string>
+  essayAnswers: Record<string, string>,
+  language?: string
 ): ExamSubmission {
   // 5 MC questions: 14 points each = 70 points max
   let correctMcCount = 0;
@@ -338,7 +353,7 @@ function gradeExamDeterministically(
   // 2 Essay questions: 15 points each = 30 points max
   let essayScore = 0;
   const essayFeedback: Record<string, string> = {};
-  const isId = detectIndonesianText(exam.title);
+  const isId = language ? language === "id" : detectIndonesianText(exam.title);
 
   for (const eq of exam.essays) {
     const rawAns = (essayAnswers[eq.id] || "").trim();
@@ -393,12 +408,14 @@ export async function POST(req: NextRequest) {
       const triggerDayNumber =
         typeof body.triggerDayNumber === "number" ? body.triggerDayNumber : 1;
       const tasks: RoadmapTask[] = Array.isArray(body.tasks) ? body.tasks : [];
+      const language = typeof body.language === "string" ? body.language : undefined;
 
       const exam = await generateExamWithGemini(
         courseTitle,
         stage,
         triggerDayNumber,
-        tasks
+        tasks,
+        language
       );
       return NextResponse.json(exam);
     }
@@ -411,7 +428,8 @@ export async function POST(req: NextRequest) {
 
     const mcAnswers = (body.mcAnswers || {}) as Record<string, number>;
     const essayAnswers = (body.essayAnswers || {}) as Record<string, string>;
-    const submission = gradeExamDeterministically(exam, mcAnswers, essayAnswers);
+    const language = typeof body.language === "string" ? body.language : undefined;
+    const submission = gradeExamDeterministically(exam, mcAnswers, essayAnswers, language);
 
     return NextResponse.json(submission);
   } catch {

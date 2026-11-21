@@ -5,6 +5,8 @@ import { Roadmap } from "@/shared/types/roadmap";
 import { Button } from "@/client/components/common/Button";
 import { Download, CalendarClock, PlusCircle, Check } from "lucide-react";
 import { downloadCalendarFile } from "@/client/utils/calendar";
+import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 
 interface RoadmapHeaderProps {
   roadmap: Roadmap;
@@ -17,6 +19,8 @@ export function RoadmapHeader({
   onOpenReschedule,
   onNewRoadmap,
 }: RoadmapHeaderProps) {
+  const { lang } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const handleExport = () => {
@@ -30,7 +34,7 @@ export function RoadmapHeader({
       <div>
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <span className="rounded bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 border border-brand-200">
-            Active Study Plan
+            {wcopy.activeStudyPlan}
           </span>
           <span className="text-xs text-slate-500">
             {roadmap.startDate} &mdash; {roadmap.targetEndDate}
@@ -46,20 +50,20 @@ export function RoadmapHeader({
           variant="outline"
           size="sm"
           onClick={handleExport}
-          title="Export to Apple Calendar, Google Calendar, or Outlook"
+          title={wcopy.exportCalendar}
         >
           {downloadSuccess ? <Check className="w-4 h-4 text-emerald-600" /> : <Download className="w-4 h-4 text-slate-600" />}
-          <span>{downloadSuccess ? "Exported .ics" : "Export Calendar"}</span>
+          <span>{downloadSuccess ? wcopy.exportedIcs : wcopy.exportCalendar}</span>
         </Button>
 
         <Button
           variant="secondary"
           size="sm"
           onClick={onOpenReschedule}
-          title="Recalibrate timeline smoothly"
+          title={wcopy.fallingBehind}
         >
           <CalendarClock className="w-4 h-4 text-amber-700" />
-          <span>I'm Falling Behind</span>
+          <span>{wcopy.fallingBehind}</span>
         </Button>
 
         <Button
@@ -68,7 +72,7 @@ export function RoadmapHeader({
           onClick={onNewRoadmap}
         >
           <PlusCircle className="w-4 h-4" />
-          <span>New Plan</span>
+          <span>{wcopy.newPlan}</span>
         </Button>
       </div>
     </div>

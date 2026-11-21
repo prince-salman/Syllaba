@@ -17,6 +17,15 @@ import { SyllabusDropzone } from "./SyllabusDropzone";
 import { CoursePresets, PRESET_COURSES, PresetCourse } from "./CoursePresets";
 import { CuratedResource, Roadmap, SyllabusExtraction } from "@/shared/types/roadmap";
 import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
+
+function getLocalTodayYmd(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 interface SyllabusUploaderProps {
   onRoadmapGenerated: (roadmap: Roadmap) => void;
@@ -27,7 +36,8 @@ type PipelineStage = "idle" | "extracting" | "planning" | "curating" | "done";
 const PRESET_DAYS = [7, 14, 21, 30] as const;
 
 export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) {
-  const { copy } = useLanguage();
+  const { lang, copy } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
   const [activeTab, setActiveTab] = useState<"pdf" | "paste" | "presets">("presets");
   const [syllabusText, setSyllabusText] = useState(PRESET_COURSES[0].text);
   const [courseTitle, setCourseTitle] = useState(PRESET_COURSES[0].title);
@@ -79,6 +89,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         body: JSON.stringify({
           syllabusText,
           courseTitle: courseTitle.trim() || undefined,
+          language: lang,
         }),
       });
 
@@ -89,6 +100,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
 
       setStage("planning");
       const normalizedDays = Math.max(3, Math.min(60, Math.round(targetDays || 14)));
+      const clientStartDate = getLocalTodayYmd();
       const planRes = await fetch("/api/agents/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,6 +110,8 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           targetDays: normalizedDays,
           dailyHoursLimit: dailyHours,
           includeRestDays,
+          language: lang,
+          clientStartDate,
         }),
       });
 
@@ -114,6 +128,9 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             roadmapId: roadmap.id,
+            courseTitle: roadmap.courseTitle,
+            syllabusText,
+            language: lang,
             modules: extraction.modules,
           }),
         });
@@ -148,18 +165,18 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
   const agentSteps = [
     {
       key: "extracting",
-      label: "Agent 1: Syllabus Extractor",
-      detail: "Extracting modules, topics, and hard deadlines",
+      label: wcopy.agent1Label,
+      detail: wcopy.agent1Detail,
     },
     {
       key: "planning",
-      label: "Agent 2 & 4: Micro-Task Planner",
-      detail: "Slicing into 15-30m tasks and validating daily cap",
+      label: wcopy.agent2Label,
+      detail: wcopy.agent2Detail,
     },
     {
       key: "curating",
-      label: "Agent 3: OpenAlex Material Curator",
-      detail: "Fetching open-access papers and concept references",
+      label: wcopy.agent3Label,
+      detail: wcopy.agent3Detail,
     },
   ];
 
@@ -176,16 +193,16 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
       <div className="mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-            Generate Anti-Burnout Study Roadmap
+            {wcopy.uploaderTitle}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Three specialized AI agents decompose your syllabus into 15-30 minute micro-tasks with curated scholarly sources.
+            {wcopy.uploaderSubtitle}
           </p>
         </div>
 
         <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-800 shrink-0">
           <Cpu className="h-3.5 w-3.5" />
-          <span>3-Agent Pipeline</span>
+          <span>{wcopy.pipelineBadge}</span>
         </span>
       </div>
 
@@ -200,7 +217,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           }`}
         >
           <Sparkles className="w-4 h-4 shrink-0" />
-          <span>Quick Presets</span>
+          <span>{wcopy.tabPresets}</span>
         </button>
         <button
           type="button"
@@ -212,7 +229,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           }`}
         >
           <UploadCloud className="w-4 h-4 shrink-0" />
-          <span>Upload File</span>
+          <span>{wcopy.tabUploadFile}</span>
         </button>
         <button
           type="button"
@@ -224,7 +241,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           }`}
         >
           <FileText className="w-4 h-4 shrink-0" />
-          <span>Paste Text</span>
+          <span>{wcopy.tabPasteText}</span>
         </button>
       </div>
 
@@ -232,7 +249,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         {activeTab === "presets" && (
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Select Sample Course
+              {wcopy.selectSampleCourse}
             </label>
             <CoursePresets onSelectPreset={handleSelectPreset} selectedId={selectedPresetId} />
           </div>
@@ -241,7 +258,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         {activeTab === "pdf" && (
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Syllabus Document
+              {wcopy.syllabusDocLabel}
             </label>
             <SyllabusDropzone
               onExtractedText={handleExtractedText}
@@ -254,7 +271,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         {activeTab === "paste" && (
           <div className="space-y-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Syllabus or Assignment Rubric Text
+              {wcopy.pasteSyllabusLabel}
             </label>
             <textarea
               rows={6}
@@ -263,7 +280,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
                 setSyllabusText(e.target.value);
                 setSelectedPresetId("");
               }}
-              placeholder="Paste schedule, reading list, weekly milestones, or assignment specs here..."
+              placeholder={wcopy.pastePlaceholder}
               className="w-full rounded-xl border border-slate-300 p-3 text-sm font-mono text-slate-800 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -271,12 +288,14 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-3 border-t border-slate-100">
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Course Title</label>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              {wcopy.courseTitleLabel}
+            </label>
             <input
               type="text"
               value={courseTitle}
               onChange={(e) => setCourseTitle(e.target.value)}
-              placeholder="e.g. CS 161 Algorithms"
+              placeholder={wcopy.courseTitlePlaceholder}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -284,7 +303,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
           <div>
             <div className="flex items-center justify-between gap-2 mb-1">
               <label className="block text-xs font-medium text-slate-700">
-                Total Study Duration
+                {wcopy.totalDurationLabel}
               </label>
               <div className="flex items-center gap-1">
                 {PRESET_DAYS.map((preset) => (
@@ -334,13 +353,13 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
               </div>
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
-              Custom duration from 3 to 60 {copy.daysWord}
+              {wcopy.customDurationHint(copy.daysWord)}
             </p>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              Max Daily Study Limit
+              {wcopy.maxDailyLimitLabel}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -353,15 +372,15 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
                 className="w-full accent-[#111111]"
               />
               <span className="text-xs font-semibold text-slate-700 w-14 text-right shrink-0">
-                {dailyHours} hrs
+                {dailyHours} {wcopy.hrsSuffix}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Hard-capped at 150 min/day</p>
+            <p className="text-[11px] text-slate-400 mt-1">{wcopy.hardCapHint}</p>
           </div>
 
           <div className="flex flex-col justify-between">
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              Pacing Preferences
+              {wcopy.pacingPrefsLabel}
             </label>
             <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer pt-1">
               <input
@@ -370,16 +389,16 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
                 onChange={(e) => setIncludeRestDays(e.target.checked)}
                 className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
               />
-              <span>Include weekly rest days</span>
+              <span>{wcopy.includeRestDaysLabel}</span>
             </label>
-            <p className="text-[11px] text-slate-400 mt-1">Active recovery to sustain focus</p>
+            <p className="text-[11px] text-slate-400 mt-1">{wcopy.restDaysHint}</p>
           </div>
         </div>
 
         {isGenerating && (
           <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-4 space-y-3">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-800">
-              Live Multi-Agent Execution
+              {wcopy.liveExecutionTitle}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {agentSteps.map((step, idx) => {
@@ -424,12 +443,12 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <ShieldCheck className="w-4 h-4 text-brand-600" />
-            <span>15-30m micro-task validator active</span>
+            <span>{wcopy.validatorActive}</span>
           </div>
 
           <Button type="submit" size="lg" isLoading={isGenerating} className="w-full sm:w-auto">
             <Calendar className="w-4 h-4" />
-            <span>{isGenerating ? "Running Agents..." : "Launch Agent Pipeline"}</span>
+            <span>{isGenerating ? wcopy.runningAgentsBtn : wcopy.launchPipelineBtn}</span>
           </Button>
         </div>
       </form>

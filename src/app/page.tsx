@@ -452,7 +452,15 @@ export default function HomePage() {
                             : "bg-[#FFE4E6] text-[#9F1239]"
                         }`}
                       >
-                        {riskLevel} burnout risk
+                        {lang === "id"
+                          ? `Risiko Burnout ${
+                              riskLevel === "low"
+                                ? "Rendah"
+                                : riskLevel === "moderate"
+                                ? "Sedang"
+                                : "Tinggi"
+                            }`
+                          : `${riskLevel} burnout risk`}
                       </span>
                       <span>{copy.healthyPace}</span>
                     </div>

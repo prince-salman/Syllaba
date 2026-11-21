@@ -23,6 +23,58 @@ const GEMINI_MODELS = [
 ];
 const AGENT_TIMEOUT_MS = 16000;
 
+function resolveTargetLang(language?: string, sampleText?: string): string {
+  const valid = new Set(["en", "id", "zh", "ar", "es", "pt"]);
+  if (language && valid.has(language.toLowerCase())) {
+    return language.toLowerCase();
+  }
+  if (sampleText) {
+    const lower = ` ${sampleText.toLowerCase()} `;
+    const idHits = [" yang ", " dan ", " untuk ", " dengan ", " pada ", " dari ", " konsep ", " materi "]
+      .filter((w) => lower.includes(w)).length;
+    if (idHits >= 2) return "id";
+  }
+  return "en";
+}
+
+function getStrictLanguageRule(langCode: string): string {
+  switch (langCode) {
+    case "id":
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE field (courseTitle, titles, descriptions, subtasks, slideDigest, burnoutFactors, labels) 100% in natural academic Bahasa Indonesia. Do NOT mix English phrases where natural Indonesian exists. Only keep standard technical terms or LaTeX symbols if universal.";
+    case "zh":
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in Simplified Chinese (简体中文). Do NOT mix languages.";
+    case "ar":
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in Modern Standard Arabic (العربية). Do NOT mix languages.";
+    case "es":
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in natural academic Spanish (Español). Do NOT mix languages.";
+    case "pt":
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in natural academic Portuguese (Português). Do NOT mix languages.";
+    default:
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE field (courseTitle, titles, descriptions, subtasks, slideDigest, burnoutFactors, labels) 100% in clear academic English. Do NOT mix Indonesian or other languages.";
+  }
+}
+
+function normalizeStartYmd(clientStartDate?: string): string {
+  if (clientStartDate && /^\d{4}-\d{2}-\d{2}$/.test(clientStartDate.trim())) {
+    return clientStartDate.trim();
+  }
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function addDaysYmd(baseYmd: string, offsetDays: number): string {
+  const [y, m, d] = baseYmd.split("-").map((n) => parseInt(n, 10));
+  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+  dt.setUTCDate(dt.getUTCDate() + offsetDays);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 async function generateJsonWithGemini(
   apiKey: string,
   systemInstruction: string,
@@ -165,8 +217,10 @@ function parseSyllabusFallback(syllabusText: string, courseTitle?: string): Syll
 /** Agent 1: Extract structured modules, topics, weights, and hard deadlines from raw syllabus or PPT slide text. */
 export async function extractSyllabusWithAgent(
   syllabusText: string,
-  courseTitle?: string
+  courseTitle?: string,
+  language?: string
 ): Promise<SyllabusExtraction> {
+  const targetLang = resolveTargetLang(language, syllabusText);
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return parseSyllabusFallback(syllabusText, courseTitle);
@@ -174,7 +228,7 @@ export async function extractSyllabusWithAgent(
 
   try {
     const systemInstruction =
-      "You are Agent 1 (PPT & Syllabus Content Extractor). Extract the exact slide-by-slide or section-by-section academic structure, preserving verbatim slide titles, technical concepts, definitions, formulas, case studies, and bullet points from the uploaded PPT or document. Never invent generic topics. Return ONLY valid JSON.";
+      `You are Agent 1 (PPT & Syllabus Content Extractor). Extract the exact slide-by-slide or section-by-section academic structure, preserving verbatim slide titles, technical concepts, definitions, formulas, case studies, and bullet points from the uploaded PPT or document. Never invent generic topics. ${getStrictLanguageRule(targetLang)} Return ONLY valid JSON.`;
 
     const prompt = `Extract the detailed, specific slide/module breakdown from this uploaded presentation (PPT), PDF, or syllabus document.
 Provided courseTitle hint: ${courseTitle || "Auto-detect"}
@@ -238,15 +292,19 @@ export function validateAndNormalizeRoadmap(
     includeRestDays?: boolean;
     hardDeadline?: string;
     modulesSummary?: ExtractedModule[];
+    language?: string;
+    clientStartDate?: string;
   }
 ): Roadmap {
+  const targetLang = resolveTargetLang(options.language, roadmap.courseTitle);
+  const isId = targetLang === "id";
   const maxDailyMinutes = Math.min(Math.round((options.dailyHoursLimit || 2) * 60), 150);
   const desiredDays =
     typeof options.targetDays === "number"
       ? Math.max(3, Math.min(60, Math.round(options.targetDays)))
       : undefined;
   const includeRestDays = options.includeRestDays ?? true;
-  const startDate = new Date();
+  const startYmd = normalizeStartYmd(options.clientStartDate);
   let totalTasks = 0;
 
   let sourceSchedules = [...roadmap.dailySchedules];
@@ -258,10 +316,11 @@ export function validateAndNormalizeRoadmap(
       while (sourceSchedules.length < desiredDays) {
         const nextDayNum = sourceSchedules.length + 1;
         const shouldRest = includeRestDays && nextDayNum >= 7 && nextDayNum % 7 === 0;
+        const nextDateStr = addDaysYmd(startYmd, nextDayNum - 1);
         if (shouldRest || studyDaysPool.length === 0) {
           sourceSchedules.push({
             dayNumber: nextDayNum,
-            date: new Date().toISOString().split("T")[0],
+            date: nextDateStr,
             isRestDay: true,
             totalEstimatedMinutes: 0,
             cognitiveLoadSummary: "light",
@@ -280,26 +339,32 @@ export function validateAndNormalizeRoadmap(
               : [
                   {
                     id: generateId("subtask"),
-                    title: `[${templateTask.moduleTitle || roadmap.courseTitle}] Evaluasi penguasaan materi: "${templateTask.title}" ($\\eta \\ge 90\\%$)`,
+                    title: isId
+                      ? `[${templateTask.moduleTitle || roadmap.courseTitle}] Evaluasi penguasaan materi: "${templateTask.title}" ($\\eta \\ge 90\\%$)`
+                      : `[${templateTask.moduleTitle || roadmap.courseTitle}] Verify mastery of "${templateTask.title}" ($\\eta \\ge 90\\%$)`,
                     isCompleted: false,
                   },
                 ];
           sourceSchedules.push({
             dayNumber: nextDayNum,
-            date: new Date().toISOString().split("T")[0],
+            date: nextDateStr,
             isRestDay: false,
             totalEstimatedMinutes: 25,
             cognitiveLoadSummary: "moderate",
             tasks: [
               {
                 id: generateId("task"),
-                title: `Pendalaman & Sintesis: ${templateTask.title}`,
+                title: isId
+                  ? `Pendalaman & Sintesis: ${templateTask.title}`
+                  : `Deep Review & Synthesis: ${templateTask.title}`,
                 description:
                   templateTask.description ||
-                  `Evaluasi mendalam materi ${templateTask.moduleTitle || roadmap.courseTitle} ($\\eta_{\\text{target}} = 100\\%$).`,
+                  (isId
+                    ? `Evaluasi mendalam materi ${templateTask.moduleTitle || roadmap.courseTitle} ($\\eta_{\\text{target}} = 100\\%$).`
+                    : `Comprehensive review of ${templateTask.moduleTitle || roadmap.courseTitle} ($\\eta_{\\text{target}} = 100\\%$).`),
                 moduleTitle: templateTask.moduleTitle,
                 dayNumber: nextDayNum,
-                date: new Date().toISOString().split("T")[0],
+                date: nextDateStr,
                 estimatedMinutes: 25,
                 cognitiveLoad: "moderate",
                 category: "review",
@@ -314,9 +379,7 @@ export function validateAndNormalizeRoadmap(
   }
 
   const normalizedSchedules: DailySchedule[] = sourceSchedules.map((day, index) => {
-    const dayDate = new Date(startDate);
-    dayDate.setDate(startDate.getDate() + index);
-    const dateStr = dayDate.toISOString().split("T")[0];
+    const dateStr = addDaysYmd(startYmd, index);
 
     if (day.isRestDay) {
       return {
@@ -362,8 +425,7 @@ export function validateAndNormalizeRoadmap(
     };
   });
 
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + Math.max(0, normalizedSchedules.length - 1));
+  const endDateStr = addDaysYmd(startYmd, Math.max(0, normalizedSchedules.length - 1));
 
   const activeDays = normalizedSchedules.filter((d) => !d.isRestDay);
   const totalMinutes = activeDays.reduce((acc, d) => acc + d.totalEstimatedMinutes, 0);
@@ -383,14 +445,18 @@ export function validateAndNormalizeRoadmap(
     burnoutFactors:
       roadmap.burnoutMetrics?.burnoutFactors?.length > 0
         ? roadmap.burnoutMetrics.burnoutFactors
-        : ["Deterministic validator confirmed <=150 min/day cap with 15-30m micro-tasks."],
+        : [
+            isId
+              ? "Validator deterministik memastikan batas <=150 menit/hari dengan tugas mikro 15-30 menit."
+              : "Deterministic validator confirmed <=150 min/day cap with 15-30m micro-tasks.",
+          ],
   };
 
   const baseRoadmap: Roadmap = {
     ...roadmap,
-    startDate: startDate.toISOString().split("T")[0],
+    startDate: startYmd,
     targetEndDate:
-      desiredDays ? endDate.toISOString().split("T")[0] : options.hardDeadline || endDate.toISOString().split("T")[0],
+      desiredDays ? endDateStr : options.hardDeadline || endDateStr,
     totalDays: normalizedSchedules.length,
     totalTasks,
     dailySchedules: normalizedSchedules,
@@ -414,9 +480,16 @@ export async function planMicroTasksWithAgent(
     targetDays?: number;
     dailyHoursLimit?: number;
     includeRestDays?: boolean;
+    language?: string;
+    clientStartDate?: string;
   }
 ): Promise<Roadmap> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const targetLang = resolveTargetLang(
+    options.language,
+    options.syllabusText || extraction.courseTitle
+  );
+  const isId = targetLang === "id";
   const targetDays =
     typeof options.targetDays === "number"
       ? Math.max(3, Math.min(60, Math.round(options.targetDays)))
@@ -440,6 +513,8 @@ export async function planMicroTasksWithAgent(
       includeRestDays,
       hardDeadline: extraction.hardDeadline,
       modulesSummary: extraction.modules,
+      language: targetLang,
+      clientStartDate: options.clientStartDate,
     });
     await saveRoadmapToDb(validated);
     return validated;
@@ -447,7 +522,7 @@ export async function planMicroTasksWithAgent(
 
   try {
     const systemInstruction =
-      "You are Agent 2 (Slide-Specific Micro-Task Decomposition Planner). Slice the uploaded PPT slides or syllabus modules into hyper-specific 15-30 minute daily study micro-tasks. Every task title, description, moduleTitle, and subtask MUST directly quote and teach the exact slide headings, bullet points, definitions, formulas, and examples from the uploaded document. Never use generic placeholders. Never exceed 150 minutes/day. Return ONLY valid JSON.";
+      `You are Agent 2 (Slide-Specific Micro-Task Decomposition Planner). Slice the uploaded PPT slides or syllabus modules into hyper-specific 15-30 minute daily study micro-tasks. Every task title, description, moduleTitle, and subtask MUST directly quote and teach the exact slide headings, bullet points, definitions, formulas, and examples from the uploaded document. Never use generic placeholders. Never exceed 150 minutes/day. ${getStrictLanguageRule(targetLang)} Return ONLY valid JSON.`;
 
     const rawSlideContext = (options.syllabusText || "").slice(0, 12000);
 
@@ -593,12 +668,16 @@ Return JSON:
       difficultyAnalysis: aiDiffPts
         ? {
             difficultyPoints: aiDiffPts,
-            difficultyLabel: `Level ${aiDiffPts}/5 · AI Evaluated PPT Difficulty (+${aiDiffPts} Poin Base)`,
+            difficultyLabel: isId
+              ? `Level ${aiDiffPts}/5 · Evaluasi Kesulitan PPT oleh AI (+${aiDiffPts} Poin)`
+              : `Level ${aiDiffPts}/5 · AI Evaluated PPT Difficulty (+${aiDiffPts} Pts)`,
             rationale:
               typeof parsed.pptDifficultyRationale === "string" &&
               parsed.pptDifficultyRationale.trim()
                 ? parsed.pptDifficultyRationale.trim()
-                : `AI menilai tingkat kesulitan PPT ini ${aiDiffPts}/5 Poin berdasarkan kepadatan materi dan rumus teknis.`,
+                : isId
+                ? `AI menilai tingkat kesulitan PPT ini ${aiDiffPts}/5 Poin berdasarkan kepadatan materi dan rumus teknis.`
+                : `AI rated this PPT ${aiDiffPts}/5 points based on conceptual depth and formal equations.`,
             latexDensityCount: schedules.flatMap((s) => s.tasks).length * 2,
             deepTasksCount: schedules
               .flatMap((s) => s.tasks)
@@ -616,6 +695,8 @@ Return JSON:
       includeRestDays,
       hardDeadline: extraction.hardDeadline,
       modulesSummary: extraction.modules,
+      language: targetLang,
+      clientStartDate: options.clientStartDate,
     });
     await saveRoadmapToDb(validated);
     return validated;
@@ -635,23 +716,53 @@ Return JSON:
       includeRestDays,
       hardDeadline: extraction.hardDeadline,
       modulesSummary: extraction.modules,
+      language: targetLang,
+      clientStartDate: options.clientStartDate,
     });
     await saveRoadmapToDb(validated);
     return validated;
   }
 }
 
-async function fetchOpenAlexForTopic(roadmapId: string, topic: string): Promise<CuratedResource[]> {
+function cleanSearchKeywords(raw: string): string {
+  return raw
+    .replace(/\$[^$]*\$/g, " ")
+    .replace(/\\[a-zA-Z]+/g, " ")
+    .replace(
+      /^(slide|page|halaman|week|minggu|pertemuan|module|modul|chapter|bab|unit|topic|topik|part|bagian|sesi|section)\s*\d+(?:\s*[-–]\s*\d+)?\s*[—:-]?\s*/i,
+      ""
+    )
+    .replace(
+      /\b(pengertian|definisi|pendahuluan|pengantar|konsep|dasar|analisis|studi|kasus|materi|kuliah|pokok|bahasan|introduction|overview|lecture|notes|summary)\b/gi,
+      " "
+    )
+    .replace(/[{}()[\]^_~#*•●▪▸"'`]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function fetchOpenAlexForTopic(
+  roadmapId: string,
+  moduleHeading: string,
+  searchQuery: string,
+  slideSummary?: string
+): Promise<CuratedResource[]> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 5500);
 
   try {
+    const cleanQuery = cleanSearchKeywords(searchQuery).slice(0, 75);
+    if (!cleanQuery || cleanQuery.length < 3) return [];
+
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(
-      topic
+      cleanQuery
     )}&filter=is_oa:true&per-page=2&select=id,title,publication_year,open_access,doi,primary_location`;
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { "User-Agent": "SyllabaAcademicCurator/1.0 (https://syllaba.xyz; contact@syllaba.xyz)" },
+      headers: {
+        "User-Agent":
+          "SyllabaAcademicCurator/1.0 (https://syllaba.xyz; contact@syllaba.xyz)",
+      },
     });
     if (!res.ok) return [];
 
@@ -661,7 +772,9 @@ async function fetchOpenAlexForTopic(roadmapId: string, topic: string): Promise<
     return works
       .map((work: Record<string, unknown>): CuratedResource | null => {
         const oa = work.open_access as Record<string, unknown> | undefined;
-        const primaryLoc = work.primary_location as Record<string, unknown> | undefined;
+        const primaryLoc = work.primary_location as
+          | Record<string, unknown>
+          | undefined;
         const resolvedUrl =
           (oa?.oa_url as string) ||
           (primaryLoc?.landing_page_url as string) ||
@@ -672,14 +785,22 @@ async function fetchOpenAlexForTopic(roadmapId: string, topic: string): Promise<
         return {
           id: generateId("res"),
           roadmapId,
-          moduleTopic: topic,
+          moduleTopic: moduleHeading,
           title: String(work.title),
           url: String(resolvedUrl),
           sourceType: "openalex",
-          year: typeof work.publication_year === "number" ? work.publication_year : undefined,
+          summary:
+            slideSummary ||
+            `Open-Access scholarly reference for ${moduleHeading} (${cleanQuery}).`,
+          year:
+            typeof work.publication_year === "number"
+              ? work.publication_year
+              : undefined,
         };
       })
-      .filter((item: CuratedResource | null): item is CuratedResource => item !== null);
+      .filter(
+        (item: CuratedResource | null): item is CuratedResource => item !== null
+      );
   } catch {
     return [];
   } finally {
@@ -687,38 +808,65 @@ async function fetchOpenAlexForTopic(roadmapId: string, topic: string): Promise<
   }
 }
 
-async function fetchWikipediaForTopic(roadmapId: string, topic: string): Promise<CuratedResource[]> {
+async function fetchWikipediaForTopic(
+  roadmapId: string,
+  moduleHeading: string,
+  wikiQuery: string,
+  preferIndonesian = false
+): Promise<CuratedResource[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4500);
 
   try {
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
-      topic
-    )}&limit=1&namespace=0&format=json`;
-    const res = await fetch(searchUrl, {
-      signal: controller.signal,
-      headers: { "User-Agent": "SyllabaAcademicCurator/1.0 (https://syllaba.xyz; contact@syllaba.xyz)" },
-    });
-    if (!res.ok) return [];
+    const cleanQuery = cleanSearchKeywords(wikiQuery).slice(0, 55);
+    if (!cleanQuery || cleanQuery.length < 3) return [];
 
-    const data = await res.json();
-    const titles: string[] = Array.isArray(data[1]) ? data[1] : [];
-    const descriptions: string[] = Array.isArray(data[2]) ? data[2] : [];
-    const urls: string[] = Array.isArray(data[3]) ? data[3] : [];
+    const hosts = preferIndonesian
+      ? ["id.wikipedia.org", "en.wikipedia.org"]
+      : ["en.wikipedia.org", "id.wikipedia.org"];
 
-    if (!titles[0] || !urls[0]) return [];
+    for (const host of hosts) {
+      const searchUrl = `https://${host}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+        cleanQuery
+      )}&srlimit=1&format=json&origin=*`;
+      const res = await fetch(searchUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            "SyllabaAcademicCurator/1.0 (https://syllaba.xyz; contact@syllaba.xyz)",
+        },
+      });
+      if (!res.ok) continue;
 
-    return [
-      {
-        id: generateId("res"),
-        roadmapId,
-        moduleTopic: topic,
-        title: `${titles[0]} (Concept Reference)`,
-        url: urls[0],
-        sourceType: "wikipedia",
-        summary: descriptions[0] || undefined,
-      },
-    ];
+      const data = await res.json();
+      const firstHit = data?.query?.search?.[0];
+      if (!firstHit || !firstHit.title) continue;
+
+      const pageTitle = String(firstHit.title);
+      const rawSnippet = String(firstHit.snippet || "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, "&")
+        .trim();
+      const wikiUrl = `https://${host}/wiki/${encodeURIComponent(
+        pageTitle.replace(/\s+/g, "_")
+      )}`;
+
+      return [
+        {
+          id: generateId("res"),
+          roadmapId,
+          moduleTopic: moduleHeading,
+          title: `${pageTitle} (${host.startsWith("id.") ? "Ensiklopedia Konsep" : "Concept Reference"})`,
+          url: wikiUrl,
+          sourceType: "wikipedia",
+          summary:
+            rawSnippet || `Referensi konsep ensiklopedis untuk ${moduleHeading}.`,
+        },
+      ];
+    }
+
+    return [];
   } catch {
     return [];
   } finally {
@@ -726,48 +874,188 @@ async function fetchWikipediaForTopic(roadmapId: string, topic: string): Promise
   }
 }
 
-/** Agent 3: Fetch verified Open-Access scholarly papers (OpenAlex) and encyclopedic summaries (Wikipedia). */
+interface SlideCuratorPlan {
+  moduleHeading: string;
+  aiReadingTitle: string;
+  aiReadingNote: string;
+  openAlexQuery: string;
+  wikipediaQuery: string;
+  slideDigest: string;
+}
+
+/** Agent 3: Generate AI-synthesized PPT reading guides + verified OpenAlex/Wikipedia references matched strictly to the uploaded PPT slides. */
 export async function curateResourcesWithAgent(
   roadmapId: string,
-  modules: ExtractedModule[]
+  modules: ExtractedModule[],
+  courseTitle?: string,
+  syllabusText?: string,
+  language?: string
 ): Promise<CuratedResource[]> {
-  const topics = modules
-    .slice(0, 6)
-    .map((m) => {
-      const cleanTitle = m.title
-        .replace(
-          /^(slide|page|halaman|week|minggu|pertemuan|module|modul|chapter|bab|unit|topic|topik|part|bagian|sesi|section)\s*\d+(?:\s*[-–]\s*\d+)?\s*[:-]?\s*/i,
-          ""
-        )
-        .trim();
-      const firstSpecificTopic = (m.topics?.[0] || "")
-        .replace(/^[-*•●▪▸\d.)]+\s*/, "")
-        .slice(0, 70)
-        .trim();
-
-      if (cleanTitle && cleanTitle.length > 4) {
-        return firstSpecificTopic &&
-          !cleanTitle.toLowerCase().includes(firstSpecificTopic.toLowerCase().slice(0, 12))
-          ? `${cleanTitle} ${firstSpecificTopic}`.slice(0, 90)
-          : cleanTitle;
-      }
-      return firstSpecificTopic || m.title;
+  const substantiveModules = modules
+    .filter((m) => {
+      const lower = m.title.toLowerCase();
+      return !(
+        lower.includes("terima kasih") ||
+        lower.includes("thank you") ||
+        lower.includes("daftar pustaka") ||
+        /^slide\s*\d+\s*[:-]?\s*(outline|agenda|daftar isi)$/i.test(m.title.trim())
+      );
     })
-    .filter(Boolean);
+    .slice(0, 6);
 
-  const uniqueTopics = Array.from(new Set(topics)).slice(0, 5);
+  const targetModules =
+    substantiveModules.length > 0 ? substantiveModules : modules.slice(0, 5);
+
+  const combinedSample = `${courseTitle || ""} ${syllabusText || ""} ${targetModules
+    .map((m) => `${m.title} ${(m.topics || []).join(" ")}`)
+    .join(" ")}`;
+  const targetLang = resolveTargetLang(language, combinedSample);
+  const isIndonesian = targetLang === "id";
+
+  // Build deterministic fallback curator plans from actual PPT slide headings & bullets
+  const fallbackPlans: SlideCuratorPlan[] = targetModules.map((m) => {
+    const cleanedTitle = cleanSearchKeywords(m.title);
+    const cleanedBullet = cleanSearchKeywords(m.topics?.[0] || "");
+    const coreKeywords = `${cleanedTitle} ${cleanedBullet}`
+      .split(/\s+/)
+      .filter((w) => w.length >= 3)
+      .slice(0, 5)
+      .join(" ");
+    const wikiKw =
+      cleanedTitle
+        .split(/\s+/)
+        .filter((w) => w.length >= 3)
+        .slice(0, 3)
+        .join(" ") ||
+      coreKeywords
+        .split(/\s+/)
+        .slice(0, 3)
+        .join(" ") ||
+      courseTitle ||
+      m.title;
+
+    const bulletList = (m.topics || []).slice(0, 4).join("; ");
+
+    return {
+      moduleHeading: m.title,
+      aiReadingTitle: isIndonesian
+        ? `Bahan Bacaan Mendalam: ${m.title}`
+        : `Deep-Dive Reading Guide: ${m.title}`,
+      aiReadingNote: isIndonesian
+        ? `Pembahasan terstruktur dari slide ${m.title}: ${bulletList || m.title}. Pastikan kamu menguasai hubungan teknis antar komponen slide ini menggunakan model formal $\\text{Konsep} \\longrightarrow \\text{Mekanisme} \\longrightarrow \\text{Evaluasi}$ sebelum lanjut ke modul berikutnya.`
+        : `Structured study guide from ${m.title}: ${bulletList || m.title}. Focus on mastering the formal pipeline $\\text{Concept} \\longrightarrow \\text{Mechanism} \\longrightarrow \\text{Evaluation}$ highlighted on this slide before advancing.`,
+      openAlexQuery: coreKeywords || courseTitle || m.title,
+      wikipediaQuery: wikiKw,
+      slideDigest:
+        (m.topics || []).slice(0, 2).join(" · ") ||
+        (isIndonesian ? `Materi inti dari ${m.title}` : `Core topic from ${m.title}`),
+    };
+  });
+
+  let plans: SlideCuratorPlan[] = fallbackPlans;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (apiKey && targetModules.length > 0) {
+    try {
+      const systemInstruction = `You are Syllaba AI Reading Curator Agent (Agent 3).
+Given the student's uploaded PPT slide content and module outline, produce:
+1. Direct AI-authored reading materials ("aiReadingTitle", "aiReadingNote") explaining EVERY slide deeply based ONLY on the actual uploaded PPT content, including equations in inline LaTeX ($...$).
+2. Precise 3-5 word English scholarly queries ("openAlexQuery") and 1-3 word concept queries ("wikipediaQuery") strictly matched to the exact domain of the PPT so external papers are never off-topic.
+
+${getStrictLanguageRule(targetLang)}
+Return ONLY valid JSON.`;
+
+      const prompt = `Course Title: ${courseTitle || "Academic Course"}
+Raw Uploaded PPT Content:
+${(syllabusText || "").slice(0, 10000)}
+
+PPT Slide Modules:
+${JSON.stringify(
+  targetModules.map((m) => ({
+    title: m.title,
+    topics: (m.topics || []).slice(0, 6),
+  })),
+  null,
+  2
+)}
+
+Return JSON:
+{
+  "plans": [
+    {
+      "moduleHeading": "Slide 1: Exact Slide Title",
+      "aiReadingTitle": "Concise study note title for this slide",
+      "aiReadingNote": "Detailed 3-5 sentence reading passage teaching the exact concepts, definitions, mechanisms, and inline LaTeX formulas ($...$) from this PPT slide.",
+      "openAlexQuery": "3 to 5 word precise English academic query",
+      "wikipediaQuery": "1 to 3 word canonical concept name",
+      "slideDigest": "1-sentence slide summary with inline LaTeX $...$"
+    }
+  ]
+}`;
+
+      const rawJson = await generateJsonWithGemini(
+        apiKey,
+        systemInstruction,
+        prompt,
+        0.2
+      );
+      const parsed = JSON.parse(rawJson);
+      if (Array.isArray(parsed.plans) && parsed.plans.length > 0) {
+        plans = parsed.plans.map((p: Record<string, unknown>, idx: number) => {
+          const fb = fallbackPlans[idx % fallbackPlans.length];
+          return {
+            moduleHeading: String(p.moduleHeading || fb.moduleHeading),
+            aiReadingTitle: String(p.aiReadingTitle || fb.aiReadingTitle),
+            aiReadingNote: String(p.aiReadingNote || fb.aiReadingNote),
+            openAlexQuery: String(p.openAlexQuery || fb.openAlexQuery),
+            wikipediaQuery: String(p.wikipediaQuery || fb.wikipediaQuery),
+            slideDigest: String(p.slideDigest || fb.slideDigest),
+          };
+        });
+      }
+    } catch {
+      plans = fallbackPlans;
+    }
+  }
+
+  // First add AI-synthesized PPT reading guides (always 100% matched to the PPT)
+  const aiNoteResources: CuratedResource[] = plans.map((plan) => ({
+    id: generateId("res"),
+    roadmapId,
+    moduleTopic: plan.moduleHeading,
+    title: plan.aiReadingTitle,
+    url: "#ppt-slide-guide",
+    sourceType: "ai_notes",
+    summary: plan.aiReadingNote,
+  }));
 
   const results = await Promise.allSettled(
-    uniqueTopics.flatMap((topic) => [
-      fetchOpenAlexForTopic(roadmapId, topic),
-      fetchWikipediaForTopic(roadmapId, topic),
+    plans.flatMap((plan) => [
+      fetchOpenAlexForTopic(
+        roadmapId,
+        plan.moduleHeading,
+        plan.openAlexQuery,
+        plan.slideDigest
+      ),
+      fetchWikipediaForTopic(
+        roadmapId,
+        plan.moduleHeading,
+        plan.wikipediaQuery,
+        isIndonesian
+      ),
     ])
   );
 
-  const curated: CuratedResource[] = [];
+  const curated: CuratedResource[] = [...aiNoteResources];
+  const seenUrls = new Set<string>();
   for (const r of results) {
     if (r.status === "fulfilled") {
-      curated.push(...r.value);
+      for (const item of r.value) {
+        if (!seenUrls.has(item.url)) {
+          seenUrls.add(item.url);
+          curated.push(item);
+        }
+      }
     }
   }
 

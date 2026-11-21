@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
       targetDays,
       dailyHoursLimit: typeof body.dailyHoursLimit === "number" ? body.dailyHoursLimit : 2,
       includeRestDays: typeof body.includeRestDays === "boolean" ? body.includeRestDays : true,
+      language: typeof body.language === "string" ? body.language : undefined,
+      clientStartDate: typeof body.clientStartDate === "string" ? body.clientStartDate : undefined,
     });
 
     return NextResponse.json(roadmap);

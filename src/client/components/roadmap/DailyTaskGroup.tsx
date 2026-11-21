@@ -1,13 +1,18 @@
+"use client";
+
 import React from "react";
 import { DailySchedule, RoadmapTask } from "@/shared/types/roadmap";
 import { TaskItem } from "./TaskItem";
 import { formatDate, formatMinutes } from "@/shared/utils";
-import { Coffee, Clock, CheckCircle2, Lock } from "lucide-react";
+import { CalendarClock, Coffee, Clock, CheckCircle2, Lock } from "lucide-react";
 import { CognitiveBadge } from "@/client/components/common/Badge";
+import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 
 interface DailyTaskGroupProps {
   schedule: DailySchedule;
   isLocked?: boolean;
+  isWaitingNextDay?: boolean;
   lockReason?: string;
   onToggleTask: (taskId: string, completed: boolean) => void;
   onToggleSubtask: (taskId: string, subtaskId: string, completed: boolean) => void;
@@ -17,11 +22,15 @@ interface DailyTaskGroupProps {
 export function DailyTaskGroup({
   schedule,
   isLocked = false,
+  isWaitingNextDay = false,
   lockReason,
   onToggleTask,
   onToggleSubtask,
   onOpenFocusTimer,
 }: DailyTaskGroupProps) {
+  const { lang } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
+
   if (schedule.isRestDay) {
     return (
       <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 px-5 py-4">
@@ -33,19 +42,19 @@ export function DailyTaskGroup({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-emerald-950">
-                  Day {schedule.dayNumber}
+                  {wcopy.dayLabel(schedule.dayNumber)}
                 </span>
                 <span className="text-xs text-emerald-700">
                   {formatDate(schedule.date)}
                 </span>
               </div>
               <p className="text-xs text-emerald-800 mt-0.5">
-                Cognitive Recovery Day &middot; Scheduled rest interval to prevent academic burnout.
+                {wcopy.restDayDesc}
               </p>
             </div>
           </div>
           <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200">
-            Rest &amp; Rebalance
+            {wcopy.restDayBadge}
           </span>
         </div>
       </div>
@@ -79,7 +88,11 @@ export function DailyTaskGroup({
             }`}
           >
             {isLocked ? (
-              <Lock className="w-3.5 h-3.5 text-slate-600" />
+              isWaitingNextDay ? (
+                <CalendarClock className="w-3.5 h-3.5 text-slate-600" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-slate-600" />
+              )
             ) : isDayFullyCompleted ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             ) : (
@@ -88,15 +101,24 @@ export function DailyTaskGroup({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-900">
-              Day {schedule.dayNumber}
+              {wcopy.dayLabel(schedule.dayNumber)}
             </h3>
             <span className="text-xs text-slate-500">
               {formatDate(schedule.date)}
             </span>
             {isLocked && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-900">
-                <Lock className="w-2.5 h-2.5" />
-                <span>Sequential Lock</span>
+                {isWaitingNextDay ? (
+                  <>
+                    <CalendarClock className="w-2.5 h-2.5" />
+                    <span>{wcopy.nextDayWaitBadge(formatDate(schedule.date))}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>{wcopy.sequentialLockBadge}</span>
+                  </>
+                )}
               </span>
             )}
           </div>
@@ -104,7 +126,7 @@ export function DailyTaskGroup({
 
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-medium text-slate-500">
-            {completedCount}/{schedule.tasks.length} done
+            {wcopy.doneCount(completedCount, schedule.tasks.length)}
           </span>
           <CognitiveBadge load={schedule.cognitiveLoadSummary} />
           <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">

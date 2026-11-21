@@ -67,7 +67,7 @@ export interface CuratedResource {
   moduleTopic: string;
   title: string;
   url: string;
-  sourceType: "openalex" | "wikipedia";
+  sourceType: "openalex" | "wikipedia" | "ai_notes";
   summary?: string;
   year?: number;
 }
@@ -221,6 +221,8 @@ export interface GenerationRequest {
   targetEndDate?: string;
   dailyHoursLimit?: number;
   includeRestDays?: boolean;
+  language?: string;
+  clientStartDate?: string;
   apiKey?: string;
 }
 

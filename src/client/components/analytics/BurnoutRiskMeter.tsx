@@ -1,41 +1,48 @@
+"use client";
+
 import React from "react";
 import { BurnoutMetrics } from "@/shared/types/roadmap";
-import { ShieldCheck, AlertTriangle, ShieldAlert, HeartPulse } from "lucide-react";
+import { ShieldCheck, AlertTriangle, ShieldAlert } from "lucide-react";
 import { Card } from "@/client/components/common/Card";
+import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 
 interface BurnoutRiskMeterProps {
   metrics: BurnoutMetrics;
 }
 
 export function BurnoutRiskMeter({ metrics }: BurnoutRiskMeterProps) {
+  const { lang, copy } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
+
   const getRiskDetails = () => {
     switch (metrics.riskLevel) {
       case "low":
         return {
-          label: "Low Burnout Risk",
+          label: wcopy.lowRiskTitle,
           color: "text-emerald-700",
           bg: "bg-emerald-50 border-emerald-200",
           meterColor: "bg-emerald-500",
           Icon: ShieldCheck,
-          description: "Pacing is sustainable with reasonable cognitive load distribution.",
+          description: wcopy.lowRiskDesc,
         };
       case "moderate":
         return {
-          label: "Moderate Burnout Risk",
+          label: wcopy.modRiskTitle,
           color: "text-amber-700",
           bg: "bg-amber-50 border-amber-200",
           meterColor: "bg-amber-500",
           Icon: AlertTriangle,
-          description: "Study load has dense stretches. Keep sessions capped at 90 minutes.",
+          description: wcopy.modRiskDesc,
         };
       case "high":
         return {
-          label: "High Burnout Risk",
+          label: wcopy.highRiskTitle,
           color: "text-red-700",
           bg: "bg-red-50 border-red-200",
           meterColor: "bg-red-500",
           Icon: ShieldAlert,
-          description: "High probability of academic exhaustion. Insert rest days or shift dates.",
+          description: wcopy.highRiskDesc,
         };
     }
   };
@@ -72,12 +79,12 @@ export function BurnoutRiskMeter({ metrics }: BurnoutRiskMeterProps) {
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs border-t border-slate-200/50 pt-2.5">
         <div>
-          <span className="text-slate-500">Weekly Target: </span>
-          <span className="font-semibold text-slate-800">{metrics.weeklyPeakHours} hrs</span>
+          <span className="text-slate-500">{wcopy.weeklyTarget}: </span>
+          <span className="font-semibold text-slate-800">{metrics.weeklyPeakHours} {wcopy.hrsSuffix}</span>
         </div>
         <div className="text-right">
-          <span className="text-slate-500">Scheduled Recovery: </span>
-          <span className="font-semibold text-slate-800">{metrics.recommendedRestDays} days</span>
+          <span className="text-slate-500">{wcopy.scheduledRecovery}: </span>
+          <span className="font-semibold text-slate-800">{metrics.recommendedRestDays} {copy.daysWord}</span>
         </div>
       </div>
 
