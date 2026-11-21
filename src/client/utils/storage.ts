@@ -14,6 +14,17 @@ export interface SupabaseSyncStatus {
 
 let lastSyncStatus: SupabaseSyncStatus | null = null;
 
+function isValidRoadmap(item: unknown): item is Roadmap {
+  if (!item || typeof item !== "object") return false;
+  const r = item as Partial<Roadmap>;
+  return (
+    typeof r.id === "string" &&
+    r.id.trim().length > 0 &&
+    typeof r.courseTitle === "string" &&
+    Array.isArray(r.dailySchedules)
+  );
+}
+
 export function getLastSupabaseSyncStatus(): SupabaseSyncStatus | null {
   return lastSyncStatus;
 }
@@ -23,7 +34,9 @@ export function getStoredRoadmaps(): Roadmap[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ROADMAPS);
     if (!raw) return [];
-    return JSON.parse(raw) as Roadmap[];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidRoadmap);
   } catch (err) {
     console.error("[storage] Failed to parse localStorage roadmaps:", err);
     return [];
@@ -33,7 +46,8 @@ export function getStoredRoadmaps(): Roadmap[] {
 export function saveRoadmaps(roadmaps: Roadmap[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY_ROADMAPS, JSON.stringify(roadmaps));
+    const valid = roadmaps.filter(isValidRoadmap);
+    localStorage.setItem(STORAGE_KEY_ROADMAPS, JSON.stringify(valid));
   } catch (err) {
     console.error("[storage] Failed to write roadmaps to localStorage:", err);
   }
@@ -123,10 +137,11 @@ export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
     }
 
     const remoteRoadmaps = (data ?? [])
-      .map((row) => row.payload as Roadmap | null)
-      .filter((item): item is Roadmap => Boolean(item && item.id));
+      .map((row) => row.payload as unknown)
+      .filter(isValidRoadmap);
 
     if (remoteRoadmaps.length === 0) {
+      saveRoadmaps(localRoadmaps);
       return localRoadmaps;
     }
 
@@ -150,6 +165,7 @@ export async function hydrateRoadmapsFromSupabase(): Promise<Roadmap[]> {
 }
 
 export function saveRoadmap(roadmap: Roadmap): void {
+  if (!isValidRoadmap(roadmap)) return;
   const roadmaps = getStoredRoadmaps();
   const index = roadmaps.findIndex((r) => r.id === roadmap.id);
   if (index >= 0) {
