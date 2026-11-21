@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { BASE_SEPOLIA_CHAIN_ID, useWeb3 } from "@/components/Web3Providers";
+import { useLanguage } from "@/client/context/LanguageContext";
 import { Wallet, LogOut, ChevronDown } from "lucide-react";
 
 export function WalletLogin() {
@@ -16,6 +17,7 @@ export function WalletLogin() {
     disconnectWallet,
     switchToBaseSepolia,
   } = useWeb3();
+  const { copy } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function WalletLogin() {
           type="button"
           onClick={disconnectWallet}
           className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white p-1.5 text-[#666660] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors cursor-pointer"
-          title="Disconnect Wallet"
+          title={copy.disconnectWallet}
         >
           <LogOut className="h-3.5 w-3.5" />
         </button>
@@ -91,7 +93,7 @@ export function WalletLogin() {
         <Wallet className="h-3.5 w-3.5 text-[#111111] shrink-0" />
         <span className="sm:hidden">{isConnecting ? "..." : "Wallet"}</span>
         <span className="hidden sm:inline">
-          {isConnecting ? "Connecting..." : "Connect Wallet"}
+          {isConnecting ? "..." : copy.connectWallet}
         </span>
       </button>
     </div>

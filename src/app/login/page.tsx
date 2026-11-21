@@ -18,11 +18,13 @@ import {
 import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
 import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
+import { useLanguage } from "@/client/context/LanguageContext";
 
 export default function LoginPage() {
   const router = useRouter();
   const { isConnected, isConnecting, openConnectModal } = useWeb3();
   const { user } = useAuth();
+  const { copy } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -156,12 +158,12 @@ export default function LoginPage() {
                 {isConnecting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-[#F5B700]" />
-                    Connecting E-Wallet...
+                    {copy.connectWallet}...
                   </>
                 ) : (
                   <>
                     <Wallet className="w-4 h-4 text-[#F5B700]" />
-                    Continue with E-Wallet
+                    {copy.connectWallet}
                   </>
                 )}
               </button>

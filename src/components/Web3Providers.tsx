@@ -7,7 +7,9 @@ import {
   connectorsForWallets,
   lightTheme,
   useConnectModal,
+  type Locale,
 } from "@rainbow-me/rainbowkit";
+import { useLanguage, type AppLanguage } from "@/client/context/LanguageContext";
 import {
   coinbaseWallet,
   metaMaskWallet,
@@ -390,7 +392,17 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
   );
 }
 
+const RAINBOWKIT_LOCALE_MAP: Record<AppLanguage, Locale> = {
+  en: "en-US",
+  id: "id-ID",
+  zh: "zh-CN",
+  ar: "ar",
+  es: "es",
+  pt: "pt-BR",
+};
+
 export function Web3Providers({ children }: { children: React.ReactNode }) {
+  const { lang } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -411,6 +423,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider
             initialChain={baseSepolia}
+            locale={RAINBOWKIT_LOCALE_MAP[lang] ?? "en-US"}
             modalSize="compact"
             theme={lightTheme({
               accentColor: "#111111",
