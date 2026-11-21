@@ -144,6 +144,7 @@ export interface PptDifficultyAnalysis {
 
 export interface BlockchainCertificateRecord {
   certificateId: string;
+  ownerScope?: string;
   tier: CertificateTierId;
   totalPointsAtIssue: number;
   pptDifficultyPoints: number;
@@ -166,6 +167,7 @@ export interface BlockchainCertificateRecord {
 
 export interface Roadmap {
   id: string;
+  ownerScope?: string;
   courseTitle: string;
   courseCode?: string;
   targetEndDate: string;

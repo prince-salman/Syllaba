@@ -29,10 +29,10 @@ export function resolveOwnerScope(
   walletAddress?: string | null,
   authUserId?: string | null
 ): string {
-  const wallet = walletAddress?.trim().toLowerCase();
-  if (wallet) return `wallet_${wallet}`;
   const uid = authUserId?.trim();
   if (uid) return `user_${uid}`;
+  const wallet = walletAddress?.trim().toLowerCase();
+  if (wallet) return `wallet_${wallet}`;
   return "guest";
 }
 
@@ -61,7 +61,13 @@ export function getStoredRoadmaps(scope = "guest"): Roadmap[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isValidRoadmap);
+    return parsed
+      .filter(isValidRoadmap)
+      .filter((r) => {
+        const taggedScope =
+          r.ownerScope || (r as Roadmap & { _ownerScope?: string })._ownerScope;
+        return !taggedScope || taggedScope === scope;
+      });
   } catch (err) {
     console.error("[storage] Failed to parse localStorage roadmaps:", err);
     return [];
@@ -71,7 +77,9 @@ export function getStoredRoadmaps(scope = "guest"): Roadmap[] {
 export function saveRoadmaps(roadmaps: Roadmap[], scope = "guest"): void {
   if (typeof window === "undefined") return;
   try {
-    const valid = roadmaps.filter(isValidRoadmap);
+    const valid = roadmaps
+      .filter(isValidRoadmap)
+      .map((r) => ({ ...r, ownerScope: scope }));
     localStorage.setItem(roadmapsKey(scope), JSON.stringify(valid));
   } catch (err) {
     console.error("[storage] Failed to write roadmaps to localStorage:", err);
@@ -183,8 +191,13 @@ export async function hydrateRoadmapsFromSupabase(
       for (const row of scopedRows) {
         const item = row.payload as unknown;
         if (isValidRoadmap(item)) {
+          const itemScope =
+            item.ownerScope ||
+            (item as Roadmap & { _ownerScope?: string })._ownerScope;
+          if (itemScope && itemScope !== scope) continue;
           mergedMap.set(item.id, {
             ...item,
+            ownerScope: scope,
             courseTitle: row.course_title || item.courseTitle,
           });
         }
@@ -202,8 +215,13 @@ export async function hydrateRoadmapsFromSupabase(
       for (const row of legacyRows) {
         const item = row.payload as unknown;
         if (isValidRoadmap(item) && !mergedMap.has(item.id)) {
+          const itemScope =
+            item.ownerScope ||
+            (item as Roadmap & { _ownerScope?: string })._ownerScope;
+          if (itemScope && itemScope !== scope) continue;
           mergedMap.set(item.id, {
             ...item,
+            ownerScope: scope,
             courseTitle: row.course_title || item.courseTitle,
           });
         }
@@ -235,17 +253,21 @@ export function saveRoadmap(
   explicitUserId?: string | null
 ): void {
   if (!isValidRoadmap(roadmap)) return;
+  const scopedRoadmap: Roadmap = {
+    ...roadmap,
+    ownerScope: scope,
+  };
   const roadmaps = getStoredRoadmaps(scope);
-  const index = roadmaps.findIndex((r) => r.id === roadmap.id);
+  const index = roadmaps.findIndex((r) => r.id === scopedRoadmap.id);
   if (index >= 0) {
-    roadmaps[index] = roadmap;
+    roadmaps[index] = scopedRoadmap;
   } else {
-    roadmaps.unshift(roadmap);
+    roadmaps.unshift(scopedRoadmap);
   }
   saveRoadmaps(roadmaps, scope);
-  setActiveRoadmapId(roadmap.id, scope);
+  setActiveRoadmapId(scopedRoadmap.id, scope);
 
-  void syncRoadmapToSupabase(roadmap, scope, explicitUserId);
+  void syncRoadmapToSupabase(scopedRoadmap, scope, explicitUserId);
 }
 
 export async function renameRoadmapInStorage(

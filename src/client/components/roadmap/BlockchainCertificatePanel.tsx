@@ -118,8 +118,20 @@ export function BlockchainCertificatePanel({
     anchorCertificateOnChain,
   } = useWeb3();
 
+  const currentScope = useMemo(
+    () => resolveOwnerScope(isConnected ? address : null, user?.id ?? null),
+    [address, isConnected, user?.id]
+  );
+
+  const ownedCert = useMemo(() => {
+    const c = roadmap.certificate;
+    if (!c) return undefined;
+    if (c.ownerScope && c.ownerScope !== currentScope) return undefined;
+    return c;
+  }, [currentScope, roadmap.certificate]);
+
   const defaultName =
-    roadmap.certificate?.recipientName ||
+    ownedCert?.recipientName ||
     (typeof user?.user_metadata?.full_name === "string" &&
       user.user_metadata.full_name) ||
     (typeof user?.user_metadata?.name === "string" &&
@@ -130,20 +142,24 @@ export function BlockchainCertificatePanel({
   const [recipientName, setRecipientName] = useState(defaultName);
   const [storedHistory, setStoredHistory] = useState<Roadmap[]>([roadmap]);
   const [selectedPreviewTierId, setSelectedPreviewTierId] =
-    useState<CertificateTierId>(roadmap.certificate?.tier || "bronze");
+    useState<CertificateTierId>(ownedCert?.tier || "bronze");
   const [isMinting, setIsMinting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
+  // Sync recipientName when user account changes
   useEffect(() => {
-    const scope = resolveOwnerScope(address, user?.id);
-    const list = getStoredRoadmaps(scope);
-    const guestList = scope !== "guest" ? getStoredRoadmaps("guest") : [];
-    setStoredHistory([...list, ...guestList, roadmap]);
-  }, [address, roadmap, user?.id]);
+    setRecipientName(defaultName);
+  }, [defaultName, currentScope]);
+
+  // Strictly load ONLY roadmaps belonging to currentScope (never mix guest or other users)
+  useEffect(() => {
+    const list = getStoredRoadmaps(currentScope);
+    setStoredHistory([...list, roadmap]);
+  }, [currentScope, roadmap]);
 
   const pointsSummary = useMemo(
-    () => computeGlobalAcademicPoints(roadmap, storedHistory),
-    [roadmap, storedHistory]
+    () => computeGlobalAcademicPoints(roadmap, storedHistory, currentScope),
+    [currentScope, roadmap, storedHistory]
   );
 
   const {
@@ -156,12 +172,12 @@ export function BlockchainCertificatePanel({
   } = pointsSummary;
 
   useEffect(() => {
-    if (roadmap.certificate?.tier) {
-      setSelectedPreviewTierId(roadmap.certificate.tier);
+    if (ownedCert?.tier) {
+      setSelectedPreviewTierId(ownedCert.tier);
     } else {
       setSelectedPreviewTierId(currentTier.id);
     }
-  }, [currentTier.id, roadmap.certificate?.tier]);
+  }, [currentTier.id, ownedCert?.tier]);
 
   const activeTierMeta = useMemo(
     () => getTierMetaById(selectedPreviewTierId),
@@ -186,13 +202,14 @@ export function BlockchainCertificatePanel({
 
   const certificateHash = useMemo(() => {
     if (
-      roadmap.certificate?.certificateHash &&
-      roadmap.certificate?.tier === activeTierMeta.id
+      ownedCert?.certificateHash &&
+      ownedCert?.tier === activeTierMeta.id
     ) {
-      return roadmap.certificate.certificateHash as `0x${string}`;
+      return ownedCert.certificateHash as `0x${string}`;
     }
     const payload = JSON.stringify({
       protocol: "SYLLABA_ACADEMIC_CREDENTIAL_V2",
+      ownerScope: currentScope,
       tier: activeTierMeta.id.toUpperCase(),
       totalPoints: totalAccumulatedPoints,
       pptDifficultyPoints: currentBreakdown.pptDifficultyPoints,
@@ -211,12 +228,13 @@ export function BlockchainCertificatePanel({
     activeTierMeta.id,
     address,
     currentBreakdown.pptDifficultyPoints,
+    currentScope,
     finalGradeScore,
     finalScore,
     midScore,
+    ownedCert?.certificateHash,
+    ownedCert?.tier,
     recipientName,
-    roadmap.certificate?.certificateHash,
-    roadmap.certificate?.tier,
     roadmap.courseTitle,
     roadmap.id,
     roadmap.totalDays,
@@ -301,6 +319,7 @@ export function BlockchainCertificatePanel({
         certificateId: `SYL-${targetTier.id.slice(0, 3).toUpperCase()}-${certificateHash
           .slice(2, 9)
           .toUpperCase()}`,
+        ownerScope: currentScope,
         tier: targetTier.id,
         totalPointsAtIssue: totalAccumulatedPoints,
         pptDifficultyPoints: currentBreakdown.pptDifficultyPoints,
@@ -340,7 +359,7 @@ export function BlockchainCertificatePanel({
     }
   };
 
-  const cert = roadmap.certificate;
+  const cert = ownedCert;
   const displayCertId =
     cert && cert.tier === activeTierMeta.id
       ? cert.certificateId
@@ -369,9 +388,21 @@ export function BlockchainCertificatePanel({
       <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#111111] text-[#FACC15] px-3 py-0.5 text-[11px] font-extrabold">
-              <BrainCircuit className="w-3.5 h-3.5" />
-              <span>AI PPT Difficulty &amp; Point Engine</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-[#111111] text-[#FACC15] px-3 py-0.5 text-[11px] font-extrabold">
+                <BrainCircuit className="w-3.5 h-3.5" />
+                <span>AI PPT Difficulty &amp; Point Engine</span>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 text-[10px] font-bold text-emerald-900">
+                <ShieldCheck className="w-3 h-3 text-emerald-700" />
+                <span>
+                  Ledger Terisolasi per Akun:{" "}
+                  {user?.email ||
+                    (isConnected && address
+                      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+                      : "Guest Session")}
+                </span>
+              </span>
             </div>
             <h3 className="text-base font-extrabold text-slate-900">
               Analisis Tingkat Kesulitan PPT: {currentBreakdown.difficultyLabel}

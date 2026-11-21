@@ -294,7 +294,8 @@ export function computeRoadmapPointBreakdown(
 
 export function computeGlobalAcademicPoints(
   currentRoadmap: Roadmap,
-  historyRoadmaps: Roadmap[]
+  historyRoadmaps: Roadmap[],
+  activeOwnerScope?: string
 ): {
   currentBreakdown: RoadmapPointBreakdown;
   allBreakdowns: RoadmapPointBreakdown[];
@@ -305,7 +306,13 @@ export function computeGlobalAcademicPoints(
 } {
   const map = new Map<string, Roadmap>();
   for (const r of historyRoadmaps) {
-    if (r && r.id) map.set(r.id, r);
+    if (!r || !r.id) continue;
+    const rScope =
+      r.ownerScope || (r as Roadmap & { _ownerScope?: string })._ownerScope;
+    if (activeOwnerScope && rScope && rScope !== activeOwnerScope) {
+      continue;
+    }
+    map.set(r.id, r);
   }
   // Always ensure currentRoadmap has the freshest state
   map.set(currentRoadmap.id, currentRoadmap);
