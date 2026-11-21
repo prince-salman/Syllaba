@@ -296,8 +296,9 @@ public struct SyllabaRootView: View {
         NavigationStack {
             Form {
                 Picker("Interface Language", selection: $viewModel.language) {
-                    Text("English (EN)").tag(AppLanguage.en)
-                    Text("Bahasa Indonesia (ID)").tag(AppLanguage.id)
+                    ForEach(AppLanguage.allCases, id: \.self) { lang in
+                        Text(lang.displayName).tag(lang)
+                    }
                 }
                 .pickerStyle(.inline)
             }

@@ -7,14 +7,14 @@ import { Globe, LogOut, Sparkles, User } from "lucide-react";
 import { WalletLogin } from "@/components/WalletLogin";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useWeb3 } from "@/components/Web3Providers";
-import { useLanguage } from "@/client/context/LanguageContext";
+import { useLanguage, AppLanguage } from "@/client/context/LanguageContext";
+import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
 
 export function Header() {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const { isConnected } = useWeb3();
-  const { lang, setLang } = useLanguage();
-  const isId = lang === "id";
+  const { lang, copy, setLang } = useLanguage();
 
   const displayName =
     (user?.user_metadata?.full_name as string | undefined)?.trim() ||
@@ -55,28 +55,32 @@ export function Header() {
                 </span>
               </div>
               <p className="hidden md:block text-[11px] font-medium text-[#666660] truncate">
-                {isId
-                  ? "Ubah silabus padat menjadi jadwal harian terukur"
-                  : "Turn dense syllabi into calm daily study plans"}
+                {copy.headerSubtitle}
               </p>
             </div>
           </Link>
 
-          {/* Center Floating Status & Language Dock */}
+          {/* Center Floating Status & 6-Language Switcher Dock */}
           <div className="hidden xl:flex items-center gap-1.5 rounded-full border border-black/10 bg-[#F7F7F5]/90 p-1">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-semibold text-[#FACC15]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15] animate-pulse" />
               <span>Base Sepolia</span>
             </span>
-            <button
-              type="button"
-              onClick={() => setLang(lang === "en" ? "id" : "en")}
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#111111] hover:bg-white transition cursor-pointer"
-              title="Switch UI Language"
-            >
+            <label className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#111111] hover:bg-white transition cursor-pointer">
               <Globe className="h-3 w-3 text-[#666660]" />
-              <span className="uppercase">{lang}</span>
-            </button>
+              <select
+                aria-label="Select interface language"
+                value={lang}
+                onChange={(e) => setLang(e.target.value as AppLanguage)}
+                className="bg-transparent text-[11px] font-bold text-[#111111] focus:outline-none cursor-pointer"
+              >
+                {LANGUAGE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.shortCode} · {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {/* Right User-Friendly Action Cluster */}
@@ -104,7 +108,7 @@ export function Header() {
                   title="Sign out"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <span className="hidden sm:inline">{copy.logout}</span>
                 </button>
               </div>
             )}
@@ -116,13 +120,13 @@ export function Header() {
                   className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white hover:bg-[#F7F7F5] px-3.5 py-2 text-xs font-semibold text-[#111111] transition"
                 >
                   <User className="h-3.5 w-3.5 text-[#111111]" />
-                  <span>{isId ? "Masuk" : "Sign in"}</span>
+                  <span>{copy.signIn}</span>
                 </Link>
                 <Link
                   href="/register"
                   className="hidden sm:inline-flex items-center rounded-full bg-[#111111] hover:bg-[#262626] px-4 py-2 text-xs font-bold text-[#FACC15] shadow-xs transition"
                 >
-                  {isId ? "Daftar" : "Register"}
+                  {copy.register}
                 </Link>
               </div>
             )}

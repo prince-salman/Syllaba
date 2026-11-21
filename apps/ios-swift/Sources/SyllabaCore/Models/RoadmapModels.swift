@@ -19,6 +19,21 @@ public enum TaskCategory: String, Codable, Sendable, CaseIterable {
 public enum AppLanguage: String, Codable, Sendable, CaseIterable {
     case en
     case id
+    case zh
+    case ar
+    case es
+    case pt
+
+    public var displayName: String {
+        switch self {
+        case .en: return "English (EN)"
+        case .id: return "Bahasa Indonesia (ID)"
+        case .zh: return "中文 Chinese (ZH)"
+        case .ar: return "العربية Arabic (AR)"
+        case .es: return "Español (ES)"
+        case .pt: return "Português (PT)"
+        }
+    }
 }
 
 public struct Subtask: Identifiable, Codable, Hashable, Sendable {

@@ -90,4 +90,4 @@ export interface Roadmap {
   updatedAt: string;
 }
 
-export type AppLanguage = "en" | "id";
+export type AppLanguage = "en" | "id" | "zh" | "ar" | "es" | "pt";

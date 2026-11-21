@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { Roadmap } from "@/shared/types/roadmap";
 import { useLanguage } from "@/client/context/LanguageContext";
+import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
 import {
   ChevronDown,
   ChevronRight,
@@ -63,8 +64,7 @@ export function GlassySidebar({
   onSignOut,
   onDisconnectWallet,
 }: GlassySidebarProps) {
-  const { lang } = useLanguage();
-  const isId = lang === "id";
+  const { lang, copy } = useLanguage();
 
   const isSettingsActive =
     activeView === "settings-account" || activeView === "settings-language";
@@ -83,9 +83,7 @@ export function GlassySidebar({
     ? `@${user.email.split("@")[0]}`
     : isWalletConnected && walletAddress
     ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-    : isId
-    ? "Mode Tamu"
-    : "Guest Session";
+    : copy.guestSession;
 
   const shortUserId = user?.id
     ? `ID #${user.id.slice(0, 6).toUpperCase()}`
@@ -107,16 +105,16 @@ export function GlassySidebar({
         {/* Collapse Toggle Row */}
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-bold uppercase tracking-widest text-[#666660]">
-            {isId ? "Navigasi" : "Navigation"}
+            {copy.navigation}
           </span>
           <button
             type="button"
             onClick={onClose}
             className="inline-flex items-center gap-1 rounded-lg border border-black/10 bg-white/80 px-2 py-1 text-[11px] font-semibold text-[#111111] hover:bg-[#FEF3C7] transition cursor-pointer"
-            title={isId ? "Tutup Sidebar" : "Collapse Sidebar"}
+            title={copy.hide}
           >
             <PanelLeftClose className="h-3.5 w-3.5" />
-            <span>{isId ? "Tutup" : "Hide"}</span>
+            <span>{copy.hide}</span>
           </button>
         </div>
 
@@ -163,7 +161,7 @@ export function GlassySidebar({
         {/* Core Study Workspace */}
         <div>
           <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#666660] mb-2">
-            {isId ? "Ruang Belajar" : "Workspace"}
+            {copy.workspace}
           </p>
           <nav className="space-y-1">
             <button
@@ -177,7 +175,7 @@ export function GlassySidebar({
             >
               <span className="flex items-center gap-2.5">
                 <LayoutDashboard className="h-4 w-4" />
-                <span>{isId ? "Dasbor" : "Dashboard"}</span>
+                <span>{copy.dashboard}</span>
               </span>
               {activeView === "dashboard" && (
                 <ChevronRight className="h-3.5 w-3.5 text-[#111111]" />
@@ -195,7 +193,7 @@ export function GlassySidebar({
             >
               <span className="flex items-center gap-2.5">
                 <Plus className="h-4 w-4" />
-                <span>{isId ? "Silabus Baru" : "New Syllabus"}</span>
+                <span>{copy.newSyllabus}</span>
               </span>
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#111111] text-[#FACC15] text-[10px] font-bold">
                 +
@@ -208,7 +206,7 @@ export function GlassySidebar({
         <div>
           <div className="flex items-center justify-between px-3 mb-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#666660]">
-              {isId ? "Kursus" : "Courses"}
+              {copy.courses}
             </p>
             <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-bold text-[#111111]">
               {storedRoadmaps.length}
@@ -217,9 +215,7 @@ export function GlassySidebar({
 
           {storedRoadmaps.length === 0 ? (
             <p className="px-3 text-[11px] text-[#666660] leading-relaxed">
-              {isId
-                ? "Belum ada roadmap. Unggah silabus pertama Anda."
-                : "No roadmaps yet. Upload your first syllabus."}
+              {copy.noRoadmaps}
             </p>
           ) : (
             <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
@@ -249,7 +245,7 @@ export function GlassySidebar({
         {/* 1-5 Menu: Login (if not signed in), History, Setting (> Account, > Language), Help/Contact Us, Logout */}
         <div className="pt-3 border-t border-[#E5E5E0]/80 space-y-1">
           <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#666660] mb-2">
-            {isId ? "Menu Akun" : "Account & Tools"}
+            {copy.accountTools}
           </p>
 
           {/* 1. Login (if not logged in) */}
@@ -260,7 +256,7 @@ export function GlassySidebar({
             >
               <span className="flex items-center gap-2.5">
                 <LogIn className="h-4 w-4" />
-                <span>Login</span>
+                <span>{copy.login}</span>
               </span>
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
@@ -278,7 +274,7 @@ export function GlassySidebar({
           >
             <span className="flex items-center gap-2.5">
               <History className="h-4 w-4" />
-              <span>History</span>
+              <span>{copy.history}</span>
             </span>
             <ChevronRight className="h-3.5 w-3.5 text-[#9AA6A0]" />
           </button>
@@ -296,7 +292,7 @@ export function GlassySidebar({
             >
               <span className="flex items-center gap-2.5">
                 <Settings className="h-4 w-4" />
-                <span>Setting</span>
+                <span>{copy.setting}</span>
               </span>
               {settingsOpen || isSettingsActive ? (
                 <ChevronDown className="h-3.5 w-3.5 text-[#111111]" />
@@ -318,7 +314,7 @@ export function GlassySidebar({
                 >
                   <span className="flex items-center gap-2">
                     <UserIcon className="h-3.5 w-3.5" />
-                    <span>Account</span>
+                    <span>{copy.account}</span>
                   </span>
                   <ChevronRight className="h-3 w-3" />
                 </button>
@@ -334,7 +330,7 @@ export function GlassySidebar({
                 >
                   <span className="flex items-center gap-2">
                     <Globe className="h-3.5 w-3.5" />
-                    <span>Language</span>
+                    <span>{copy.language}</span>
                   </span>
                   <span className="rounded bg-white/80 px-1.5 py-0.2 text-[10px] font-mono uppercase text-[#111111] border border-[#E5E5E0]">
                     {lang}
@@ -356,7 +352,7 @@ export function GlassySidebar({
           >
             <span className="flex items-center gap-2.5">
               <HelpCircle className="h-4 w-4" />
-              <span>Help / Contact Us</span>
+              <span>{copy.helpContact}</span>
             </span>
             <ChevronRight className="h-3.5 w-3.5 text-[#9AA6A0]" />
           </button>
@@ -373,14 +369,14 @@ export function GlassySidebar({
               5-Agent Pipeline
             </span>
             <p className="mt-2 text-xs font-bold leading-snug">
-              {isId ? "Mulai Sprint Baru" : "Start a New Sprint"}
+              {copy.startSprint}
             </p>
             <button
               type="button"
               onClick={() => onSelectView("uploader")}
               className="mt-2.5 w-full rounded-xl bg-[#F5B700] hover:bg-[#EAB308] text-[#0A0A0A] font-bold py-1.5 text-xs transition cursor-pointer"
             >
-              {isId ? "+ Buat Roadmap" : "+ Generate Plan"}
+              {copy.generatePlan}
             </button>
           </div>
         </div>
@@ -394,7 +390,7 @@ export function GlassySidebar({
           >
             <span className="flex items-center gap-2.5">
               <LogOut className="h-4 w-4 text-[#D97706]" />
-              <span>Logout</span>
+              <span>{copy.logout}</span>
             </span>
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
@@ -406,7 +402,7 @@ export function GlassySidebar({
           >
             <span className="flex items-center gap-2.5">
               <LogOut className="h-4 w-4 text-[#D97706]" />
-              <span>Disconnect Wallet</span>
+              <span>{copy.disconnectWallet}</span>
             </span>
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
@@ -447,8 +443,7 @@ export function MobileBottomNav({
   onSignOut,
   onDisconnectWallet,
 }: MobileBottomNavProps) {
-  const { lang, setLang } = useLanguage();
-  const isId = lang === "id";
+  const { lang, copy, setLang } = useLanguage();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isSettingsActive =
@@ -485,9 +480,7 @@ export function MobileBottomNav({
                       ? `@${user.email.split("@")[0]}`
                       : isWalletConnected && walletAddress
                       ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                      : isId
-                      ? "Mode Tamu"
-                      : "Guest Session"}
+                      : copy.guestSession}
                   </p>
                 </div>
               </div>
@@ -495,6 +488,7 @@ export function MobileBottomNav({
                 type="button"
                 onClick={() => setDrawerOpen(false)}
                 className="rounded-full p-2 bg-[#F7F7F5] text-[#111111]"
+                aria-label={copy.hide}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -503,7 +497,7 @@ export function MobileBottomNav({
             {storedRoadmaps.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#666660]">
-                  {isId ? "Kursus Tersimpan" : "Saved Courses"} ({storedRoadmaps.length})
+                  {copy.courses} ({storedRoadmaps.length})
                 </p>
                 <div className="space-y-1">
                   {storedRoadmaps.slice(0, 4).map((r) => (
@@ -537,7 +531,7 @@ export function MobileBottomNav({
                 >
                   <span className="flex items-center gap-2">
                     <LogIn className="h-4 w-4" />
-                    <span>Login</span>
+                    <span>{copy.login}</span>
                   </span>
                   <ChevronRight className="h-4 w-4" />
                 </Link>
@@ -550,24 +544,38 @@ export function MobileBottomNav({
               >
                 <span className="flex items-center gap-2">
                   <UserIcon className="h-4 w-4" />
-                  <span>Setting &gt; Account</span>
+                  <span>{copy.setting} &gt; {copy.account}</span>
                 </span>
                 <ChevronRight className="h-4 w-4 text-[#666660]" />
               </button>
 
-              <button
-                type="button"
-                onClick={() => setLang(lang === "en" ? "id" : "en")}
-                className="w-full flex items-center justify-between rounded-xl bg-[#F7F7F5] px-4 py-2.5 text-xs font-semibold text-[#111111]"
-              >
-                <span className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  <span>Setting &gt; Language</span>
-                </span>
-                <span className="rounded-md bg-[#111111] text-[#FACC15] px-2 py-0.5 text-[10px] font-mono uppercase">
-                  {lang}
-                </span>
-              </button>
+              <div className="rounded-xl bg-[#F7F7F5] px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#111111]">
+                  <span className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    <span>{copy.setting} &gt; {copy.language}</span>
+                  </span>
+                  <span className="rounded-md bg-[#111111] text-[#FACC15] px-2 py-0.5 text-[10px] font-mono uppercase">
+                    {lang}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {LANGUAGE_OPTIONS.map((option) => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      onClick={() => setLang(option.code)}
+                      className={`rounded-lg px-2 py-1.5 text-[11px] font-bold transition ${
+                        lang === option.code
+                          ? "bg-[#111111] text-[#FACC15]"
+                          : "bg-white text-[#111111] border border-black/10"
+                      }`}
+                    >
+                      {option.shortCode} · {option.label.split(" ")[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <button
                 type="button"
@@ -576,7 +584,7 @@ export function MobileBottomNav({
               >
                 <span className="flex items-center gap-2">
                   <HelpCircle className="h-4 w-4" />
-                  <span>Help / Contact Us</span>
+                  <span>{copy.helpContact}</span>
                 </span>
                 <ChevronRight className="h-4 w-4 text-[#666660]" />
               </button>
@@ -592,7 +600,7 @@ export function MobileBottomNav({
                 >
                   <span className="flex items-center gap-2">
                     <LogOut className="h-4 w-4 text-[#D97706]" />
-                    <span>Logout</span>
+                    <span>{copy.logout}</span>
                   </span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -607,7 +615,7 @@ export function MobileBottomNav({
                 >
                   <span className="flex items-center gap-2">
                     <LogOut className="h-4 w-4 text-[#D97706]" />
-                    <span>Disconnect Wallet</span>
+                    <span>{copy.disconnectWallet}</span>
                   </span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -632,7 +640,7 @@ export function MobileBottomNav({
                 activeView === "dashboard" ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>{isId ? "Dasbor" : "Home"}</span>
+            <span>{copy.homeShort}</span>
           </button>
 
           <button
@@ -647,7 +655,7 @@ export function MobileBottomNav({
                 activeView === "history" ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>History</span>
+            <span>{copy.history}</span>
           </button>
 
           <button
@@ -659,7 +667,7 @@ export function MobileBottomNav({
               <Plus className="h-5 w-5" />
             </span>
             <span className="text-[10px] font-extrabold text-[#111111] mt-0.5">
-              {isId ? "Baru" : "New"}
+              {copy.newShort}
             </span>
           </button>
 
@@ -675,7 +683,7 @@ export function MobileBottomNav({
                 isSettingsActive ? "text-[#D97706]" : "text-[#666660]"
               }`}
             />
-            <span>Setting</span>
+            <span>{copy.setting}</span>
           </button>
 
           <button

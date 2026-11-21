@@ -11,6 +11,16 @@ import {
 import { Globe, HelpCircle, LogIn, LogOut, User } from "lucide-react-native";
 import { COLORS } from "@/theme/tokens";
 import { useMobileStore } from "@/context/MobileStoreContext";
+import { AppLanguage } from "@/types/roadmap";
+
+const LANGUAGES: Array<{ code: AppLanguage; label: string }> = [
+  { code: "en", label: "English (EN)" },
+  { code: "id", label: "Indonesia (ID)" },
+  { code: "zh", label: "中文 (ZH)" },
+  { code: "ar", label: "العربية (AR)" },
+  { code: "es", label: "Español (ES)" },
+  { code: "pt", label: "Português (PT)" },
+];
 
 export default function SettingsScreen() {
   const { user, language, signInDemo, signOut, setLanguage } = useMobileStore();
@@ -103,38 +113,25 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.langRow}>
-            <Pressable
-              onPress={() => setLanguage("en")}
-              style={[
-                styles.langBtn,
-                language === "en" ? styles.langBtnActive : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.langText,
-                  language === "en" ? styles.langTextActive : null,
-                ]}
-              >
-                English (EN)
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setLanguage("id")}
-              style={[
-                styles.langBtn,
-                language === "id" ? styles.langBtnActive : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.langText,
-                  language === "id" ? styles.langTextActive : null,
-                ]}
-              >
-                Indonesia (ID)
-              </Text>
-            </Pressable>
+            {LANGUAGES.map((item) => {
+              const active = language === item.code;
+              return (
+                <Pressable
+                  key={item.code}
+                  onPress={() => setLanguage(item.code)}
+                  style={[styles.langBtn, active ? styles.langBtnActive : null]}
+                >
+                  <Text
+                    style={[
+                      styles.langText,
+                      active ? styles.langTextActive : null,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -269,14 +266,17 @@ const styles = StyleSheet.create({
   },
   langRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   langBtn: {
-    flex: 1,
+    minWidth: "47%",
+    flexGrow: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
     paddingVertical: 10,
+    paddingHorizontal: 10,
     alignItems: "center",
   },
   langBtnActive: {
