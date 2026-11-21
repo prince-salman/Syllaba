@@ -25,6 +25,7 @@ import { generateId } from "@/shared/utils";
 import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
+import { generateQrMatrix } from "@/shared/utils/qrCode";
 import { keccak256, stringToHex } from "viem";
 import {
   Award,
@@ -50,68 +51,38 @@ interface BlockchainCertificatePanelProps {
   onOpenExam: (stage: ExamStage) => void;
 }
 
-function DeterministicQrMatrix({
-  seedHash,
+function ScannableQrCode({
+  value,
   accentHex,
 }: {
-  seedHash: string;
+  value: string;
   accentHex: string;
 }) {
-  const cells = useMemo(() => {
-    const clean = seedHash.replace(/^0x/, "").padEnd(64, "a");
-    const grid: boolean[][] = Array.from({ length: 11 }, () =>
-      Array(11).fill(false)
-    );
-
-    const setCorner = (r0: number, c0: number) => {
-      for (let r = 0; r < 3; r++) {
-        for (let c = 0; c < 3; c++) {
-          grid[r0 + r][c0 + c] = true;
+  const { size, pathData } = useMemo(() => {
+    const grid = generateQrMatrix(value);
+    const n = grid.length;
+    const quiet = 3;
+    const parts: string[] = [];
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (grid[r][c]) {
+          parts.push(`M${c + quiet} ${r + quiet}h1v1h-1z`);
         }
       }
-      grid[r0 + 1][c0 + 1] = true;
-    };
-    setCorner(0, 0);
-    setCorner(0, 8);
-    setCorner(8, 0);
-
-    let bitIdx = 0;
-    for (let r = 0; r < 11; r++) {
-      for (let c = 0; c < 11; c++) {
-        const inFinder =
-          (r < 4 && c < 4) || (r < 4 && c > 6) || (r > 6 && c < 4);
-        if (inFinder) continue;
-        const hexChar = clean[bitIdx % clean.length];
-        const val = parseInt(hexChar, 16) || 0;
-        grid[r][c] = (val + r + c) % 2 === 0;
-        bitIdx++;
-      }
     }
-    return grid;
-  }, [seedHash]);
+    return { size: n + quiet * 2, pathData: parts.join("") };
+  }, [value]);
 
   return (
     <svg
-      viewBox="0 0 11 11"
+      viewBox={`0 0 ${size} ${size}`}
+      shapeRendering="crispEdges"
       style={{ borderColor: accentHex }}
-      className="w-16 h-16 rounded-md bg-white p-1.5 border-2 shadow-sm shrink-0"
-      aria-label="On-Chain Verification QR"
+      className="w-24 h-24 rounded-lg bg-white border-2 shadow-sm shrink-0"
+      aria-label="Scannable Verification QR Code"
     >
-      {cells.map((row, rIdx) =>
-        row.map((filled, cIdx) =>
-          filled ? (
-            <rect
-              key={`${rIdx}-${cIdx}`}
-              x={cIdx}
-              y={rIdx}
-              width={0.92}
-              height={0.92}
-              rx={0.12}
-              fill="#111111"
-            />
-          ) : null
-        )
-      )}
+      <rect x={0} y={0} width={size} height={size} fill="#FFFFFF" />
+      <path d={pathData} fill="#111111" />
     </svg>
   );
 }
@@ -680,6 +651,42 @@ export function BlockchainCertificatePanel({
   const hasValidWalletAddr =
     /^0x[0-9a-fA-F]{40}$/.test(displayWallet) &&
     displayWallet !== "0x71C95911E9a5D330f4D621842EC243EE1343292e";
+
+  const qrVerificationUrl = useMemo(() => {
+    if (hasRealOnChainTx) {
+      return `https://sepolia.basescan.org/tx/${displayTxHash}`;
+    }
+    const qs = new URLSearchParams({
+      id: displayCertId,
+      tier: activeTierMeta.id,
+      pts: String(cert?.totalPointsAtIssue ?? totalAccumulatedPoints),
+      grade: String(cert?.finalGradeScore ?? finalGradeScore),
+      holder: (cert?.recipientName || recipientName.trim() || "Scholar").slice(
+        0,
+        28
+      ),
+      course: roadmap.courseTitle.slice(0, 42),
+      hash: certificateHash.slice(0, 18),
+      proof: cert?.proofType ?? "preview",
+    });
+    if (hasValidWalletAddr) {
+      qs.set("wallet", displayWallet);
+    }
+    return `https://syllaba.xyz/verify?${qs.toString()}`;
+  }, [
+    activeTierMeta.id,
+    cert,
+    certificateHash,
+    displayCertId,
+    displayTxHash,
+    displayWallet,
+    finalGradeScore,
+    hasRealOnChainTx,
+    hasValidWalletAddr,
+    recipientName,
+    roadmap.courseTitle,
+    totalAccumulatedPoints,
+  ]);
 
   const proofMetadataPayload = useMemo(
     () => ({
@@ -1802,10 +1809,22 @@ export function BlockchainCertificatePanel({
                 </span>
               </div>
 
-              <DeterministicQrMatrix
-                seedHash={certificateHash}
-                accentHex={activeTierMeta.primaryHex}
-              />
+              <a
+                href={qrVerificationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={
+                  isId
+                    ? "Scan QR dengan kamera HP atau klik untuk verifikasi sertifikat"
+                    : "Scan QR with phone camera or click to verify certificate"
+                }
+                className="shrink-0 hover:scale-105 transition-transform"
+              >
+                <ScannableQrCode
+                  value={qrVerificationUrl}
+                  accentHex={activeTierMeta.primaryHex}
+                />
+              </a>
             </div>
           </div>
         </div>
