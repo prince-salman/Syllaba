@@ -24,12 +24,14 @@ import { getStoredRoadmaps, resolveOwnerScope } from "@/client/utils/storage";
 import { generateId } from "@/shared/utils";
 import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
+import { useLanguage } from "@/client/context/LanguageContext";
 import { keccak256, stringToHex } from "viem";
 import {
   Award,
   BrainCircuit,
   CheckCircle2,
   Coins,
+  Cpu,
   Database,
   Download,
   ExternalLink,
@@ -120,6 +122,8 @@ export function BlockchainCertificatePanel({
   onOpenExam,
 }: BlockchainCertificatePanelProps) {
   const { user } = useAuth();
+  const { lang } = useLanguage();
+  const isId = lang === "id";
   const {
     address,
     chainId,
@@ -127,6 +131,11 @@ export function BlockchainCertificatePanel({
     openConnectModal,
     anchorCertificateOnChain,
     claimSylCoinsOnChain,
+    sylCoinAddress,
+    onChainSylBalance,
+    deployCoinContractOnChain,
+    redeemPerkOnChain,
+    watchSylTokenInWallet,
   } = useWeb3();
 
   const currentScope = useMemo(
@@ -159,6 +168,7 @@ export function BlockchainCertificatePanel({
   const [selectedPreviewTierId, setSelectedPreviewTierId] =
     useState<CertificateTierId>(ownedCert?.tier || "bronze");
   const [isMinting, setIsMinting] = useState(false);
+  const [isDeployingCoin, setIsDeployingCoin] = useState(false);
   const [isClaimingSyl, setIsClaimingSyl] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [coinStatusMsg, setCoinStatusMsg] = useState<string | null>(null);
@@ -392,10 +402,63 @@ export function BlockchainCertificatePanel({
     }
   };
 
+  const handleDeployCoinContract = async () => {
+    if (!isConnected || !address) {
+      openConnectModal();
+      return;
+    }
+    setIsDeployingCoin(true);
+    setCoinStatusMsg(
+      isId
+        ? "Mengirim transaksi deploy Smart Contract ERC-20 SyllabaCoin ($SYL) ke Base Sepolia..."
+        : "Deploying SyllabaCoin ($SYL) ERC-20 Smart Contract to Base Sepolia..."
+    );
+    try {
+      const result = await deployCoinContractOnChain();
+      if (result.contractAddress) {
+        setCoinStatusMsg(
+          isId
+            ? `Smart Contract ERC-20 $SYL berhasil di-deploy ke Base Sepolia! Alamat kontrak: ${result.contractAddress}`
+            : `$SYL ERC-20 Smart Contract deployed on Base Sepolia at ${result.contractAddress}!`
+        );
+      } else {
+        setCoinStatusMsg(
+          isId
+            ? `Transaksi deploy dikirim (${result.txHash.slice(0, 14)}...). Menunggu konfirmasi blok Base Sepolia.`
+            : `Deployment TX broadcast (${result.txHash.slice(0, 14)}...). Waiting for block confirmation.`
+        );
+      }
+    } catch {
+      setCoinStatusMsg(
+        isId
+          ? "Deploy kontrak dibatalkan atau saldo Base Sepolia ETH tidak mencukupi gas."
+          : "Deployment cancelled or insufficient Base Sepolia ETH for gas."
+      );
+    } finally {
+      setIsDeployingCoin(false);
+    }
+  };
+
+  const handleWatchTokenInWallet = async () => {
+    if (!sylCoinAddress) return;
+    const added = await watchSylTokenInWallet();
+    setCoinStatusMsg(
+      added
+        ? isId
+          ? "Token $SYL (ERC-20) berhasil ditambahkan ke daftar token wallet kamu!"
+          : "$SYL (ERC-20) token added to your wallet asset list!"
+        : isId
+        ? "Permintaan tambah token dibatalkan atau wallet belum aktif."
+        : "Watch asset request dismissed or wallet not connected."
+    );
+  };
+
   const handleClaimSylCoins = async (useRelayer = false) => {
     if (unclaimedSylForWallet <= 0) {
       setCoinStatusMsg(
-        "Seluruh $SYL Coin yang terkumpul sudah diklaim ke on-chain ledger. Selesaikan tugas atau ujian berikutnya untuk menambah $SYL!"
+        isId
+          ? "Seluruh $SYL Coin yang terkumpul sudah diklaim. Selesaikan tugas & ujian PPT berikutnya untuk menambah $SYL!"
+          : "All earned $SYL coins have been claimed. Complete the next PPT to earn more $SYL!"
       );
       return;
     }
@@ -407,7 +470,13 @@ export function BlockchainCertificatePanel({
 
     setIsClaimingSyl(true);
     setCoinStatusMsg(
-      `Mengklaim +${unclaimedSylForWallet} $SYL Coin ke jaringan Base Sepolia...`
+      sylCoinAddress && !useRelayer
+        ? isId
+          ? `Memanggil claimStudyReward() pada Smart Contract ERC-20 $SYL (+${unclaimedSylForWallet} $SYL) di Base Sepolia...`
+          : `Calling claimStudyReward() on $SYL ERC-20 Smart Contract (+${unclaimedSylForWallet} $SYL) on Base Sepolia...`
+        : isId
+        ? `Mencatat klaim +${unclaimedSylForWallet} $SYL Coin ke Base Sepolia...`
+        : `Anchoring +${unclaimedSylForWallet} $SYL Coin claim to Base Sepolia...`
     );
 
     try {
@@ -424,8 +493,10 @@ export function BlockchainCertificatePanel({
 
       if (!useRelayer && isConnected && address) {
         const res = await claimSylCoinsOnChain({
+          coinAddress: sylCoinAddress,
           amountSyl: unclaimedSylForWallet,
           claimHash: claimDigest,
+          courseTitle: roadmap.courseTitle,
           totalPoints: totalAccumulatedPoints,
           tierName: currentTier.name,
         });
@@ -441,7 +512,9 @@ export function BlockchainCertificatePanel({
             roadmapId: roadmap.id,
             walletAddress: signerAddress,
             roadmapHash: claimDigest,
-            ipfsCid: `syl-mint-${unclaimedSylForWallet}-coins`,
+            ipfsCid: sylCoinAddress
+              ? `erc20:${sylCoinAddress}:mint:${unclaimedSylForWallet}`
+              : `syl-mint-${unclaimedSylForWallet}-coins`,
             txHash,
             chainId: chainId || 84532,
             status: `syl-coin-claimed-${unclaimedSylForWallet}`,
@@ -465,27 +538,54 @@ export function BlockchainCertificatePanel({
       const nextClaims = saveSylClaimRecord(newClaim, currentScope);
       setSylClaims(nextClaims);
       setCoinStatusMsg(
-        `Berhasil mengklaim +${newClaim.amountSyl} $SYL Coin di jaringan Base Sepolia!`
+        sylCoinAddress && !useRelayer
+          ? isId
+            ? `Berhasil me-mint +${newClaim.amountSyl} token ERC-20 $SYL langsung ke wallet kamu di Base Sepolia!`
+            : `Minted +${newClaim.amountSyl} $SYL ERC-20 tokens directly to your wallet on Base Sepolia!`
+          : isId
+          ? `Berhasil mencatat klaim +${newClaim.amountSyl} $SYL Coin di jaringan Base Sepolia!`
+          : `Claimed +${newClaim.amountSyl} $SYL Coin on Base Sepolia!`
       );
     } catch {
       setCoinStatusMsg(
-        "Klaim via wallet dibatalkan. Kamu dapat menggunakan 'Instant Gasless $SYL Claim' untuk mencatat klaim tanpa gas."
+        isId
+          ? "Klaim via wallet dibatalkan. Kamu dapat menggunakan 'Instant Gasless $SYL Claim' untuk mencatat klaim tanpa gas."
+          : "Wallet transaction cancelled. You can use 'Instant Gasless $SYL Claim' if you don't have testnet gas."
       );
     } finally {
       setIsClaimingSyl(false);
     }
   };
 
-  const handleRedeemPerk = (perk: {
+  const handleRedeemPerk = async (perk: {
     id: SylPerkId;
     title: string;
     costSyl: number;
   }) => {
     if (availableSylToSpend < perk.costSyl) {
       setCoinStatusMsg(
-        `Saldo $SYL belum mencukupi (${availableSylToSpend} / ${perk.costSyl} $SYL). Selesaikan tugas harian atau Ujian AI untuk mendapatkan lebih banyak $SYL!`
+        isId
+          ? `Saldo $SYL belum mencukupi (${availableSylToSpend} / ${perk.costSyl} $SYL). Selesaikan PPT dan Ujian AI untuk menambah $SYL!`
+          : `Insufficient $SYL balance (${availableSylToSpend} / ${perk.costSyl} $SYL). Complete PPTs & AI exams to earn more!`
       );
       return;
+    }
+
+    if (
+      sylCoinAddress &&
+      isConnected &&
+      onChainSylBalance !== null &&
+      Number(onChainSylBalance) >= perk.costSyl
+    ) {
+      try {
+        await redeemPerkOnChain({
+          coinAddress: sylCoinAddress,
+          perkId: perk.id,
+          amountSyl: perk.costSyl,
+        });
+      } catch {
+        // Proceed with local utility ledger if user cancels gas burn
+      }
     }
 
     const record: SyllabaCoinRedemptionRecord = {
@@ -500,7 +600,9 @@ export function BlockchainCertificatePanel({
     const next = saveSylRedemptionRecord(record, currentScope);
     setSylRedemptions(next);
     setCoinStatusMsg(
-      `Perk "${perk.title}" berhasil diaktifkan (-${perk.costSyl} $SYL) untuk akun kamu!`
+      isId
+        ? `Perk "${perk.title}" berhasil diaktifkan (-${perk.costSyl} $SYL) untuk akun kamu!`
+        : `Perk "${perk.title}" activated (-${perk.costSyl} $SYL) for your account!`
     );
   };
 
@@ -770,6 +872,77 @@ export function BlockchainCertificatePanel({
             <div className="text-[11px] text-slate-400">
               Aktif setelah mencapai minimal 20 Poin (Bronze)
             </div>
+          </div>
+        </div>
+
+        {/* Real ERC-20 SyllabaCoin ($SYL) Smart Contract Bar */}
+        <div className="rounded-xl border border-white/15 bg-white/5 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[10px] font-extrabold text-emerald-300">
+                <Cpu className="w-3 h-3" />
+                <span>SyllabaCoin.sol · ERC-20 Standard</span>
+              </span>
+              {sylCoinAddress && onChainSylBalance !== null && (
+                <span className="rounded-md bg-[#FACC15]/20 border border-[#FACC15]/40 px-2 py-0.5 text-[10px] font-extrabold text-[#FACC15]">
+                  Live Wallet ERC-20: {onChainSylBalance} $SYL
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] font-mono text-slate-300 truncate">
+              {sylCoinAddress
+                ? `ERC-20 Contract (Base Sepolia): ${sylCoinAddress}`
+                : isId
+                ? "Smart Contract ERC-20 $SYL (SyllabaCoin.sol) siap di-deploy ke Base Sepolia dalam 1 klik."
+                : "$SYL ERC-20 Smart Contract (SyllabaCoin.sol) ready for 1-click deployment on Base Sepolia."}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {sylCoinAddress ? (
+              <>
+                <a
+                  href={`https://sepolia.basescan.org/token/${sylCoinAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 px-2.5 py-1.5 text-[11px] font-bold text-white transition"
+                >
+                  <span>BaseScan ERC-20</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={handleWatchTokenInWallet}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#FACC15] hover:bg-[#FDE047] text-[#111111] px-2.5 py-1.5 text-[11px] font-extrabold transition cursor-pointer"
+                >
+                  <Wallet className="w-3 h-3" />
+                  <span>{isId ? "Tambah $SYL ke Wallet" : "Add $SYL to Wallet"}</span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                disabled={isDeployingCoin}
+                onClick={handleDeployCoinContract}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/15 hover:bg-white/25 border border-[#FACC15]/50 px-3 py-1.5 text-[11px] font-extrabold text-[#FEF08A] transition cursor-pointer disabled:opacity-60"
+              >
+                {isDeployingCoin ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>{isId ? "Deploying ERC-20..." : "Deploying ERC-20..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Cpu className="w-3.5 h-3.5" />
+                    <span>
+                      {isId
+                        ? "1-Klik Deploy Kontrak ERC-20 $SYL"
+                        : "1-Click Deploy $SYL ERC-20 Contract"}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
