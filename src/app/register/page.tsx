@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,11 +14,16 @@ import {
   Mail,
   Sparkles,
   User,
+  Wallet,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
+import { useWeb3 } from "@/components/Web3Providers";
+import { useAuth } from "@/client/components/auth/AuthProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { isConnected, isConnecting, openConnectModal } = useWeb3();
+  const { user } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,6 +32,12 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isConnected || user) {
+      router.replace("/");
+    }
+  }, [isConnected, user, router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,8 +122,8 @@ export default function RegisterPage() {
                 Build your personalized semester blueprint in seconds.
               </h1>
               <p className="mt-3 text-sm text-[#E5E5E0] leading-relaxed">
-                Upload any syllabus PDF or brief. Our multi-agent pipeline maps
-                daily tasks, curates references, and verifies completion.
+                Upload any PDF, Word doc, or slide deck to generate daily study
+                steps with curated references and progress tracking.
               </p>
             </div>
 
@@ -120,17 +131,17 @@ export default function RegisterPage() {
               {[
                 {
                   title: "Zero Decision Paralysis",
-                  desc: "Daily micro-tasks balanced by cognitive load.",
+                  desc: "Bite-sized 15–30 minute daily tasks with rest days.",
                   badge: "bg-[#FEF3C7] text-[#111111]",
                 },
                 {
-                  title: "Open-Access Curation",
-                  desc: "Auto-matched papers & reading links per topic.",
+                  title: "Instant Reading Links",
+                  desc: "Free open-access articles matched to each topic.",
                   badge: "bg-[#E9E9FD] text-[#4A4DC7]",
                 },
                 {
-                  title: "Verifiable On-Chain Proofs",
-                  desc: "Snapshot milestones to IPFS and Base Sepolia.",
+                  title: "Email or E-Wallet Ready",
+                  desc: "Sync plans with your preferred account method.",
                   badge: "bg-[#F6EDCA] text-[#8B6B15]",
                 },
               ].map((item) => (
@@ -166,22 +177,52 @@ export default function RegisterPage() {
               Create your account
             </h2>
             <p className="mt-2 text-sm text-[#666660]">
-              Start organizing courses with calmer focus and verifiable progress.
+              Start instantly with your e-wallet, or register with email.
             </p>
 
+            {/* E-Wallet Registration Option */}
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={openConnectModal}
+                disabled={isConnecting || loading}
+                className="w-full rounded-xl bg-[#0A0A0A] hover:bg-[#192D23] disabled:opacity-60 text-white font-semibold py-3.5 px-5 text-sm shadow-sm flex items-center justify-center gap-2.5 transition cursor-pointer"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#F5B700]" />
+                    Connecting E-Wallet...
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4 text-[#F5B700]" />
+                    Register with E-Wallet
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#E5E5E0]" />
+              <span className="text-xs font-medium text-[#666660]">
+                or sign up with email
+              </span>
+              <div className="h-px flex-1 bg-[#E5E5E0]" />
+            </div>
+
             {errorMsg && (
-              <div className="mt-5 rounded-xl bg-[#F4E0E6]/70 border border-[#D9386A]/25 px-4 py-3 text-sm text-[#9B1C44]">
+              <div className="mb-4 rounded-xl bg-[#F4E0E6]/70 border border-[#D9386A]/25 px-4 py-3 text-sm text-[#9B1C44]">
                 {errorMsg}
               </div>
             )}
 
             {infoMsg && (
-              <div className="mt-5 rounded-xl bg-[#FEF3C7] border border-[#F5B700]/40 px-4 py-3 text-sm text-[#111111]">
+              <div className="mb-4 rounded-xl bg-[#FEF3C7] border border-[#F5B700]/40 px-4 py-3 text-sm text-[#111111]">
                 {infoMsg}
               </div>
             )}
 
-            <form onSubmit={handleRegister} className="mt-6 space-y-4">
+            <form onSubmit={handleRegister} className="space-y-3.5">
               <div>
                 <label
                   htmlFor="reg-name"
@@ -197,7 +238,7 @@ export default function RegisterPage() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Immanuel Elvando"
+                    placeholder="Your full name"
                     className="w-full rounded-xl border border-[#E5E5E0] bg-[#F7F7F5]/60 pl-10 pr-4 py-3 text-sm text-[#111111] placeholder:text-[#96A39C] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#111111]/20 focus:border-[#111111] transition"
                   />
                 </div>
@@ -219,7 +260,7 @@ export default function RegisterPage() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@university.edu"
+                    placeholder="you@gmail.com"
                     className="w-full rounded-xl border border-[#E5E5E0] bg-[#F7F7F5]/60 pl-10 pr-4 py-3 text-sm text-[#111111] placeholder:text-[#96A39C] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#111111]/20 focus:border-[#111111] transition"
                   />
                 </div>
@@ -248,7 +289,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666660] hover:text-[#111111] p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666660] hover:text-[#111111] p-1 cursor-pointer"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
@@ -286,7 +327,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 rounded-xl bg-[#111111] hover:bg-[#262626] disabled:opacity-60 text-white font-semibold py-3.5 px-5 text-sm shadow-sm flex items-center justify-center gap-2 transition"
+                className="w-full mt-1 rounded-xl bg-[#111111] hover:bg-[#262626] disabled:opacity-60 text-white font-semibold py-3.5 px-5 text-sm shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -295,14 +336,14 @@ export default function RegisterPage() {
                   </>
                 ) : (
                   <>
-                    Create Account
+                    Create Account with Email
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="mt-6 text-sm text-[#666660]">
+            <div className="mt-5 text-sm text-[#666660]">
               Already have an account?{" "}
               <Link
                 href="/login"

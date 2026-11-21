@@ -40,6 +40,7 @@ interface GlassySidebarProps {
   activeRoadmapId?: string | null;
   onSelectRoadmap: (roadmapId: string) => void;
   onSignOut: () => void;
+  onDisconnectWallet: () => void;
 }
 
 export function GlassySidebar({
@@ -53,6 +54,7 @@ export function GlassySidebar({
   activeRoadmapId,
   onSelectRoadmap,
   onSignOut,
+  onDisconnectWallet,
 }: GlassySidebarProps) {
   const { lang } = useLanguage();
   const isId = lang === "id";
@@ -82,10 +84,12 @@ export function GlassySidebar({
     ? "Base Sepolia"
     : "Syllaba";
 
+  const isAuthenticated = Boolean(user || isWalletConnected);
+
   return (
     <aside
       className={`lg:col-span-3 xl:col-span-2 border-b lg:border-b-0 lg:border-r p-4 sm:p-5 flex flex-col justify-between gap-5 transition-colors ${
-        user
+        isAuthenticated
           ? "border-white/50 bg-gradient-to-b from-white/85 via-[#FFFDF5]/80 to-[#FEF9C3]/65 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
           : "border-[#E5E5E0] bg-[#FFFDF8]/90 backdrop-blur-xl"
       }`}
@@ -94,7 +98,7 @@ export function GlassySidebar({
         {/* Glassy Profile Header (Name ID / Username) */}
         <div
           className={`rounded-2xl p-3.5 border transition-all ${
-            user
+            isAuthenticated
               ? "border-white/60 bg-gradient-to-br from-[#09090B]/95 via-[#18181B]/95 to-[#27272A]/90 text-white shadow-[0_12px_28px_-14px_rgba(17,17,17,0.45)] backdrop-blur-md"
               : "border-[#E5E5E0] bg-white/80 text-[#111111] shadow-xs"
           }`}
@@ -102,7 +106,7 @@ export function GlassySidebar({
           <div className="flex items-center gap-3 min-w-0">
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold border ${
-                user
+                isAuthenticated
                   ? "bg-white/20 border-white/30 text-white"
                   : "bg-[#FEF3C7] border-[#F5B700]/30 text-[#111111]"
               }`}
@@ -114,7 +118,7 @@ export function GlassySidebar({
                 <p className="text-xs font-bold truncate">{displayName}</p>
                 <span
                   className={`rounded-md px-1.5 py-0.2 text-[9px] font-mono font-semibold shrink-0 ${
-                    user ? "bg-white/15 text-[#FEF3C7]" : "bg-[#F7F7F5] text-[#666660]"
+                    isAuthenticated ? "bg-white/15 text-[#FEF3C7]" : "bg-[#F7F7F5] text-[#666660]"
                   }`}
                 >
                   {shortUserId}
@@ -122,7 +126,7 @@ export function GlassySidebar({
               </div>
               <p
                 className={`text-[11px] truncate mt-0.5 ${
-                  user ? "text-[#E5E5E0]" : "text-[#666660]"
+                  isAuthenticated ? "text-[#E5E5E0]" : "text-[#666660]"
                 }`}
               >
                 {secondaryIdentifier}
@@ -224,10 +228,10 @@ export function GlassySidebar({
           </p>
 
           {/* 1. Login (if not logged in) */}
-          {!user && (
+          {!user && !isWalletConnected && (
             <Link
               href="/login"
-              className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold bg-[#FEF3C7]/80 text-[#111111] hover:bg-[#FEF3C7] transition"
+              className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold bg-[#FEF3C7]/90 text-[#111111] hover:bg-[#FEF3C7] border border-[#FACC15]/50 transition"
             >
               <span className="flex items-center gap-2.5">
                 <LogIn className="h-4 w-4" />
@@ -356,20 +360,32 @@ export function GlassySidebar({
           </div>
         </div>
 
-        {/* 5. Logout (only when logged in) */}
-        {user && (
+        {/* 5. Logout (when signed in) or Disconnect Wallet */}
+        {user ? (
           <button
             type="button"
             onClick={onSignOut}
-            className="w-full flex items-center justify-between rounded-xl border border-[#F4E0E6] bg-white/75 px-3 py-2 text-xs font-semibold text-[#9B1C44] hover:bg-[#F4E0E6]/70 transition cursor-pointer"
+            className="w-full flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#FEF3C7] transition cursor-pointer"
           >
             <span className="flex items-center gap-2.5">
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 text-[#D97706]" />
               <span>Logout</span>
             </span>
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
-        )}
+        ) : isWalletConnected ? (
+          <button
+            type="button"
+            onClick={onDisconnectWallet}
+            className="w-full flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold text-[#111111] hover:bg-[#FEF3C7] transition cursor-pointer"
+          >
+            <span className="flex items-center gap-2.5">
+              <LogOut className="h-4 w-4 text-[#D97706]" />
+              <span>Disconnect Wallet</span>
+            </span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
 
         <p className="px-2 text-[10px] text-[#666660] leading-tight">
           Copyright © 2026 Syllaba · ITSPIRIT
