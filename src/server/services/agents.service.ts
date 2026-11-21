@@ -180,16 +180,82 @@ Return JSON matching:
 export function validateAndNormalizeRoadmap(
   roadmap: Roadmap,
   options: {
+    targetDays?: number;
     dailyHoursLimit?: number;
+    includeRestDays?: boolean;
     hardDeadline?: string;
     modulesSummary?: ExtractedModule[];
   }
 ): Roadmap {
   const maxDailyMinutes = Math.min(Math.round((options.dailyHoursLimit || 2) * 60), 150);
+  const desiredDays =
+    typeof options.targetDays === "number"
+      ? Math.max(3, Math.min(60, Math.round(options.targetDays)))
+      : undefined;
+  const includeRestDays = options.includeRestDays ?? true;
   const startDate = new Date();
   let totalTasks = 0;
 
-  const normalizedSchedules: DailySchedule[] = roadmap.dailySchedules.map((day, index) => {
+  let sourceSchedules = [...roadmap.dailySchedules];
+  if (desiredDays) {
+    if (sourceSchedules.length > desiredDays) {
+      sourceSchedules = sourceSchedules.slice(0, desiredDays);
+    } else if (sourceSchedules.length < desiredDays) {
+      const studyDaysPool = sourceSchedules.filter((d) => !d.isRestDay && d.tasks.length > 0);
+      while (sourceSchedules.length < desiredDays) {
+        const nextDayNum = sourceSchedules.length + 1;
+        const shouldRest = includeRestDays && nextDayNum >= 7 && nextDayNum % 7 === 0;
+        if (shouldRest || studyDaysPool.length === 0) {
+          sourceSchedules.push({
+            dayNumber: nextDayNum,
+            date: new Date().toISOString().split("T")[0],
+            isRestDay: true,
+            totalEstimatedMinutes: 0,
+            cognitiveLoadSummary: "light",
+            tasks: [],
+          });
+        } else {
+          const templateDay = studyDaysPool[(nextDayNum - 1) % studyDaysPool.length];
+          const templateTask = templateDay.tasks[0];
+          sourceSchedules.push({
+            dayNumber: nextDayNum,
+            date: new Date().toISOString().split("T")[0],
+            isRestDay: false,
+            totalEstimatedMinutes: 25,
+            cognitiveLoadSummary: "moderate",
+            tasks: [
+              {
+                id: generateId("task"),
+                title: `Spaced Review: ${templateTask.title}`,
+                description: `Active recall and spaced repetition reinforcement for ${templateTask.moduleTitle || roadmap.courseTitle}.`,
+                moduleTitle: templateTask.moduleTitle,
+                dayNumber: nextDayNum,
+                date: new Date().toISOString().split("T")[0],
+                estimatedMinutes: 25,
+                cognitiveLoad: "moderate",
+                category: "review",
+                isCompleted: false,
+                subtasks: [
+                  {
+                    id: generateId("subtask"),
+                    title: "Summarize key takeaways from memory",
+                    isCompleted: false,
+                  },
+                  {
+                    id: generateId("subtask"),
+                    title: "Complete a 10-minute recall drill",
+                    isCompleted: false,
+                  },
+                ],
+              },
+            ],
+          });
+        }
+      }
+    }
+  }
+
+  const normalizedSchedules: DailySchedule[] = sourceSchedules.map((day, index) => {
     const dayDate = new Date(startDate);
     dayDate.setDate(startDate.getDate() + index);
     const dateStr = dayDate.toISOString().split("T")[0];
@@ -265,7 +331,8 @@ export function validateAndNormalizeRoadmap(
   return {
     ...roadmap,
     startDate: startDate.toISOString().split("T")[0],
-    targetEndDate: options.hardDeadline || endDate.toISOString().split("T")[0],
+    targetEndDate:
+      desiredDays ? endDate.toISOString().split("T")[0] : options.hardDeadline || endDate.toISOString().split("T")[0],
     totalDays: normalizedSchedules.length,
     totalTasks,
     dailySchedules: normalizedSchedules,
@@ -280,11 +347,16 @@ export async function planMicroTasksWithAgent(
   extraction: SyllabusExtraction,
   options: {
     syllabusText?: string;
+    targetDays?: number;
     dailyHoursLimit?: number;
     includeRestDays?: boolean;
   }
 ): Promise<Roadmap> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const targetDays =
+    typeof options.targetDays === "number"
+      ? Math.max(3, Math.min(60, Math.round(options.targetDays)))
+      : 14;
   const dailyHoursLimit = options.dailyHoursLimit || 2;
   const includeRestDays = options.includeRestDays ?? true;
 
@@ -293,12 +365,15 @@ export async function planMicroTasksWithAgent(
       options.syllabusText || extraction.modules.map((m) => `${m.title}\n${m.topics.join("\n")}`).join("\n"),
       {
         courseTitle: extraction.courseTitle,
+        targetDays,
         dailyHoursLimit,
         includeRestDays,
       }
     );
     const validated = validateAndNormalizeRoadmap(fallback, {
+      targetDays,
       dailyHoursLimit,
+      includeRestDays,
       hardDeadline: extraction.hardDeadline,
       modulesSummary: extraction.modules,
     });
@@ -310,7 +385,8 @@ export async function planMicroTasksWithAgent(
     const systemInstruction =
       "You are Agent 2 (Micro-Task Decomposition Planner). Slice modules into crisp 15-30 minute daily study micro-tasks. Never exceed 150 minutes/day. Include periodic rest days. Return ONLY valid JSON.";
 
-    const prompt = `Build a 7-to-14 day micro-task roadmap for "${extraction.courseTitle}".
+    const prompt = `Build an exact ${targetDays}-day micro-task roadmap for "${extraction.courseTitle}".
+You MUST return exact ${targetDays} entries in dailySchedules (dayNumber 1 through ${targetDays}).
 Daily study cap: ${Math.min(dailyHoursLimit * 60, 150)} minutes/day.
 Include rest days: ${includeRestDays}.
 Extracted Modules:
@@ -411,7 +487,9 @@ Return JSON:
     };
 
     const validated = validateAndNormalizeRoadmap(draft, {
+      targetDays,
       dailyHoursLimit,
+      includeRestDays,
       hardDeadline: extraction.hardDeadline,
       modulesSummary: extraction.modules,
     });
@@ -422,12 +500,15 @@ Return JSON:
       options.syllabusText || extraction.modules.map((m) => `${m.title}\n${m.topics.join("\n")}`).join("\n"),
       {
         courseTitle: extraction.courseTitle,
+        targetDays,
         dailyHoursLimit,
         includeRestDays,
       }
     );
     const validated = validateAndNormalizeRoadmap(fallback, {
+      targetDays,
       dailyHoursLimit,
+      includeRestDays,
       hardDeadline: extraction.hardDeadline,
       modulesSummary: extraction.modules,
     });

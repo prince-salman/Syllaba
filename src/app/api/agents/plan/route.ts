@@ -11,8 +11,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Valid syllabus extraction is required." }, { status: 400 });
     }
 
+    const rawTargetDays = typeof body.targetDays === "number" ? body.targetDays : 14;
+    const targetDays = Math.max(3, Math.min(60, Math.round(rawTargetDays)));
+
     const roadmap = await planMicroTasksWithAgent(extraction, {
       syllabusText: typeof body.syllabusText === "string" ? body.syllabusText : undefined,
+      targetDays,
       dailyHoursLimit: typeof body.dailyHoursLimit === "number" ? body.dailyHoursLimit : 2,
       includeRestDays: typeof body.includeRestDays === "boolean" ? body.includeRestDays : true,
     });

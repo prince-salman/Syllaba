@@ -73,7 +73,7 @@ export function generateHeuristicRoadmap(
 ): Roadmap {
   const { courseTitle: parsedTitle, sections } = parseSyllabusLines(syllabusText);
   const courseTitle = options?.courseTitle || parsedTitle;
-  const targetDays = Math.max(7, Math.min(30, options?.targetDays || 14));
+  const targetDays = Math.max(3, Math.min(60, Math.round(options?.targetDays || 14)));
   const dailyMinutesCap = (options?.dailyHoursLimit || 2) * 60;
   const includeRestDays = options?.includeRestDays ?? true;
 
@@ -182,26 +182,29 @@ export function generateHeuristicRoadmap(
       taskIndex++;
     }
 
-    if (dayTasks.length === 0 && taskIndex < rawTasks.length) {
-      const t = rawTasks[taskIndex];
+    if (dayTasks.length === 0 && rawTasks.length > 0) {
+      const sourceTask =
+        taskIndex < rawTasks.length
+          ? rawTasks[taskIndex++]
+          : rawTasks[(day - 1) % rawTasks.length];
+      const isSpacedReview = taskIndex >= rawTasks.length && day > 1;
       dayTasks.push({
         id: generateId("task"),
-        title: t.title,
-        description: t.description,
+        title: isSpacedReview ? `Spaced Review: ${sourceTask.title}` : sourceTask.title,
+        description: sourceTask.description,
         dayNumber: day,
         date: dateStr,
-        estimatedMinutes: t.minutes,
-        cognitiveLoad: t.load,
-        category: t.category,
+        estimatedMinutes: isSpacedReview ? 25 : sourceTask.minutes,
+        cognitiveLoad: isSpacedReview ? "moderate" : sourceTask.load,
+        category: isSpacedReview ? "review" : sourceTask.category,
         isCompleted: false,
-        subtasks: t.subtasks.map((st) => ({
+        subtasks: sourceTask.subtasks.map((st) => ({
           id: generateId("subtask"),
           title: st,
           isCompleted: false,
         })),
       });
-      currentDayMinutes += t.minutes;
-      taskIndex++;
+      currentDayMinutes += isSpacedReview ? 25 : sourceTask.minutes;
     }
 
     const hasDeep = dayTasks.some((t) => t.cognitiveLoad === "deep");

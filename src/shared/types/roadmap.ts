@@ -106,6 +106,7 @@ export interface Roadmap {
 export interface GenerationRequest {
   syllabusText: string;
   courseTitle?: string;
+  targetDays?: number;
   targetEndDate?: string;
   dailyHoursLimit?: number;
   includeRestDays?: boolean;

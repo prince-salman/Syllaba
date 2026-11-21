@@ -16,10 +16,15 @@ Rules:
 
 export async function generateRoadmapWithGemini(request: GenerationRequest): Promise<Roadmap> {
   const apiKey = request.apiKey || process.env.GEMINI_API_KEY;
+  const requestedDays =
+    typeof request.targetDays === "number"
+      ? Math.max(3, Math.min(60, Math.round(request.targetDays)))
+      : 14;
 
   if (!apiKey) {
     return generateHeuristicRoadmap(request.syllabusText, {
       courseTitle: request.courseTitle,
+      targetDays: requestedDays,
       dailyHoursLimit: request.dailyHoursLimit,
       includeRestDays: request.includeRestDays,
     });
@@ -38,16 +43,17 @@ export async function generateRoadmapWithGemini(request: GenerationRequest): Pro
 
     const prompt = `Analyze this syllabus text and construct a step-by-step daily study roadmap.
 Target course title: ${request.courseTitle || "Auto-detect"}
+Target total duration: ${requestedDays} days
 Target daily study limit: ${request.dailyHoursLimit || 2} hours
 Include rest days: ${request.includeRestDays ?? true}
 
 Syllabus Content:
 ${request.syllabusText.slice(0, 12000)}
 
-Return JSON with this exact structure:
+Return JSON with this exact structure (dailySchedules MUST contain exactly ${requestedDays} entries):
 {
   "courseTitle": "Course Name",
-  "totalDays": 14,
+  "totalDays": ${requestedDays},
   "dailySchedules": [
     {
       "dayNumber": 1,
@@ -144,6 +150,7 @@ Return JSON with this exact structure:
   } catch (err) {
     return generateHeuristicRoadmap(request.syllabusText, {
       courseTitle: request.courseTitle,
+      targetDays: requestedDays,
       dailyHoursLimit: request.dailyHoursLimit,
       includeRestDays: request.includeRestDays,
     });
