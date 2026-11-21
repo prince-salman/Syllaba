@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,16 +13,27 @@ import {
   Mail,
   ShieldCheck,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
+import { useWeb3 } from "@/components/Web3Providers";
+import { useAuth } from "@/client/components/auth/AuthProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isConnected, isConnecting, openConnectModal } = useWeb3();
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isConnected || user) {
+      router.replace("/");
+    }
+  }, [isConnected, user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,14 +87,14 @@ export default function LoginPage() {
             <div className="mt-10">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-medium text-[#DDF1E4]">
                 <Sparkles className="w-3.5 h-3.5 text-[#52B788]" />
-                Multi-Agent Academic Pacing
+                AI Study Planner
               </span>
               <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight">
                 Turn dense syllabi into calm daily momentum.
               </h1>
               <p className="mt-3 text-sm text-[#CBE3D6] leading-relaxed">
-                Decompose semester workloads with 5 autonomous agents, curate
-                open-access papers, and anchor study milestones on-chain.
+                Sign in with your email or connect your e-wallet to sync your
+                study plans, reading links, and progress proofs.
               </p>
             </div>
 
@@ -121,7 +132,7 @@ export default function LoginPage() {
 
           <div className="relative z-10 mt-8 pt-6 border-t border-white/15 flex items-center gap-2 text-xs text-[#CBE3D6]">
             <ShieldCheck className="w-4 h-4 text-[#52B788] shrink-0" />
-            <span>Synced with Supabase &amp; Base Sepolia Proof Vault</span>
+            <span>Flexible login with Email or Web3 E-Wallet</span>
           </div>
         </div>
 
@@ -131,17 +142,46 @@ export default function LoginPage() {
               Welcome back
             </h2>
             <p className="mt-2 text-sm text-[#6B7872]">
-              Sign in to access your AI study roadmaps, curated papers, and
-              on-chain proofs.
+              Choose how you want to enter your Syllaba workspace.
             </p>
 
+            {/* E-Wallet Option */}
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={openConnectModal}
+                disabled={isConnecting || loading}
+                className="w-full rounded-xl bg-[#0D1913] hover:bg-[#192D23] disabled:opacity-60 text-white font-semibold py-3.5 px-5 text-sm shadow-sm flex items-center justify-center gap-2.5 transition cursor-pointer"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#52B788]" />
+                    Connecting E-Wallet...
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4 text-[#52B788]" />
+                    Continue with E-Wallet
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#E5ECE8]" />
+              <span className="text-xs font-medium text-[#6B7872]">
+                or sign in with email
+              </span>
+              <div className="h-px flex-1 bg-[#E5ECE8]" />
+            </div>
+
             {errorMsg && (
-              <div className="mt-5 rounded-xl bg-[#F4E0E6]/70 border border-[#D9386A]/25 px-4 py-3 text-sm text-[#9B1C44]">
+              <div className="mb-5 rounded-xl bg-[#F4E0E6]/70 border border-[#D9386A]/25 px-4 py-3 text-sm text-[#9B1C44]">
                 {errorMsg}
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="mt-7 space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label
                   htmlFor="login-email"
@@ -158,7 +198,7 @@ export default function LoginPage() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@university.edu"
+                    placeholder="you@gmail.com"
                     className="w-full rounded-xl border border-[#E5ECE8] bg-[#F4F7F5]/60 pl-10 pr-4 py-3 text-sm text-[#111815] placeholder:text-[#96A39C] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#125B3A]/20 focus:border-[#125B3A] transition"
                   />
                 </div>
@@ -186,7 +226,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7872] hover:text-[#111815] p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7872] hover:text-[#111815] p-1 cursor-pointer"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
@@ -201,7 +241,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#125B3A] hover:bg-[#1F7A4F] disabled:opacity-60 text-white font-semibold py-3.5 px-5 text-sm shadow-sm flex items-center justify-center gap-2 transition"
+                className="w-full rounded-xl bg-[#125B3A] hover:bg-[#1F7A4F] disabled:opacity-60 text-white font-semibold py-3.5 px-5 text-sm shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -210,7 +250,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    Sign in to Workspace
+                    Sign in with Email
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -230,13 +270,13 @@ export default function LoginPage() {
             <div className="mt-8 pt-6 border-t border-[#E5ECE8] flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs text-[#6B7872]">
                 <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-                <span>Exploring for demo?</span>
+                <span>Just exploring?</span>
               </div>
               <Link
                 href="/"
                 className="text-xs font-semibold text-[#111815] hover:text-[#125B3A] px-3 py-1.5 rounded-lg bg-[#F4F7F5] border border-[#E5ECE8] transition"
               >
-                Continue to Workspace →
+                Continue as Guest →
               </Link>
             </div>
           </div>
