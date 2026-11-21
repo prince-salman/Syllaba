@@ -8,6 +8,7 @@ import { SYLLABA_VAULT_ADDRESS } from "@/shared/contracts/syllabaVault";
 import { Button } from "@/client/components/common/Button";
 import {
   CheckCircle2,
+  Cpu,
   Database,
   ExternalLink,
   FileKey2,
@@ -15,6 +16,8 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+
+const STORAGE_VAULT_KEY = "syllaba_deployed_vault_address";
 
 interface OnChainProofPanelProps {
   roadmap: Roadmap;
@@ -26,14 +29,26 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
     chainId,
     isConnected,
     signPersonalMessage,
+    deployVaultContractOnChain,
     commitStudyPlanOnChain,
   } = useWeb3();
 
   const [proofs, setProofs] = useState<OnChainProofRecord[]>([]);
+  const [vaultAddress, setVaultAddress] = useState<`0x${string}` | undefined>(SYLLABA_VAULT_ADDRESS);
   const [latestCid, setLatestCid] = useState<string | null>(null);
   const [stakeEth, setStakeEth] = useState<string>("0");
+  const [isDeploying, setIsDeploying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!SYLLABA_VAULT_ADDRESS && typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORAGE_VAULT_KEY);
+      if (saved && saved.startsWith("0x") && saved.length === 42) {
+        setVaultAddress(saved as `0x${string}`);
+      }
+    }
+  }, []);
 
   const roadmapHash = useMemo(() => {
     const canonicalPayload = JSON.stringify({
@@ -61,6 +76,33 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
       active = false;
     };
   }, [roadmap.id]);
+
+  const handleDeployVault = async () => {
+    if (!isConnected || !address) {
+      setStatusMessage("Connect your wallet in the top navigation bar first.");
+      return;
+    }
+
+    setIsDeploying(true);
+    setStatusMessage("Deploying SyllabaProofVault.sol to Base Sepolia via MetaMask...");
+
+    try {
+      const { txHash, contractAddress } = await deployVaultContractOnChain();
+      if (contractAddress) {
+        setVaultAddress(contractAddress);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_VAULT_KEY, contractAddress);
+        }
+        setStatusMessage(`SyllabaProofVault deployed on Base Sepolia at ${contractAddress}`);
+      } else {
+        setStatusMessage(`Deployment TX broadcast (${txHash.slice(0, 14)}...). Waiting for block confirmation.`);
+      }
+    } catch {
+      setStatusMessage("Contract deployment cancelled or insufficient Base Sepolia ETH.");
+    } finally {
+      setIsDeploying(false);
+    }
+  };
 
   const handleCommitProof = async () => {
     if (!isConnected || !address) {
@@ -91,7 +133,7 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
       let txOrSigHash: string;
       let proofStatus: string;
 
-      if (SYLLABA_VAULT_ADDRESS) {
+      if (vaultAddress) {
         const deadlineSec = BigInt(
           Math.floor(new Date(roadmap.targetEndDate || Date.now() + 14 * 86400000).getTime() / 1000) +
             86400
@@ -99,7 +141,7 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
         const totalMilestones = BigInt(Math.max(1, roadmap.dailySchedules.length));
 
         txOrSigHash = await commitStudyPlanOnChain({
-          vaultAddress: SYLLABA_VAULT_ADDRESS,
+          vaultAddress,
           roadmapHash: resolvedHash,
           ipfsCid: resolvedCid,
           totalMilestones,
@@ -132,7 +174,7 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
         const saved: OnChainProofRecord = await res.json();
         setProofs((prev) => [saved, ...prev]);
         setStatusMessage(
-          SYLLABA_VAULT_ADDRESS
+          vaultAddress
             ? "On-chain commitment broadcast to Base Sepolia and logged to Supabase."
             : "Snapshot hashed and cryptographic commitment signed with MetaMask."
         );
@@ -157,17 +199,30 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
                 SyllabaProofVault Commitment &amp; Snapshot
               </h3>
               <p className="text-xs text-slate-500">
-                {SYLLABA_VAULT_ADDRESS
-                  ? `Contract active: ${SYLLABA_VAULT_ADDRESS.slice(0, 8)}...${SYLLABA_VAULT_ADDRESS.slice(-6)}`
-                  : "Using cryptographic EIP-191 wallet attestation (ready for Vault contract address)"}
+                {vaultAddress
+                  ? `Contract active on Base Sepolia: ${vaultAddress.slice(0, 8)}...${vaultAddress.slice(-6)}`
+                  : "Deploy SyllabaProofVault in 1 click or sign cryptographic EIP-191 attestation"}
               </p>
             </div>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-            <Lock className="h-3 w-3 text-slate-500" />
-            <span>Chain ID: {chainId || 84532}</span>
-          </span>
+          <div className="flex items-center gap-2">
+            {vaultAddress && (
+              <a
+                href={`https://sepolia.basescan.org/address/${vaultAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                <span>Vault Contract</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+              <Lock className="h-3 w-3 text-slate-500" />
+              <span>Chain ID: {chainId || 84532}</span>
+            </span>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -195,7 +250,7 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
                 : "Wallet not connected"}
             </span>
 
-            {SYLLABA_VAULT_ADDRESS && (
+            {vaultAddress && (
               <label className="inline-flex items-center gap-1.5">
                 <span className="text-slate-500">Micro-stake (ETH):</span>
                 <input
@@ -210,25 +265,41 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            isLoading={isSubmitting}
-            onClick={handleCommitProof}
-            disabled={!isConnected}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            <span>
-              {SYLLABA_VAULT_ADDRESS
-                ? "Commit Study Plan On-Chain"
-                : "Snapshot & Sign Study Proof"}
-            </span>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {!vaultAddress && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                isLoading={isDeploying}
+                onClick={handleDeployVault}
+                disabled={!isConnected}
+              >
+                <Cpu className="h-4 w-4 text-brand-600" />
+                <span>1-Click Deploy Vault (Base Sepolia)</span>
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              isLoading={isSubmitting}
+              onClick={handleCommitProof}
+              disabled={!isConnected}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>
+                {vaultAddress
+                  ? "Commit Study Plan On-Chain"
+                  : "Snapshot & Sign Study Proof"}
+              </span>
+            </Button>
+          </div>
         </div>
 
         {statusMessage && (
-          <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-medium text-brand-800">
+          <div className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-medium text-brand-800 break-all">
             {statusMessage}
           </div>
         )}

@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { encodeFunctionData, parseEther, toHex } from "viem";
-import { SYLLABA_VAULT_ABI } from "@/shared/contracts/syllabaVault";
+import { SYLLABA_VAULT_ABI, SYLLABA_VAULT_BYTECODE } from "@/shared/contracts/syllabaVault";
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 const BASE_SEPOLIA_HEX = "0x14a34";
@@ -30,6 +30,7 @@ interface Web3ContextValue {
   disconnectWallet: () => void;
   switchToBaseSepolia: () => Promise<boolean>;
   signPersonalMessage: (message: string) => Promise<string>;
+  deployVaultContractOnChain: () => Promise<{ txHash: string; contractAddress: `0x${string}` | null }>;
   commitStudyPlanOnChain: (params: {
     vaultAddress: `0x${string}`;
     roadmapHash: `0x${string}`;
@@ -51,6 +52,7 @@ const Web3Context = createContext<Web3ContextValue>({
   disconnectWallet: () => {},
   switchToBaseSepolia: async () => false,
   signPersonalMessage: async () => "",
+  deployVaultContractOnChain: async () => ({ txHash: "", contractAddress: null }),
   commitStudyPlanOnChain: async () => "",
 });
 
@@ -230,6 +232,52 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
     [address]
   );
 
+  const deployVaultContractOnChain = useCallback(async (): Promise<{
+    txHash: string;
+    contractAddress: `0x${string}` | null;
+  }> => {
+    const eth = getEthereum();
+    if (!eth || !address) {
+      throw new Error("Wallet is not connected.");
+    }
+
+    if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+      await switchToBaseSepolia();
+    }
+
+    const txHashRaw = await eth.request({
+      method: "eth_sendTransaction",
+      params: [
+        {
+          from: address,
+          data: SYLLABA_VAULT_BYTECODE,
+        },
+      ],
+    });
+    const txHash = String(txHashRaw);
+
+    for (let attempt = 0; attempt < 25; attempt++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const receipt = (await eth.request({
+          method: "eth_getTransactionReceipt",
+          params: [txHash],
+        })) as { contractAddress?: string } | null;
+
+        if (receipt && typeof receipt.contractAddress === "string" && receipt.contractAddress) {
+          return {
+            txHash,
+            contractAddress: receipt.contractAddress as `0x${string}`,
+          };
+        }
+      } catch {
+        // Keep polling while block mines
+      }
+    }
+
+    return { txHash, contractAddress: null };
+  }, [address, chainId, switchToBaseSepolia]);
+
   const commitStudyPlanOnChain = useCallback(
     async (params: {
       vaultAddress: `0x${string}`;
@@ -285,6 +333,7 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         disconnectWallet,
         switchToBaseSepolia,
         signPersonalMessage,
+        deployVaultContractOnChain,
         commitStudyPlanOnChain,
       }}
     >
