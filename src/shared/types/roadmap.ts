@@ -1,6 +1,6 @@
 export type CognitiveLoad = "light" | "moderate" | "deep";
 
-export type TaskCategory = 
+export type TaskCategory =
   | "reading"
   | "practice"
   | "research"
@@ -26,6 +26,7 @@ export interface RoadmapTask {
   isCompleted: boolean;
   subtasks: Subtask[];
   resources?: string[];
+  moduleTitle?: string;
 }
 
 export interface DailySchedule {
@@ -45,6 +46,44 @@ export interface BurnoutMetrics {
   burnoutFactors: string[];
 }
 
+export interface ExtractedModule {
+  title: string;
+  topics: string[];
+  weightPercentage?: number;
+  deadlineHint?: string;
+  estimatedHours?: number;
+}
+
+export interface SyllabusExtraction {
+  courseTitle: string;
+  courseCode?: string;
+  hardDeadline?: string;
+  modules: ExtractedModule[];
+}
+
+export interface CuratedResource {
+  id: string;
+  roadmapId: string;
+  moduleTopic: string;
+  title: string;
+  url: string;
+  sourceType: "openalex" | "wikipedia";
+  summary?: string;
+  year?: number;
+}
+
+export interface OnChainProofRecord {
+  id: string;
+  roadmapId: string;
+  walletAddress: string;
+  roadmapHash: string;
+  ipfsCid?: string;
+  txHash: string;
+  chainId: number;
+  status: string;
+  createdAt: string;
+}
+
 export interface Roadmap {
   id: string;
   courseTitle: string;
@@ -56,6 +95,10 @@ export interface Roadmap {
   completedTasks: number;
   dailySchedules: DailySchedule[];
   burnoutMetrics: BurnoutMetrics;
+  modulesSummary?: ExtractedModule[];
+  curatedResources?: CuratedResource[];
+  walletAddress?: string;
+  roadmapHash?: string;
   createdAt: string;
   updatedAt: string;
 }

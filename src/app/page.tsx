@@ -5,15 +5,12 @@ import { Roadmap } from "@/shared/types/roadmap";
 import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader";
 import { RoadmapTimeline } from "@/client/components/roadmap/RoadmapTimeline";
 import { getActiveRoadmap, saveRoadmap, getStoredRoadmaps, setActiveRoadmapId } from "@/client/utils/storage";
-import { BookOpen, Sparkles, CheckCircle2, ShieldCheck } from "lucide-react";
-import { WalletLogin } from "@/components/WalletLogin";
-import { useAccount } from "wagmi";
+import { BookOpen, Cpu, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export default function HomePage() {
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
   const [storedRoadmaps, setStoredRoadmaps] = useState<Roadmap[]>([]);
   const [isClient, setIsClient] = useState(false);
-  const { address, isConnected } = useAccount();
 
   useEffect(() => {
     setIsClient(true);
@@ -44,24 +41,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-      {/* Bar Autentikasi Web3 Wallet (MetaMask via RainbowKit/Wagmi) */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Web3 Student Identity
-          </p>
-          <p className="text-sm text-slate-700 mt-0.5">
-            {isConnected && address
-              ? "Your study roadmaps are linked to your connected wallet."
-              : "Connect MetaMask to link your decentralized profile & track progress."}
-          </p>
-        </div>
-        <div className="shrink-0">
-          <WalletLogin />
-        </div>
-      </div>
-
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       {activeRoadmap ? (
         <div className="space-y-6">
           {storedRoadmaps.length > 1 && (
@@ -97,52 +77,52 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="space-y-10">
-          <div className="text-center max-w-2xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50/80 px-3 py-1 text-xs font-medium text-brand-800 mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Anti-Burnout Academic Pacing</span>
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Multi-Agent Academic Pacing &amp; On-Chain Proof</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              Turn Overwhelming Syllabi Into Daily Step-by-Step Roadmaps
+              Turn Overwhelming Syllabi Into Verified 15-Minute Daily Roadmaps
             </h1>
-            <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
-              Beat procrastination and eliminate academic burnout. Upload assignment guidelines or course syllabi to generate paced, low-stress daily study tasks.
+            <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
+              Upload course syllabi or rubrics. Syllaba extracts modules, slices deep work into anti-burnout micro-tasks, curates open-access scholarly references, and anchors study commitments on-chain.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
             <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="rounded-lg bg-brand-50 p-2 text-brand-600">
+              <div className="rounded-lg bg-brand-50 p-2 text-brand-600 shrink-0">
                 <BookOpen className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">Syllabus Breakdown</h4>
+                <h4 className="text-xs font-bold text-slate-900">15-30m Micro-Task Slicing</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Converts 10-page course PDFs into digestible daily micro-milestones.
+                  Deterministic TypeScript validator caps daily study at 150 minutes with rest intervals.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Fatigue Prevention</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Limits daily study to manageable sessions with mandatory rest days.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+              <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600 shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">Zero-Guilt Reschedule</h4>
+                <h4 className="text-xs font-bold text-slate-900">OpenAlex &amp; Wikipedia Curator</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Falling behind shifts dates automatically without panic or backlogs.
+                  Automatically matches verified open-access research papers to each course module.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="rounded-lg bg-blue-50 p-2 text-blue-600 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Cryptographic Study Proof</h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Sign verifiable study commitments with MetaMask on Base Sepolia and archive proofs.
                 </p>
               </div>
             </div>
