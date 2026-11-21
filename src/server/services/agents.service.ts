@@ -14,8 +14,13 @@ import { generateId } from "@/shared/utils";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { saveCuratedResourcesToDb, saveRoadmapToDb } from "@/server/db/proofs.repo";
 
-const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-4-argon"];
-const AGENT_TIMEOUT_MS = 18000;
+const GEMINI_MODELS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-omni-1.2-flash",
+  "gemini-3.8-flash",
+];
+const AGENT_TIMEOUT_MS = 16000;
 
 async function generateJsonWithGemini(
   apiKey: string,
@@ -264,6 +269,20 @@ export function validateAndNormalizeRoadmap(
         } else {
           const templateDay = studyDaysPool[(nextDayNum - 1) % studyDaysPool.length];
           const templateTask = templateDay.tasks[0];
+          const preservedSubtasks =
+            templateTask.subtasks && templateTask.subtasks.length > 0
+              ? templateTask.subtasks.map((st) => ({
+                  id: generateId("subtask"),
+                  title: st.title,
+                  isCompleted: false,
+                }))
+              : [
+                  {
+                    id: generateId("subtask"),
+                    title: `[${templateTask.moduleTitle || roadmap.courseTitle}] Evaluasi penguasaan materi: "${templateTask.title}" ($\\eta \\ge 90\\%$)`,
+                    isCompleted: false,
+                  },
+                ];
           sourceSchedules.push({
             dayNumber: nextDayNum,
             date: new Date().toISOString().split("T")[0],
@@ -273,8 +292,10 @@ export function validateAndNormalizeRoadmap(
             tasks: [
               {
                 id: generateId("task"),
-                title: `Spaced Review: ${templateTask.title}`,
-                description: `Active recall and spaced repetition reinforcement for ${templateTask.moduleTitle || roadmap.courseTitle}.`,
+                title: `Pendalaman & Sintesis: ${templateTask.title}`,
+                description:
+                  templateTask.description ||
+                  `Evaluasi mendalam materi ${templateTask.moduleTitle || roadmap.courseTitle} ($\\eta_{\\text{target}} = 100\\%$).`,
                 moduleTitle: templateTask.moduleTitle,
                 dayNumber: nextDayNum,
                 date: new Date().toISOString().split("T")[0],
@@ -282,18 +303,7 @@ export function validateAndNormalizeRoadmap(
                 cognitiveLoad: "moderate",
                 category: "review",
                 isCompleted: false,
-                subtasks: [
-                  {
-                    id: generateId("subtask"),
-                    title: "Summarize key takeaways from memory",
-                    isCompleted: false,
-                  },
-                  {
-                    id: generateId("subtask"),
-                    title: "Complete a 10-minute recall drill",
-                    isCompleted: false,
-                  },
-                ],
+                subtasks: preservedSubtasks,
               },
             ],
           });
@@ -447,12 +457,12 @@ ${rawSlideContext}
 
 STRICT SPECIFICITY & LATEX RULES:
 1. Every task "title" MUST name the specific slide/section and exact concept from the PPT (e.g., "Slide 3-4: Thesis Statement & Controlling Idea in Essay Introductions" or "Slide 2: Master Theorem $T(n) = aT(n/b) + f(n)$").
-2. Every task "description" MUST summarize the actual bullet points, definitions, mechanisms, or formulas from those slides.
+2. Every task "description" MUST summarize the actual bullet points, definitions, mechanisms, or formulas from those slides, and include at least 1 inline LaTeX expression $...$.
 3. Every item in "subtasks" (3 to 4 detailed breakdown steps per task) MUST be a step-by-step micro-guide quoting the specific concepts, terms, formulas, and examples on that slide:
-   - Step 1: Specific concept/definition from the slide
-   - Step 2: Technical mechanism, formula derivation, or structure analysis from the slide
+   - Step 1: Specific concept/definition quoted from the slide
+   - Step 2: Technical mechanism, formula derivation, or structural relationship in inline LaTeX $...$
    - Step 3: Concrete example or practice application directly based on the slide
-4. Format ALL mathematical formulas, equations, asymptotic bounds, Greek symbols, or chemical notations in inline LaTeX delimiters $...$ (e.g. $O(n \\log n)$, $\\frac{\\partial U}{\\partial x}$, $(4n+2)\\ \\pi$).
+4. Format ALL mathematical formulas, equations, asymptotic bounds, Greek symbols, chemical notations, or structural models in inline LaTeX delimiters $...$ (e.g. $O(n \\log n)$, $\\frac{\\partial U}{\\partial x}$, $(4n+2)\\ \\pi$, or for writing/qualitative slides: $\\text{Thesis} = \\text{Topic} + \\text{Controlling Idea}$, $\\text{Essay} = \\text{Intro} + \\sum_{i=1}^{n} \\text{Body}_i + \\text{Conclusion}$).
 5. Distribute the slides progressively from Day 1 to Day ${targetDays}. Never write generic text like "Step 1", "Read chapter", or "Complete focused sprint".
 
 Return JSON:
@@ -464,12 +474,12 @@ Return JSON:
       "tasks": [
         {
           "title": "Specific slide/topic micro-task title from PPT",
-          "description": "Concrete explanation of the exact slide bullet points to master",
+          "description": "Concrete explanation of the exact slide bullet points to master with inline LaTeX $...$",
           "moduleTitle": "Exact Slide/Module title",
           "estimatedMinutes": 25,
           "cognitiveLoad": "light",
           "category": "reading",
-          "subtasks": ["Specific point 1 from slide", "Specific point 2 from slide"]
+          "subtasks": ["Specific point 1 from slide", "Specific mechanism/formula 2 with $...$ from slide", "Specific application 3 from slide"]
         }
       ]
     }
@@ -483,36 +493,57 @@ Return JSON:
     const schedules: DailySchedule[] = (parsed.dailySchedules || []).map(
       (ds: Record<string, unknown>, idx: number) => {
         const rawTasks = Array.isArray(ds.tasks) ? ds.tasks : [];
-        const tasks: RoadmapTask[] = rawTasks.map((t: Record<string, unknown>) => ({
-          id: generateId("task"),
-          title: String(t.title || "Focused Micro-Session"),
-          description: String(t.description || ""),
-          moduleTitle: t.moduleTitle ? String(t.moduleTitle) : undefined,
-          dayNumber: idx + 1,
-          date: new Date().toISOString().split("T")[0],
-          estimatedMinutes: Number(t.estimatedMinutes) || 25,
-          cognitiveLoad: (["light", "moderate", "deep"].includes(String(t.cognitiveLoad))
-            ? String(t.cognitiveLoad)
-            : "moderate") as CognitiveLoad,
-          category: ([
-            "reading",
-            "practice",
-            "research",
-            "writing",
-            "coding",
-            "review",
-          ].includes(String(t.category))
-            ? String(t.category)
-            : "reading") as TaskCategory,
-          isCompleted: false,
-          subtasks: (Array.isArray(t.subtasks) ? t.subtasks : ["Complete focused sprint"]).map(
-            (st: unknown) => ({
+        const fallbackMod =
+          extraction.modules[idx % Math.max(1, extraction.modules.length)];
+        const tasks: RoadmapTask[] = rawTasks.map((t: Record<string, unknown>) => {
+          const modTitle = t.moduleTitle
+            ? String(t.moduleTitle)
+            : fallbackMod?.title || extraction.courseTitle;
+          const rawSubtasks = Array.isArray(t.subtasks)
+            ? t.subtasks.filter((st) => typeof st === "string" && st.trim().length > 0)
+            : [];
+          const resolvedSubtasks =
+            rawSubtasks.length > 0
+              ? rawSubtasks.map(String)
+              : (fallbackMod?.topics || [String(t.title || extraction.courseTitle)]).map(
+                  (tp, sIdx) =>
+                    `[${modTitle} · Langkah ${sIdx + 1}] Bedah & kuasai poin: "${tp}" ($w_{${
+                      sIdx + 1
+                    }} = \\frac{1}{${Math.max(1, fallbackMod?.topics?.length || 1)}}$)`
+                );
+
+          return {
+            id: generateId("task"),
+            title: String(t.title || `${modTitle}: ${fallbackMod?.topics?.[0] || "Materi Inti"}`),
+            description: String(
+              t.description ||
+                `Bedah materi spesifik ${modTitle}: ${(fallbackMod?.topics || []).join(" · ")}`
+            ),
+            moduleTitle: modTitle,
+            dayNumber: idx + 1,
+            date: new Date().toISOString().split("T")[0],
+            estimatedMinutes: Number(t.estimatedMinutes) || 25,
+            cognitiveLoad: (["light", "moderate", "deep"].includes(String(t.cognitiveLoad))
+              ? String(t.cognitiveLoad)
+              : "moderate") as CognitiveLoad,
+            category: ([
+              "reading",
+              "practice",
+              "research",
+              "writing",
+              "coding",
+              "review",
+            ].includes(String(t.category))
+              ? String(t.category)
+              : "reading") as TaskCategory,
+            isCompleted: false,
+            subtasks: resolvedSubtasks.map((stTitle) => ({
               id: generateId("subtask"),
-              title: typeof st === "string" ? st : "Complete micro-step",
+              title: stTitle,
               isCompleted: false,
-            })
-          ),
-        }));
+            })),
+          };
+        });
 
         return {
           dayNumber: idx + 1,

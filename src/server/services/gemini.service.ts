@@ -33,7 +33,7 @@ export async function generateRoadmapWithGemini(request: GenerationRequest): Pro
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.8-flash",
+      model: "gemini-3.1-flash-lite",
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.2,

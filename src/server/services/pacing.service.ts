@@ -157,38 +157,36 @@ export function generateHeuristicRoadmap(
             }`
           : `${section.title}: ${shortLead}`;
 
-      const stagePrefixes = [
-        `Langkah 1 (Konsep & Definisi ${section.title})`,
-        `Langkah 2 (Analisis Struktur / Rumus)`,
-        `Langkah 3 (Bedah Contoh & Implementasi Slide)`,
-        `Langkah 4 (Latihan & Pembuktian Mandiri)`,
-      ];
+      const p1 = chunk[0] || cleanSectionTopic;
+      const p2 = chunk[1] || items[1] || p1;
+      const p3 = chunk[2] || items[2] || p2;
+      const shortP1 = p1.length > 42 ? `${p1.slice(0, 40).trim()}...` : p1;
+      const shortP2 = p2.length > 42 ? `${p2.slice(0, 40).trim()}...` : p2;
 
       const specificSubtasks =
-        chunk.length >= 2
+        chunk.length >= 3
           ? [
-              ...chunk.map(
-                (pt, idx) => `${stagePrefixes[idx % stagePrefixes.length]}: ${pt}`
-              ),
-              ...(chunk.length === 2
-                ? [
-                    `Langkah 3 (Sintesis & Evaluasi ${cleanSectionTopic}): Rangkum keterkaitan antara "${chunk[0].slice(
-                      0,
-                      55
-                    )}" dan "${chunk[1].slice(0, 55)}"`,
-                  ]
-                : []),
+              `[${section.title}] Bedah konsep & definisi spesifik: "${p1}"`,
+              `[${section.title}] Analisis mekanisme & hubungan antar-poin: "${p2}" ($\\text{Konsep}_1 \\Longrightarrow \\text{Konsep}_2$)`,
+              `[${section.title}] Studi kasus & penerapan materi slide: "${p3}"`,
+              `[${section.title}] Latihan sintesis mandiri (${shortP1} + ${shortP2}) dengan target akurasi $\\eta \\ge 90\\%$`,
+            ]
+          : chunk.length === 2
+          ? [
+              `[${section.title}] Bedah konsep & definisi spesifik: "${p1}"`,
+              `[${section.title}] Analisis struktur & poin lanjutan slide: "${p2}"`,
+              `[${section.title}] Sintesis keterkaitan "$\\text{Poin}_1 \\iff \\text{Poin}_2$" antara "${shortP1}" dan "${shortP2}"`,
             ]
           : [
-              `Langkah 1 (Konsep Utama ${section.title}): ${leadPoint}`,
-              `Langkah 2 (Analisis Mendalam): Bedah komponen teknis, definisi, atau rumus pada "${cleanSectionTopic}"`,
-              `Langkah 3 (Aplikasi & Latihan): Kerjakan contoh kasus dari ${section.title} terkait "${shortLead}"`,
+              `[${section.title}] Bedah materi inti slide: "${p1}"`,
+              `[${section.title}]uraian komponen teknis & pemetaan konsep $\\mathcal{M}(\\text{Slide}) \\to \\text{Aplikasi}$ pada "${cleanSectionTopic}"`,
+              `[${section.title}] Latihan evaluasi mandiri & penerapan contoh spesifik untuk "${shortP1}" ($\\Delta t \\approx 25\\text{ min}$)`,
             ];
 
       rawTasks.push({
         title: taskTitle,
         moduleTitle: section.title,
-        description: `Materi spesifik dari ${section.title}: ${chunk.join(" · ")}`,
+        description: `Bedah materi spesifik ${section.title}: ${chunk.join(" · ")} ($\\sum_{i=1}^{${chunk.length}} \\text{Poin}_i$)`,
         category: i === 0 ? "reading" : "practice",
         load: chunk.length >= 3 ? "deep" : "moderate",
         minutes: 25,
@@ -198,15 +196,22 @@ export function generateHeuristicRoadmap(
 
     if (items.length >= 2) {
       rawTasks.push({
-        title: `Latihan & Review Materi: ${cleanSectionTopic}`,
+        title: `Latihan & Sintesis Slide: ${section.title}`,
         moduleTitle: section.title,
-        description: `Evaluasi dan terapkan poin-poin dari ${section.title}: ${items
+        description: `Uji penguasaan materi ${section.title}: ${items
           .slice(0, 4)
-          .join(" · ")}`,
+          .join(" · ")} ($\\eta_{\\text{target}} = 100\\%$)`,
         category: "review",
         load: "moderate",
         minutes: 20,
-        subtasks: items.slice(0, 4).map((pt) => `Review & praktikkan konsep: ${pt}`),
+        subtasks: items
+          .slice(0, 4)
+          .map(
+            (pt, idx) =>
+              `[${section.title} · Poin #${idx + 1}] Verifikasi & praktikkan materi: "${pt}" ($w_{${
+                idx + 1
+              }} = \\frac{1}{${Math.min(4, items.length)}}$)`
+          ),
       });
     }
   });
