@@ -209,36 +209,34 @@ export function TierCertificateExchangePanel({
     if (hasRealOnChainTx) {
       return `https://sepolia.basescan.org/tx/${displayTxHash}`;
     }
+    const proofCode =
+      ownedTierCert?.proofType === "eip191-signature"
+        ? "sig"
+        : ownedTierCert?.proofType === "local-attestation"
+        ? "loc"
+        : "pre";
     const qs = new URLSearchParams({
-      id: displayCertId,
-      tier: activeTierMeta.id,
-      pts: String(
+      i: displayCertId,
+      t: activeTierMeta.id,
+      p: String(
         ownedTierCert?.totalPointsAtIssue ?? totalAccumulatedPoints
       ),
-      grade: String(ownedTierCert?.finalGradeScore ?? 100),
-      holder: (
+      g: String(ownedTierCert?.finalGradeScore ?? 100),
+      n: (
         ownedTierCert?.recipientName ||
         recipientName.trim() ||
         "Scholar"
-      ).slice(0, 28),
-      course: `Syllaba ${activeTierMeta.name} Tier Exchange (${completedCoursesCount} PPT)`,
-      hash: certificateHash.slice(0, 18),
-      proof: ownedTierCert?.proofType ?? "preview",
+      ).slice(0, 12),
+      h: certificateHash.slice(2, 10),
+      m: proofCode,
     });
-    if (hasValidWalletAddr) {
-      qs.set("wallet", displayWallet);
-    }
-    return `https://syllaba.xyz/verify?${qs.toString()}`;
+    return `https://syllaba.xyz/v?${qs.toString()}`;
   }, [
     activeTierMeta.id,
-    activeTierMeta.name,
     certificateHash,
-    completedCoursesCount,
     displayCertId,
     displayTxHash,
-    displayWallet,
     hasRealOnChainTx,
-    hasValidWalletAddr,
     ownedTierCert,
     recipientName,
     totalAccumulatedPoints,

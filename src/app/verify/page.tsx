@@ -7,26 +7,46 @@ interface VerifyPageProps {
 
 function getParam(
   params: Record<string, string | string[] | undefined>,
-  key: string
+  ...keys: string[]
 ): string {
-  const val = params[key];
-  return Array.isArray(val) ? val[0] ?? "" : val ?? "";
+  for (const key of keys) {
+    const val = params[key];
+    const str = Array.isArray(val) ? val[0] ?? "" : val ?? "";
+    if (str) return str;
+  }
+  return "";
 }
 
 export default async function VerifyCertificatePage({
   searchParams,
 }: VerifyPageProps) {
   const params = await searchParams;
-  const certId = getParam(params, "id") || "SYL-CREDENTIAL";
-  const tier = (getParam(params, "tier") || "bronze").toUpperCase();
-  const points = getParam(params, "pts") || "0";
-  const grade = getParam(params, "grade") || "0";
-  const holder = getParam(params, "holder") || "Scholar Candidate";
-  const course = getParam(params, "course") || "Syllaba Study Roadmap";
-  const hash = getParam(params, "hash");
-  const proof = getParam(params, "proof") || "preview";
+  const certId = getParam(params, "id", "i") || "SYL-CREDENTIAL";
+  const rawTier = getParam(params, "tier", "t") || "bronze";
+  const tier =
+    rawTier === "ppt" ? "COURSE PASS" : rawTier.toUpperCase();
+  const points = getParam(params, "pts", "p") || "0";
+  const grade = getParam(params, "grade", "g") || "0";
+  const holder = getParam(params, "holder", "n") || "Scholar Candidate";
+  const course =
+    getParam(params, "course", "c") ||
+    (rawTier === "ppt"
+      ? "Syllaba Verified PPT Module"
+      : "Syllaba Tier Academic Progression");
+  const hash = getParam(params, "hash", "h");
+  const rawProof = getParam(params, "proof", "m") || "preview";
+  const proof =
+    rawProof === "tx"
+      ? "onchain-tx"
+      : rawProof === "sig"
+      ? "eip191-signature"
+      : rawProof === "loc"
+      ? "local-attestation"
+      : rawProof === "pre"
+      ? "preview"
+      : rawProof;
   const txHash = getParam(params, "tx");
-  const wallet = getParam(params, "wallet");
+  const wallet = getParam(params, "wallet", "w");
 
   const hasValidTx = /^0x[0-9a-fA-F]{64}$/.test(txHash);
   const hasValidWallet = /^0x[0-9a-fA-F]{40}$/.test(wallet);

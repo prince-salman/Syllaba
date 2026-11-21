@@ -10,8 +10,9 @@ interface ScannableQrCodeProps {
 }
 
 /**
- * Renders an ISO/IEC 18004 standard scannable QR code wrapped in an interactive
- * verification link with crisp edges and quiet zone margin.
+ * Renders an ISO/IEC 18004 standard scannable QR code with a full 4-module
+ * white quiet zone, pure black/white contrast, and bold cell sizing so mobile
+ * cameras focus and decode reliably from laptop/phone screens.
  */
 export function ScannableQrCode({
   value,
@@ -21,7 +22,7 @@ export function ScannableQrCode({
   const { size, pathData } = useMemo(() => {
     const grid = generateQrMatrix(value);
     const n = grid.length;
-    const quiet = 3;
+    const quiet = 4;
     const parts: string[] = [];
     for (let r = 0; r < n; r++) {
       for (let c = 0; c < n; c++) {
@@ -39,17 +40,17 @@ export function ScannableQrCode({
       target="_blank"
       rel="noopener noreferrer"
       title={title}
-      className="shrink-0 hover:scale-105 transition-transform inline-block"
+      style={{ borderColor: accentHex }}
+      className="shrink-0 inline-block rounded-xl bg-white p-1.5 border-2 shadow-md hover:scale-105 transition-transform"
     >
       <svg
         viewBox={`0 0 ${size} ${size}`}
         shapeRendering="crispEdges"
-        style={{ borderColor: accentHex }}
-        className="w-24 h-24 rounded-lg bg-white border-2 shadow-sm shrink-0"
+        className="w-28 h-28 sm:w-32 sm:h-32 block"
         aria-label="Scannable Verification QR Code"
       >
         <rect x={0} y={0} width={size} height={size} fill="#FFFFFF" />
-        <path d={pathData} fill="#111111" />
+        <path d={pathData} fill="#000000" />
       </svg>
     </a>
   );

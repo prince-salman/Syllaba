@@ -299,37 +299,34 @@ export function BlockchainCertificatePanel({
     if (hasRealOnChainTx) {
       return `https://sepolia.basescan.org/tx/${displayTxHash}`;
     }
+    const proofCode =
+      cert?.proofType === "eip191-signature"
+        ? "sig"
+        : cert?.proofType === "local-attestation"
+        ? "loc"
+        : "pre";
     const qs = new URLSearchParams({
-      id: displayCertId,
-      tier: "course-pass",
-      pts: String(
-        cert?.totalPointsAtIssue ?? breakdown.pptDifficultyPoints
-      ),
-      grade: String(cert?.finalGradeScore ?? finalGradeScore),
-      holder: (cert?.recipientName || recipientName.trim() || "Scholar").slice(
+      i: displayCertId,
+      t: "ppt",
+      p: String(cert?.totalPointsAtIssue ?? breakdown.pptDifficultyPoints),
+      g: String(cert?.finalGradeScore ?? finalGradeScore),
+      n: (cert?.recipientName || recipientName.trim() || "Scholar").slice(
         0,
-        28
+        12
       ),
-      course: roadmap.courseTitle.slice(0, 42),
-      hash: certificateHash.slice(0, 18),
-      proof: cert?.proofType ?? "preview",
+      h: certificateHash.slice(2, 10),
+      m: proofCode,
     });
-    if (hasValidWalletAddr) {
-      qs.set("wallet", displayWallet);
-    }
-    return `https://syllaba.xyz/verify?${qs.toString()}`;
+    return `https://syllaba.xyz/v?${qs.toString()}`;
   }, [
     breakdown.pptDifficultyPoints,
     cert,
     certificateHash,
     displayCertId,
     displayTxHash,
-    displayWallet,
     finalGradeScore,
     hasRealOnChainTx,
-    hasValidWalletAddr,
     recipientName,
-    roadmap.courseTitle,
   ]);
 
   const proofMetadataPayload = useMemo(
