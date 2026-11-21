@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Layers, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { WalletLogin } from "@/components/WalletLogin";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 
@@ -25,8 +25,12 @@ export function Header() {
     <header className="sticky top-0 z-40 w-full border-b border-[#E5ECE8] bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-3 min-w-0 group">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-kpi text-white shadow-sm">
-            <Layers className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E5ECE8] bg-white p-1 shadow-sm">
+            <img
+              src="/syllaba-mark.png"
+              alt="Syllaba Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
