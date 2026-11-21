@@ -391,11 +391,11 @@ export default function HomePage() {
           )}
 
           {sidebarView === "dashboard" && activeRoadmap && (
-            <div className="mt-6 space-y-6">
+            <div className="mt-6 space-y-6 animate-syllaba-enter">
               {/* 3 Focused KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <ScrollReveal delayMs={0}>
-                  <div className="rounded-2xl bg-emerald-kpi p-5 text-white shadow-sm h-full">
+                  <div className="syllaba-card-hover rounded-2xl bg-emerald-kpi p-5 text-white shadow-sm h-full">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[#FEF3C7]">
                         {copy.finishedTasks}

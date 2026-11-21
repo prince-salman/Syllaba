@@ -11,11 +11,6 @@ import { FocusTimerModal } from "@/client/components/focus/FocusTimerModal";
 import { RescheduleModal } from "./RescheduleModal";
 import { ScrollReveal } from "@/client/components/common/ScrollReveal";
 import {
-  updateTaskCompletion,
-  updateSubtaskCompletion,
-  saveRoadmap,
-} from "@/client/utils/storage";
-import {
   BookOpen,
   CalendarDays,
   ShieldCheck,
@@ -104,8 +99,32 @@ export function RoadmapTimeline({
   ]);
 
   const handleToggleTask = (taskId: string, completed: boolean) => {
-    const updated = updateTaskCompletion(roadmap.id, taskId, completed);
-    if (updated) onUpdateRoadmap(updated);
+    let totalCompleted = 0;
+    const nextSchedules = roadmap.dailySchedules.map((schedule) => ({
+      ...schedule,
+      tasks: schedule.tasks.map((task) => {
+        const nextTask =
+          task.id === taskId
+            ? {
+                ...task,
+                isCompleted: completed,
+                subtasks: task.subtasks.map((s) => ({
+                  ...s,
+                  isCompleted: completed,
+                })),
+              }
+            : task;
+        if (nextTask.isCompleted) totalCompleted++;
+        return nextTask;
+      }),
+    }));
+
+    onUpdateRoadmap({
+      ...roadmap,
+      completedTasks: totalCompleted,
+      dailySchedules: nextSchedules,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   const handleToggleSubtask = (
@@ -113,13 +132,34 @@ export function RoadmapTimeline({
     subtaskId: string,
     completed: boolean
   ) => {
-    const updated = updateSubtaskCompletion(
-      roadmap.id,
-      taskId,
-      subtaskId,
-      completed
-    );
-    if (updated) onUpdateRoadmap(updated);
+    let totalCompleted = 0;
+    const nextSchedules = roadmap.dailySchedules.map((schedule) => ({
+      ...schedule,
+      tasks: schedule.tasks.map((task) => {
+        if (task.id !== taskId) {
+          if (task.isCompleted) totalCompleted++;
+          return task;
+        }
+        const nextSubtasks = task.subtasks.map((s) =>
+          s.id === subtaskId ? { ...s, isCompleted: completed } : s
+        );
+        const allSubtasksDone =
+          nextSubtasks.length > 0 && nextSubtasks.every((s) => s.isCompleted);
+        if (allSubtasksDone) totalCompleted++;
+        return {
+          ...task,
+          isCompleted: allSubtasksDone,
+          subtasks: nextSubtasks,
+        };
+      }),
+    }));
+
+    onUpdateRoadmap({
+      ...roadmap,
+      completedTasks: totalCompleted,
+      dailySchedules: nextSchedules,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   const handleOpenFocusTimer = (task: RoadmapTask) => {
@@ -140,7 +180,6 @@ export function RoadmapTimeline({
       });
       if (res.ok) {
         const updated: Roadmap = await res.json();
-        saveRoadmap(updated);
         onUpdateRoadmap(updated);
       }
     } catch {
@@ -148,7 +187,6 @@ export function RoadmapTimeline({
         "@/server/services/pacing.service"
       );
       const fallbackUpdated = rescheduleRoadmap(roadmap, delayDays);
-      saveRoadmap(fallbackUpdated);
       onUpdateRoadmap(fallbackUpdated);
     }
   };

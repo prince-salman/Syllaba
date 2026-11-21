@@ -129,6 +129,7 @@ export default function DashboardScreen() {
 
         <FlashList
           data={flatTasks}
+          extraData={activeRoadmap?.completedTasks}
           renderItem={renderTaskItem}
           keyExtractor={keyExtractor}
           estimatedItemSize={106}

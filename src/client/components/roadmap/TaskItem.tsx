@@ -27,18 +27,23 @@ export function TaskItem({
         task.isCompleted ? "bg-slate-50/70 text-slate-500" : "bg-white hover:bg-slate-50/40 text-slate-900"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5 sm:gap-3">
         <button
           type="button"
           onClick={() => onToggleTask(task.id, !task.isCompleted)}
-          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors cursor-pointer ${
-            task.isCompleted
-              ? "border-emerald-600 bg-emerald-600 text-white"
-              : "border-slate-300 bg-white hover:border-brand-500"
-          }`}
+          className="-m-1.5 p-1.5 touch-manipulation flex items-center justify-center shrink-0 cursor-pointer group/check"
           aria-label={task.isCompleted ? "Mark incomplete" : "Mark complete"}
+          aria-pressed={task.isCompleted}
         >
-          {task.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+          <span
+            className={`flex h-6 w-6 sm:h-5 sm:w-5 items-center justify-center rounded-md border transition-all duration-150 group-active/check:scale-90 ${
+              task.isCompleted
+                ? "border-[#111111] bg-[#111111] text-[#FACC15] shadow-2xs scale-100"
+                : "border-slate-300 bg-white hover:border-[#111111]"
+            }`}
+          >
+            {task.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+          </span>
         </button>
 
         <div className="min-w-0 flex-1">
@@ -90,13 +95,18 @@ export function TaskItem({
                   <button
                     type="button"
                     onClick={() => onToggleSubtask(task.id, subtask.id, !subtask.isCompleted)}
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border cursor-pointer ${
-                      subtask.isCompleted
-                        ? "border-emerald-600 bg-emerald-600 text-white"
-                        : "border-slate-300 bg-white hover:border-brand-500"
-                    }`}
+                    className="-m-1 p-1 touch-manipulation flex items-center justify-center shrink-0 cursor-pointer"
+                    aria-pressed={subtask.isCompleted}
                   >
-                    {subtask.isCompleted && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                    <span
+                      className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                        subtask.isCompleted
+                          ? "border-[#111111] bg-[#111111] text-[#FACC15]"
+                          : "border-slate-300 bg-white hover:border-[#111111]"
+                      }`}
+                    >
+                      {subtask.isCompleted && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                    </span>
                   </button>
                   <span className={subtask.isCompleted ? "line-through text-slate-400" : "text-slate-700"}>
                     {subtask.title}

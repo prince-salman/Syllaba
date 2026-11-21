@@ -581,7 +581,7 @@ export function MobileBottomNav({
           onClick={() => setDrawerOpen(false)}
         >
           <div
-            className="w-full rounded-t-3xl border-t border-white/60 bg-white/95 backdrop-blur-2xl p-5 pb-24 space-y-4 max-h-[82vh] overflow-y-auto shadow-2xl"
+            className="animate-syllaba-sheet w-full rounded-t-3xl border-t border-white/60 bg-white/95 backdrop-blur-2xl p-5 pb-24 space-y-4 max-h-[82vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
