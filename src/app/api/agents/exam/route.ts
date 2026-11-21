@@ -273,10 +273,10 @@ Your job is to create a rigorous, 100% slide-specific academic assessment consis
 - 2 Analytical Essay Questions (numbered 6 to 7, with expectedKeywords and comprehensive sampleAnswer)
 
 STRICT RULES:
-1. Every single question MUST directly test the specific slide concepts, definitions, mechanisms, and mathematical formulas found in the provided study tasks.
-2. Every question MUST cite the exact Slide/Module reference in "slideReference".
-3. MANDATORY LATEX FORMULAS: Use valid inline LaTeX ($...$) in prompts, options, explanations, and sampleAnswers for equations, variables, functions, complexity bounds, or formal relationships.
-4. BALANCED ANSWER DISTRIBUTION: Do NOT put every correct answer at index 0 ("A"). Distribute "correctIndex" evenly across 0, 1, 2, and 3 across the 5 questions, and do NOT prefix option strings with "A. ", "B. ", "C. ", or "D. ".
+1. CONCEPTUAL RIGOR (NO COVER TRIVIA): Every single question MUST test genuine technical concepts, mechanisms, definitions, architectures, comparisons, or problem-solving from the slide content. STRICTLY FORBIDDEN: never ask about cover-page metadata such as author/lecturer names (e.g., "who wrote this slide"), institution names, dates, or file formatting.
+2. EVEN TOPIC COVERAGE: Spread the 5 Multiple Choice and 2 Essay questions across DIFFERENT study tasks / slides in the provided material rather than clustering multiple questions on only the first 1-2 slides. Cite the exact Slide/Module heading in "slideReference".
+3. NATURAL NOTATION (NO FAKE MATH): Only use inline LaTeX ($...$) when the subject genuinely uses mathematics, equations, algorithms, complexity bounds, bit counts, or quantitative formulas (e.g., $O(n \\log n)$, $48$-bit). For purely descriptive/conceptual topics (such as networking layers, protocol definitions, management, or theory), write clean natural prose WITHOUT inventing artificial formulas like $\\sum Poin_i$.
+4. DISTINCT OPTIONS & BALANCED ANSWERS: Ensure all 4 options per MC question are conceptually distinct (never two variants of the same phrase). Do NOT put every correct answer at index 0 ("A"). Distribute "correctIndex" evenly across 0, 1, 2, and 3 across the 5 questions, and do NOT prefix option strings with "A. ", "B. ", "C. ", or "D. ".
 5. CRITICAL LANGUAGE RULE: Write EVERY field (title, prompts, options, explanations, expectedKeywords, sampleAnswers) 100% in ${langName}.
 6. Return ONLY valid JSON matching the schema.`;
 
@@ -287,26 +287,26 @@ Milestone Trigger Day: Day ${triggerDayNumber}
 Covered Study Tasks & Slide Material:
 ${taskDigest.slice(0, 12000)}
 
-Return JSON with this exact structure (remember to vary correctIndex across 0, 1, 2, 3 across the 5 multipleChoice items):
+Return JSON with this exact structure (cover different tasks/slides evenly, vary correctIndex across 0..3, and only use $...$ notation where genuinely appropriate):
 {
   "title": "${fallback.title}",
   "multipleChoice": [
     {
       "number": 1,
-      "slideReference": "Slide 1: Exact Heading",
-      "prompt": "Question text with inline LaTeX $...$",
+      "slideReference": "Slide Topic: Exact Heading",
+      "prompt": "Conceptual or technical question grounded directly in the slide material",
       "options": ["Option text 1", "Option text 2", "Option text 3", "Option text 4"],
       "correctIndex": 2,
-      "explanation": "Detailed explanation referencing Slide 1 and formula $...$"
+      "explanation": "Detailed technical explanation referencing the slide concept"
     }
   ],
   "essays": [
     {
       "number": 6,
-      "slideReference": "Slide 2: Exact Heading",
-      "prompt": "Analytical essay question with inline LaTeX $...$",
+      "slideReference": "Slide Topic: Exact Heading",
+      "prompt": "Analytical essay question asking the student to compare, derive, or explain a mechanism from the slides",
       "expectedKeywords": ["keyword1", "keyword2", "keyword3", "keyword4"],
-      "sampleAnswer": "Model answer explaining the derivation and concept with inline LaTeX $...$"
+      "sampleAnswer": "Model answer explaining the mechanism, architecture, or derivation accurately"
     }
   ]
 }`;
