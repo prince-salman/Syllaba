@@ -60,14 +60,10 @@ export function Header() {
             </div>
           </Link>
 
-          {/* Center Floating Status & 6-Language Switcher Dock */}
-          <div className="hidden xl:flex items-center gap-1.5 rounded-full border border-black/10 bg-[#F7F7F5]/90 p-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-semibold text-[#FACC15]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15] animate-pulse" />
-              <span>Base Sepolia</span>
-            </span>
-            <label className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#111111] hover:bg-white transition cursor-pointer">
-              <Globe className="h-3 w-3 text-[#666660]" />
+          {/* Center Floating 6-Language Switcher Dock */}
+          <div className="hidden xl:flex items-center rounded-full border border-black/10 bg-[#F7F7F5]/90 p-1">
+            <label className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-[#111111] hover:bg-white transition cursor-pointer">
+              <Globe className="h-3.5 w-3.5 text-[#666660]" />
               <select
                 aria-label="Select interface language"
                 value={lang}
