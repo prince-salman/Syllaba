@@ -132,18 +132,22 @@ export function TierCertificateExchangePanel({
   const isSelectedTierUnlocked =
     totalAccumulatedPoints >= activeTierMeta.minPoints;
 
+  const roundSyl = (n: number) => Math.round(n * 10000) / 10000;
   const totalRedeemedSyl = useMemo(
-    () => sylRedemptions.reduce((s, r) => s + r.costSyl, 0),
+    () => roundSyl(sylRedemptions.reduce((s, r) => s + r.costSyl, 0)),
     [sylRedemptions]
   );
   const totalClaimedSylOnChain = useMemo(
-    () => sylClaims.reduce((s, c) => s + c.amountSyl, 0),
+    () => roundSyl(sylClaims.reduce((s, c) => s + c.amountSyl, 0)),
     [sylClaims]
   );
-  const availableSylToSpend = Math.max(0, totalEarnedSylCoins - totalRedeemedSyl);
+  const availableSylToSpend = Math.max(
+    0,
+    roundSyl(totalEarnedSylCoins - totalRedeemedSyl)
+  );
   const unclaimedSylForWallet = Math.max(
     0,
-    totalEarnedSylCoins - totalClaimedSylOnChain
+    roundSyl(totalEarnedSylCoins - totalClaimedSylOnChain)
   );
 
   const completedCoursesCount = allBreakdowns.filter(
@@ -1165,7 +1169,7 @@ export function TierCertificateExchangePanel({
               Saldo Akumulasi $SYL Coin &amp; Penukaran Perks Akademik
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Setiap PPT yang kamu selesaikan menyumbang <strong>50 &times; Bobot Kesulitan PPT</strong> $SYL Coin plus bonus tier otomatis (+{tierBonusSylCoins} $SYL saat Bronze+ terbuka).
+              Setiap PPT yang kamu selesaikan menyumbang <strong>0.25 SYL</strong> sesuai konstanta <code>MODULE_REWARD()</code> di smart contract Base Sepolia, ditambah bonus tier saat Bronze+ terbuka (+{tierBonusSylCoins} SYL).
             </p>
           </div>
 

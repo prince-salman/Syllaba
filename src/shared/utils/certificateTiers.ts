@@ -7,6 +7,11 @@ import {
   SyllabaCoinRedemptionRecord,
   SylPerkId,
 } from "@/shared/types/roadmap";
+import { OFFICIAL_SYL_MODULE_REWARD } from "@/shared/contracts/syllabaCoin";
+
+function roundSyl(val: number): number {
+  return Math.round(val * 10000) / 10000;
+}
 
 export interface CertificateTierMeta {
   id: CertificateTierId;
@@ -271,8 +276,8 @@ export function computeRoadmapPointBreakdown(
   const totalEarnedFromRoadmap = isFullyCompletedAtEnd ? d : 0;
   const maxPossibleFromRoadmap = d;
 
-  // $SYL Coin juga cair hanya di akhir penyelesaian 1 PPT (50 * kesulitan PPT 1-5)
-  const pendingSylCoins = d * 50;
+  // Sinkron 1:1 dengan kontrak Base Sepolia (0x95f9...0BFA7) -> MODULE_REWARD = 0.25 SYL per PPT lulus
+  const pendingSylCoins = OFFICIAL_SYL_MODULE_REWARD;
   const totalSylFromRoadmap = isFullyCompletedAtEnd ? pendingSylCoins : 0;
 
   return {
@@ -334,22 +339,21 @@ export function computeGlobalAcademicPoints(
   const tierResolution = resolveTierByPoints(totalAccumulatedPoints);
 
   const tierBonusMap: Record<CertificateTierId, number> = {
-    bronze: 100,
-    silver: 250,
-    gold: 500,
-    platinum: 900,
-    diamond: 1500,
-    emerald: 2500,
+    bronze: 0.5,
+    silver: 1,
+    gold: 2,
+    platinum: 3.5,
+    diamond: 5,
+    emerald: 10,
   };
   const tierBonusSylCoins = tierResolution.isBronzeUnlocked
     ? tierBonusMap[tierResolution.currentTier.id]
     : 0;
 
-  const roadmapSylSum = allBreakdowns.reduce(
-    (sum, item) => sum + item.totalSylFromRoadmap,
-    0
+  const roadmapSylSum = roundSyl(
+    allBreakdowns.reduce((sum, item) => sum + item.totalSylFromRoadmap, 0)
   );
-  const totalEarnedSylCoins = roadmapSylSum + tierBonusSylCoins;
+  const totalEarnedSylCoins = roundSyl(roadmapSylSum + tierBonusSylCoins);
 
   return {
     currentBreakdown,
@@ -399,25 +403,24 @@ export function computeGlobalPointsAcrossRoadmaps(
   );
   const tierResolution = resolveTierByPoints(totalAccumulatedPoints);
   const tierBonusMap: Record<CertificateTierId, number> = {
-    bronze: 100,
-    silver: 250,
-    gold: 500,
-    platinum: 900,
-    diamond: 1500,
-    emerald: 2500,
+    bronze: 0.5,
+    silver: 1,
+    gold: 2,
+    platinum: 3.5,
+    diamond: 5,
+    emerald: 10,
   };
   const tierBonusSylCoins = tierResolution.isBronzeUnlocked
     ? tierBonusMap[tierResolution.currentTier.id]
     : 0;
-  const roadmapSylSum = allBreakdowns.reduce(
-    (sum, item) => sum + item.totalSylFromRoadmap,
-    0
+  const roadmapSylSum = roundSyl(
+    allBreakdowns.reduce((sum, item) => sum + item.totalSylFromRoadmap, 0)
   );
 
   return {
     allBreakdowns,
     totalAccumulatedPoints,
-    totalEarnedSylCoins: roadmapSylSum + tierBonusSylCoins,
+    totalEarnedSylCoins: roundSyl(roadmapSylSum + tierBonusSylCoins),
     tierBonusSylCoins,
     currentTier: tierResolution.currentTier,
     nextTier: tierResolution.nextTier,
@@ -542,22 +545,22 @@ export const SYL_COIN_PERKS: Array<{
   {
     id: "ai_exam_boost",
     title: "AI Exam Formula Hint & Remedial Shield",
-    costSyl: 35,
+    costSyl: 0.25,
     description:
-      "Membuka petunjuk rumus LaTeX & kesempatan remedial instan pada Ujian AI 5 PG + 2 Esai.",
+      "Membuka petunjuk rumus LaTeX & kesempatan remedial instan pada Ujian AI 5 PG + 2 Esai (setara 1 PPT lulus).",
   },
   {
     id: "burnout_shield",
     title: "Burnout Recovery Streak Shield",
-    costSyl: 50,
+    costSyl: 0.5,
     description:
-      "Menjaga pengali poin kesulitan PPT tetap utuh saat melakukan Reschedule jadwal belajar.",
+      "Menjaga konsistensi poin kesulitan PPT saat melakukan Reschedule jadwal belajar (setara 2 PPT lulus).",
   },
   {
     id: "gasless_sponsorship",
     title: "Base Sepolia On-Chain Gas Sponsorship",
-    costSyl: 75,
+    costSyl: 1,
     description:
-      "Menanggung biaya anchor transaksi on-chain Sertifikat Blockchain di jaringan Base Sepolia.",
+      "Prioritas relayer transaksi on-chain Sertifikat SBT di jaringan Base Sepolia.",
   },
 ];
