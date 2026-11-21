@@ -975,12 +975,12 @@ export function TierCertificateExchangePanel({
               className="mx-auto w-56 h-[1.5px]"
             />
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 font-mono text-[11px] text-slate-200">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 font-mono text-[10px] sm:text-[11px] text-slate-200 max-w-full">
                 <Wallet
                   style={{ color: activeTierMeta.primaryHex }}
-                  className="w-3 h-3"
+                  className="w-3 h-3 shrink-0"
                 />
-                <span>Holder: {displayWallet}</span>
+                <span className="truncate">Holder: {displayWallet}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-[11px] font-bold text-[#FEF08A]">
                 <Award className="w-3 h-3" />

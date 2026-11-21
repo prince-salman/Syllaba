@@ -33,7 +33,7 @@ interface SyllabusUploaderProps {
 
 type PipelineStage = "idle" | "extracting" | "planning" | "curating" | "done";
 
-const PRESET_DAYS = [7, 14, 21, 30] as const;
+const PRESET_DAYS = [1, 7, 14, 21, 30] as const;
 
 export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) {
   const { lang, copy } = useLanguage();
@@ -99,7 +99,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
       const extraction: SyllabusExtraction = await extractRes.json();
 
       setStage("planning");
-      const normalizedDays = Math.max(3, Math.min(60, Math.round(targetDays || 14)));
+      const normalizedDays = Math.max(1, Math.min(60, Math.round(targetDays || 14)));
       const clientStartDate = getLocalTodayYmd();
       const planRes = await fetch("/api/agents/plan", {
         method: "POST",
@@ -150,7 +150,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
     } catch {
       setErrorMessage("Network fallback active: generating offline heuristic roadmap...");
       const { generateHeuristicRoadmap } = await import("@/server/services/pacing.service");
-      const normalizedDays = Math.max(3, Math.min(60, Math.round(targetDays || 14)));
+      const normalizedDays = Math.max(1, Math.min(60, Math.round(targetDays || 14)));
       const fallbackRoadmap = generateHeuristicRoadmap(syllabusText, {
         courseTitle: courseTitle.trim() || "Course Roadmap",
         targetDays: normalizedDays,
@@ -325,23 +325,23 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
             <div className="flex items-center gap-2">
               <input
                 type="range"
-                min={3}
+                min={1}
                 max={60}
                 step={1}
                 value={targetDays}
-                onChange={(e) => setTargetDays(parseInt(e.target.value, 10) || 14)}
+                onChange={(e) => setTargetDays(parseInt(e.target.value, 10) || 1)}
                 className="w-full accent-[#111111]"
               />
               <div className="flex items-center gap-1 shrink-0">
                 <input
                   type="number"
-                  min={3}
+                  min={1}
                   max={60}
                   value={targetDays}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
                     if (!Number.isNaN(val)) {
-                      setTargetDays(Math.max(3, Math.min(60, val)));
+                      setTargetDays(Math.max(1, Math.min(60, val)));
                     }
                   }}
                   aria-label="Custom study days"

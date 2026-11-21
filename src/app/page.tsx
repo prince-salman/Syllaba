@@ -316,7 +316,7 @@ export default function HomePage() {
         />
 
         {/* Full-Width Main Workspace Area */}
-        <section className="flex-1 min-w-0 px-3.5 py-4 pb-28 sm:px-8 sm:py-6 lg:px-10 lg:pb-10 bg-white/95">
+        <section className="flex-1 min-w-0 overflow-x-clip px-3 py-4 pb-28 sm:px-8 sm:py-6 lg:px-10 lg:pb-10 bg-white/95">
           {/* Top Greeting & Date Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-[#E5E5E0]">
             <div className="flex items-start gap-3 min-w-0">

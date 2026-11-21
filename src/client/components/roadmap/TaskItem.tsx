@@ -30,7 +30,7 @@ export function TaskItem({
 
   return (
     <div
-      className={`px-4 py-3.5 transition-colors ${
+      className={`px-3 sm:px-4 py-3.5 transition-colors overflow-hidden ${
         isLocked
           ? "bg-slate-50/50 text-slate-500"
           : task.isCompleted
@@ -38,7 +38,7 @@ export function TaskItem({
           : "bg-white hover:bg-slate-50/40 text-slate-900"
       }`}
     >
-      <div className="flex items-start gap-2.5 sm:gap-3">
+      <div className="flex items-start gap-2 sm:gap-3 min-w-0">
         <button
           type="button"
           disabled={isLocked}
@@ -74,24 +74,24 @@ export function TaskItem({
           </span>
         </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <h4
-              className={`text-sm font-semibold leading-snug ${
+              className={`text-xs sm:text-sm font-semibold leading-snug break-words ${
                 task.isCompleted ? "line-through text-slate-400" : "text-slate-900"
               }`}
             >
               <LatexText text={task.title} />
             </h4>
             {task.moduleTitle && (
-              <span className="rounded-md bg-[#FEF3C7] border border-[#FACC15]/40 px-2 py-0.5 text-[10px] font-bold text-[#111111]">
+              <span className="rounded-md bg-[#FEF3C7] border border-[#FACC15]/40 px-2 py-0.5 text-[10px] font-bold text-[#111111] max-w-full break-words">
                 <LatexText text={task.moduleTitle} />
               </span>
             )}
           </div>
 
           {task.description && (
-            <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+            <p className="mt-1 text-xs text-slate-600 leading-relaxed break-words overflow-x-auto">
               <LatexText text={task.description} />
             </p>
           )}
@@ -180,7 +180,7 @@ export function TaskItem({
             ) : (
               <Timer className="w-3.5 h-3.5 text-brand-600" />
             )}
-            <span className="hidden sm:inline">
+            <span className="text-[11px] sm:text-xs">
               {isLocked ? wcopy.lockedBtn : wcopy.focusBtn}
             </span>
           </button>

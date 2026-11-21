@@ -301,7 +301,7 @@ export function validateAndNormalizeRoadmap(
   const maxDailyMinutes = Math.min(Math.round((options.dailyHoursLimit || 2) * 60), 150);
   const desiredDays =
     typeof options.targetDays === "number"
-      ? Math.max(3, Math.min(60, Math.round(options.targetDays)))
+      ? Math.max(1, Math.min(60, Math.round(options.targetDays)))
       : undefined;
   const includeRestDays = options.includeRestDays ?? true;
   const startYmd = normalizeStartYmd(options.clientStartDate);
@@ -492,7 +492,7 @@ export async function planMicroTasksWithAgent(
   const isId = targetLang === "id";
   const targetDays =
     typeof options.targetDays === "number"
-      ? Math.max(3, Math.min(60, Math.round(options.targetDays)))
+      ? Math.max(1, Math.min(60, Math.round(options.targetDays)))
       : 14;
   const dailyHoursLimit = options.dailyHoursLimit || 2;
   const includeRestDays = options.includeRestDays ?? true;

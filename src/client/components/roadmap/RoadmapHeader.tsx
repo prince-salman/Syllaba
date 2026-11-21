@@ -30,8 +30,8 @@ export function RoadmapHeader({
   };
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-200">
-      <div>
+    <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between pb-5 sm:pb-6 border-b border-slate-200 min-w-0">
+      <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <span className="rounded bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 border border-brand-200">
             {wcopy.activeStudyPlan}
@@ -40,12 +40,12 @@ export function RoadmapHeader({
             {roadmap.startDate} &mdash; {roadmap.targetEndDate}
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 break-words">
           {roadmap.courseTitle}
         </h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         <Button
           variant="outline"
           size="sm"

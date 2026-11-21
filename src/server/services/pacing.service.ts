@@ -120,7 +120,7 @@ export function generateHeuristicRoadmap(
 ): Roadmap {
   const { courseTitle: parsedTitle, sections } = parseSyllabusLines(syllabusText);
   const courseTitle = options?.courseTitle || parsedTitle;
-  const targetDays = Math.max(3, Math.min(60, Math.round(options?.targetDays || 14)));
+  const targetDays = Math.max(1, Math.min(60, Math.round(options?.targetDays || 14)));
   const dailyMinutesCap = (options?.dailyHoursLimit || 2) * 60;
   const includeRestDays = options?.includeRestDays ?? true;
 

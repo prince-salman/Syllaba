@@ -781,9 +781,9 @@ export function BlockchainCertificatePanel({
               className="mx-auto w-56 h-[1.5px]"
             />
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 font-mono text-[11px] text-slate-200">
-                <Wallet style={{ color: accentHex }} className="w-3 h-3" />
-                <span>Holder: {displayWallet}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 font-mono text-[10px] sm:text-[11px] text-slate-200 max-w-full">
+                <Wallet style={{ color: accentHex }} className="w-3 h-3 shrink-0" />
+                <span className="truncate">Holder: {displayWallet}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-[11px] font-bold text-[#FEF08A]">
                 <Star className="w-3 h-3" />
@@ -855,15 +855,17 @@ export function BlockchainCertificatePanel({
             className="border-t pt-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4"
           >
             <div className="space-y-1.5 font-mono text-[11px] min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-slate-300 truncate">
-                <ShieldCheck
-                  style={{ color: accentHex }}
-                  className="w-3.5 h-3.5 shrink-0"
-                />
-                <span style={{ color: accentHex }} className="font-bold shrink-0">
-                  KECCAK-256 DIGEST:
-                </span>
-                <span className="truncate">{certificateHash}</span>
+              <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-slate-300 min-w-0">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <ShieldCheck
+                    style={{ color: accentHex }}
+                    className="w-3.5 h-3.5 shrink-0"
+                  />
+                  <span style={{ color: accentHex }} className="font-bold">
+                    KECCAK-256 DIGEST:
+                  </span>
+                </div>
+                <span className="truncate min-w-0">{certificateHash}</span>
               </div>
 
               <div className="flex items-center gap-2 text-slate-300 truncate">

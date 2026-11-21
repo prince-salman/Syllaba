@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const rawTargetDays = typeof body.targetDays === "number" ? body.targetDays : 14;
-    const targetDays = Math.max(3, Math.min(60, Math.round(rawTargetDays)));
+    const targetDays = Math.max(1, Math.min(60, Math.round(rawTargetDays)));
 
     const roadmap = await planMicroTasksWithAgent(extraction, {
       syllabusText: typeof body.syllabusText === "string" ? body.syllabusText : undefined,

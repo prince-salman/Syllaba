@@ -25,7 +25,7 @@ export async function generateRoadmapWithGemini(request: GenerationRequest): Pro
   const apiKey = request.apiKey || process.env.GEMINI_API_KEY;
   const requestedDays =
     typeof request.targetDays === "number"
-      ? Math.max(3, Math.min(60, Math.round(request.targetDays)))
+      ? Math.max(1, Math.min(60, Math.round(request.targetDays)))
       : 14;
 
   if (!apiKey) {

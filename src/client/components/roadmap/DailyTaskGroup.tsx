@@ -71,7 +71,7 @@ export function DailyTaskGroup({
       }`}
     >
       <div
-        className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b ${
+        className={`flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b ${
           isLocked
             ? "bg-slate-100/90 border-slate-200"
             : "bg-slate-50/80 border-slate-200/80"

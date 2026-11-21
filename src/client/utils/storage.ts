@@ -3,7 +3,32 @@ import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
 
 const STORAGE_PREFIX = "syllaba_roadmaps_v2";
 const ACTIVE_ID_PREFIX = "syllaba_active_roadmap_id_v2";
+const DEVICE_GUEST_ID_KEY = "syllaba_device_guest_id_v1";
 const STORAGE_KEY_API_KEY = "syllaba_gemini_api_key";
+
+export function isAnonymousGuestScope(scope?: string | null): boolean {
+  if (!scope) return true;
+  return scope === "guest" || scope.startsWith("guest_");
+}
+
+function getOrCreateDeviceGuestScope(): string {
+  if (typeof window === "undefined") return "guest_ssr";
+  try {
+    const existing = localStorage.getItem(DEVICE_GUEST_ID_KEY)?.trim();
+    if (existing && existing.startsWith("guest_")) {
+      return existing;
+    }
+    const randomPart =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID().replace(/-/g, "").slice(0, 14)
+        : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    const fresh = `guest_${randomPart}`;
+    localStorage.setItem(DEVICE_GUEST_ID_KEY, fresh);
+    return fresh;
+  } catch {
+    return "guest_local";
+  }
+}
 
 export interface SupabaseSyncStatus {
   ok: boolean;
@@ -33,7 +58,7 @@ export function resolveOwnerScope(
   if (uid) return `user_${uid}`;
   const wallet = walletAddress?.trim().toLowerCase();
   if (wallet) return `wallet_${wallet}`;
-  return "guest";
+  return getOrCreateDeviceGuestScope();
 }
 
 function inferUserIdFromScope(scope: string, explicitUserId?: string | null): string | null {
@@ -93,6 +118,17 @@ export async function syncRoadmapToSupabase(
 ): Promise<SupabaseSyncStatus> {
   const now = new Date().toISOString();
   const userId = inferUserIdFromScope(scope, explicitUserId);
+
+  if (isAnonymousGuestScope(scope)) {
+    const status: SupabaseSyncStatus = {
+      ok: true,
+      roadmapId: roadmap.id,
+      error: null,
+      syncedAt: now,
+    };
+    lastSyncStatus = status;
+    return status;
+  }
 
   if (!isSupabaseConfigured || !supabase) {
     const status: SupabaseSyncStatus = {
@@ -173,7 +209,7 @@ export async function hydrateRoadmapsFromSupabase(
 ): Promise<Roadmap[]> {
   const localRoadmaps = getStoredRoadmaps(scope);
 
-  if (!isSupabaseConfigured || !supabase) {
+  if (isAnonymousGuestScope(scope) || !isSupabaseConfigured || !supabase) {
     return localRoadmaps;
   }
 
