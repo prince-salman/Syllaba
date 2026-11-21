@@ -36,3 +36,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# mobile build artifacts
+apps/mobile-rn/node_modules/
+apps/mobile-rn/.expo/
+apps/mobile-rn/android/.gradle/
+apps/mobile-rn/android/build/
+apps/mobile-rn/android/app/build/
+apps/mobile-rn/android/local.properties
+apps/mobile-rn/releases/*.apk
+apps/ios-swift/.build/
+apps/ios-swift/.swiftpm/
