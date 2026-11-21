@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col antialiased bg-[#F4F7F5] text-[#111815]">
+      <body className="min-h-screen flex flex-col antialiased bg-[#F7F7F5] text-[#111111]">
         <Web3Providers>
           <AuthProvider>
             <LanguageProvider>

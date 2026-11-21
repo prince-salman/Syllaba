@@ -413,8 +413,8 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
             initialChain={baseSepolia}
             modalSize="compact"
             theme={lightTheme({
-              accentColor: "#0f766e",
-              accentColorForeground: "#ffffff",
+              accentColor: "#111111",
+              accentColorForeground: "#FACC15",
               borderRadius: "medium",
             })}
           >

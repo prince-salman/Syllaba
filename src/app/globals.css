@@ -6,22 +6,22 @@
 
 :root {
   --font-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --syllaba-primary-dark: #125B3A;
-  --syllaba-primary-mid: #1F7A4F;
-  --syllaba-primary-mint: #52B788;
-  --syllaba-surface-dark: #0D1913;
-  --syllaba-canvas: #F4F7F5;
+  --syllaba-primary-dark: #111111;
+  --syllaba-primary-mid: #262626;
+  --syllaba-primary-mint: #F5B700;
+  --syllaba-surface-dark: #0A0A0A;
+  --syllaba-canvas: #F7F7F5;
   --syllaba-card: #FFFFFF;
-  --syllaba-border: #E5ECE8;
-  --syllaba-text: #111815;
-  --syllaba-muted: #6B7872;
-  --syllaba-lavender: #8D90F2;
-  --syllaba-lavender-soft: #E9E9FD;
-  --syllaba-blush: #D9386A;
-  --syllaba-blush-soft: #F4E0E6;
-  --syllaba-cream-soft: #F6EDCA;
-  --syllaba-mint-soft: #DDF1E4;
-  --syllaba-sky-soft: #DCEBF7;
+  --syllaba-border: #E5E5E0;
+  --syllaba-text: #111111;
+  --syllaba-muted: #666660;
+  --syllaba-lavender: #FACC15;
+  --syllaba-lavender-soft: #FEF9C3;
+  --syllaba-blush: #D97706;
+  --syllaba-blush-soft: #FEF3C7;
+  --syllaba-cream-soft: #FFFBEB;
+  --syllaba-mint-soft: #FEF3C7;
+  --syllaba-sky-soft: #F4F4F5;
 }
 
 body {
@@ -33,27 +33,27 @@ body {
 }
 
 .bg-emerald-bento {
-  background: linear-gradient(135deg, #0D1913 0%, #125B3A 55%, #1F7A4F 100%);
+  background: linear-gradient(135deg, #09090B 0%, #18181B 60%, #27272A 100%);
 }
 
 .bg-emerald-kpi {
-  background: linear-gradient(135deg, #1F7A4F 0%, #125B3A 60%, #0E442B 100%);
+  background: linear-gradient(135deg, #111111 0%, #1C1917 65%, #292524 100%);
 }
 
 .bg-dot-matrix {
-  background-image: radial-gradient(#d3ded8 1px, transparent 1px);
+  background-image: radial-gradient(#d4d4d0 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 .bg-glass-canvas {
   background:
-    radial-gradient(circle at 12% 18%, rgba(82, 183, 136, 0.22), transparent 42%),
-    radial-gradient(circle at 88% 12%, rgba(220, 235, 247, 0.75), transparent 38%),
-    radial-gradient(circle at 75% 88%, rgba(246, 237, 202, 0.55), transparent 42%),
-    #eef4f0;
+    radial-gradient(circle at 12% 18%, rgba(245, 183, 0, 0.22), transparent 42%),
+    radial-gradient(circle at 86% 14%, rgba(17, 17, 17, 0.08), transparent 38%),
+    radial-gradient(circle at 75% 88%, rgba(250, 204, 21, 0.16), transparent 44%),
+    #f6f5f0;
 }
 
 ::selection {
-  background-color: #DDF1E4;
-  color: #125B3A;
+  background-color: #FEF08A;
+  color: #111111;
 }

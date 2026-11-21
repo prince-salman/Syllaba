@@ -94,16 +94,16 @@ export function SyllabusDropzone({
   if (currentFileName) {
     const extLabel = getSupportedExtension(currentFileName).toUpperCase() || "FILE";
     return (
-      <div className="flex items-center justify-between rounded-xl border border-[#52B788]/40 bg-[#DDF1E4]/55 p-4">
+      <div className="flex items-center justify-between rounded-xl border border-[#F5B700]/40 bg-[#FEF3C7]/55 p-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#125B3A] text-white">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#111111] text-white">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#111815] truncate">
+            <p className="text-sm font-semibold text-[#111111] truncate">
               {currentFileName}
             </p>
-            <p className="text-xs text-[#125B3A]">
+            <p className="text-xs text-[#111111]">
               {extLabel} parsed and ready for roadmap generation
             </p>
           </div>
@@ -111,7 +111,7 @@ export function SyllabusDropzone({
         <button
           type="button"
           onClick={onClear}
-          className="rounded-lg p-2 text-[#6B7872] hover:bg-[#DDF1E4] hover:text-[#111815] transition-colors cursor-pointer shrink-0"
+          className="rounded-lg p-2 text-[#666660] hover:bg-[#FEF3C7] hover:text-[#111111] transition-colors cursor-pointer shrink-0"
           title="Remove file"
         >
           <Trash2 className="w-4 h-4" />
@@ -129,8 +129,8 @@ export function SyllabusDropzone({
         onClick={() => inputRef.current?.click()}
         className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer ${
           isDragging
-            ? "border-[#125B3A] bg-[#DDF1E4]/40"
-            : "border-[#D3DFD8] hover:border-[#52B788] hover:bg-[#F4F7F5]/80"
+            ? "border-[#111111] bg-[#FEF3C7]/40"
+            : "border-[#D4D4D0] hover:border-[#F5B700] hover:bg-[#F7F7F5]/80"
         }`}
       >
         <input
@@ -141,20 +141,20 @@ export function SyllabusDropzone({
           className="hidden"
         />
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#DDF1E4]/70 text-[#125B3A] mb-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FEF3C7]/70 text-[#111111] mb-3">
           {isLoading ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#125B3A] border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#111111] border-t-transparent" />
           ) : (
-            <UploadCloud className="w-6 h-6 text-[#125B3A]" />
+            <UploadCloud className="w-6 h-6 text-[#111111]" />
           )}
         </div>
 
-        <p className="text-sm font-semibold text-[#111815]">
+        <p className="text-sm font-semibold text-[#111111]">
           {isLoading
             ? "Extracting document text..."
             : "Click or drag syllabus / deck here"}
         </p>
-        <p className="mt-1 text-xs text-[#6B7872]">
+        <p className="mt-1 text-xs text-[#666660]">
           Supports .pdf, .docx, .pptx, or .txt (maximum 15 MB)
         </p>
 
@@ -162,7 +162,7 @@ export function SyllabusDropzone({
           {["PDF", "DOCX", "PPTX", "TXT"].map((fmt) => (
             <span
               key={fmt}
-              className="rounded-md bg-[#F4F7F5] border border-[#E5ECE8] px-2 py-0.5 text-[10px] font-bold text-[#125B3A]"
+              className="rounded-md bg-[#F7F7F5] border border-[#E5E5E0] px-2 py-0.5 text-[10px] font-bold text-[#111111]"
             >
               .{fmt.toLowerCase()}
             </span>

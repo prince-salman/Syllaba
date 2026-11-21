@@ -12,7 +12,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAuthPage = AUTH_ROUTES.has(pathname);
 
   if (isAuthPage) {
-    return <main className="min-h-screen bg-[#F4F7F5]">{children}</main>;
+    return <main className="min-h-screen bg-[#F7F7F5]">{children}</main>;
   }
 
   return (

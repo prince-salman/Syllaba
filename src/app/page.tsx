@@ -208,8 +208,8 @@ export default function HomePage() {
 
   if (!isClient) {
     return (
-      <div className="flex h-[65vh] items-center justify-center bg-[#F4F7F5]">
-        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#125B3A] border-t-transparent" />
+      <div className="flex h-[65vh] items-center justify-center bg-[#F7F7F5]">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#111111] border-t-transparent" />
       </div>
     );
   }
@@ -251,14 +251,14 @@ export default function HomePage() {
   return (
     <div
       className={`min-h-[calc(100vh-4rem)] py-5 px-3 sm:px-6 lg:px-8 ${
-        user ? "bg-glass-canvas" : "bg-[#F4F7F5]"
+        user ? "bg-glass-canvas" : "bg-[#F7F7F5]"
       }`}
     >
       <div
         className={`mx-auto max-w-[1380px] rounded-[28px] border overflow-hidden ${
           user
             ? "border-white/70 bg-white/80 backdrop-blur-2xl shadow-[0_24px_70px_-24px_rgba(13,25,19,0.18)]"
-            : "border-[#E5ECE8] bg-white shadow-[0_20px_60px_-28px_rgba(13,25,19,0.12)]"
+            : "border-[#E5E5E0] bg-white shadow-[0_20px_60px_-28px_rgba(13,25,19,0.12)]"
         }`}
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[calc(100vh-7.5rem)]">
@@ -278,24 +278,24 @@ export default function HomePage() {
           {/* Main Workspace Area */}
           <section className="lg:col-span-9 xl:col-span-10 p-5 sm:p-7 lg:p-8 bg-white/95">
             {/* Top Greeting & Date Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5ECE8]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5E5E0]">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111815]">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111111]">
                   {isId ? `Halo, ${displayName}` : `Hello, ${displayName}`}
                 </h1>
-                <p className="mt-1 text-sm text-[#6B7872]">{greetingSubtitle}</p>
+                <p className="mt-1 text-sm text-[#666660]">{greetingSubtitle}</p>
               </div>
 
               <div className="flex items-center gap-2.5 self-start sm:self-auto">
-                <div className="inline-flex items-center gap-2 rounded-xl border border-[#E5ECE8] bg-[#F4F7F5] px-3.5 py-2 text-xs font-semibold text-[#111815]">
-                  <Calendar className="h-3.5 w-3.5 text-[#125B3A]" />
+                <div className="inline-flex items-center gap-2 rounded-xl border border-[#E5E5E0] bg-[#F7F7F5] px-3.5 py-2 text-xs font-semibold text-[#111111]">
+                  <Calendar className="h-3.5 w-3.5 text-[#111111]" />
                   <span>{todayFormatted}</span>
                 </div>
                 {sidebarView !== "uploader" && (
                   <button
                     type="button"
                     onClick={() => setSidebarView("uploader")}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#52B788] hover:bg-[#1F7A4F] text-white px-3.5 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#111111] hover:bg-[#262626] text-[#FACC15] px-3.5 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span>{isId ? "Tambah Silabus" : "Add Course"}</span>
@@ -347,17 +347,17 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-2xl bg-emerald-kpi p-5 text-white shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-[#DDF1E4]">
+                      <span className="text-sm font-medium text-[#FEF3C7]">
                         {isId ? "Tugas Selesai" : "Finished Tasks"}
                       </span>
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 border border-white/20">
-                        <CheckCircle2 className="h-4 w-4 text-[#DDF1E4]" />
+                        <CheckCircle2 className="h-4 w-4 text-[#FEF3C7]" />
                       </span>
                     </div>
                     <p className="mt-4 text-4xl font-extrabold tracking-tight">
                       {metrics.finished}
                     </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-[#DDF1E4]">
+                    <div className="mt-3 flex items-center gap-2 text-xs text-[#FEF3C7]">
                       <span className="rounded-md bg-white/15 px-2 py-0.5 font-semibold">
                         {isId ? `dari ${metrics.total}` : `of ${metrics.total}`}
                       </span>
@@ -367,19 +367,19 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 shadow-xs">
+                  <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-[#6B7872]">
+                      <span className="text-sm font-medium text-[#666660]">
                         {isId ? "Total Beban Belajar" : "Tracked Load"}
                       </span>
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F4F7F5] border border-[#E5ECE8] text-[#111815]">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F7F7F5] border border-[#E5E5E0] text-[#111111]">
                         <Clock className="h-4 w-4" />
                       </span>
                     </div>
-                    <p className="mt-4 text-4xl font-extrabold tracking-tight text-[#111815]">
+                    <p className="mt-4 text-4xl font-extrabold tracking-tight text-[#111111]">
                       {metrics.trackedHours}
                     </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-[#6B7872]">
+                    <div className="mt-3 flex items-center gap-2 text-xs text-[#666660]">
                       <span className="rounded-md bg-[#F4E0E6] text-[#9B1C44] px-2 py-0.5 font-semibold">
                         {activeRoadmap.totalDays} {isId ? "hari" : "days"}
                       </span>
@@ -389,23 +389,23 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 shadow-xs">
+                  <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-[#6B7872]">
+                      <span className="text-sm font-medium text-[#666660]">
                         {isId ? "Efisiensi" : "Efficiency"}
                       </span>
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F4F7F5] border border-[#E5ECE8] text-[#111815]">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F7F7F5] border border-[#E5E5E0] text-[#111111]">
                         <TrendingUp className="h-4 w-4" />
                       </span>
                     </div>
-                    <p className="mt-4 text-4xl font-extrabold tracking-tight text-[#111815]">
+                    <p className="mt-4 text-4xl font-extrabold tracking-tight text-[#111111]">
                       {metrics.efficiency}%
                     </p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-[#6B7872]">
+                    <div className="mt-3 flex items-center gap-2 text-xs text-[#666660]">
                       <span
                         className={`rounded-md px-2 py-0.5 font-semibold capitalize ${
                           riskLevel === "low"
-                            ? "bg-[#DDF1E4] text-[#125B3A]"
+                            ? "bg-[#FEF3C7] text-[#111111]"
                             : riskLevel === "moderate"
                             ? "bg-[#F6EDCA] text-[#8B6B15]"
                             : "bg-[#F4E0E6] text-[#9B1C44]"
@@ -422,16 +422,16 @@ export default function HomePage() {
 
                 {/* 4 Pastel Progress Tiles */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="rounded-2xl bg-[#DDF1E4] px-4 py-3.5 flex items-center justify-between">
+                  <div className="rounded-2xl bg-[#FEF3C7] px-4 py-3.5 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-[#125B3A]">
+                      <p className="text-xs font-semibold text-[#111111]">
                         {isId ? "Selesai" : "Completed"}
                       </p>
-                      <p className="text-xl font-extrabold text-[#111815] mt-0.5">
+                      <p className="text-xl font-extrabold text-[#111111] mt-0.5">
                         {metrics.finished}
                       </p>
                     </div>
-                    <CheckCircle2 className="h-5 w-5 text-[#125B3A]" />
+                    <CheckCircle2 className="h-5 w-5 text-[#111111]" />
                   </div>
 
                   <div className="rounded-2xl bg-[#DCEBF7] px-4 py-3.5 flex items-center justify-between">
@@ -439,7 +439,7 @@ export default function HomePage() {
                       <p className="text-xs font-semibold text-[#235789]">
                         {isId ? "Tersisa" : "In Progress"}
                       </p>
-                      <p className="text-xl font-extrabold text-[#111815] mt-0.5">
+                      <p className="text-xl font-extrabold text-[#111111] mt-0.5">
                         {metrics.remaining}
                       </p>
                     </div>
@@ -451,7 +451,7 @@ export default function HomePage() {
                       <p className="text-xs font-semibold text-[#4A4DC7]">
                         Deep Focus
                       </p>
-                      <p className="text-xl font-extrabold text-[#111815] mt-0.5">
+                      <p className="text-xl font-extrabold text-[#111111] mt-0.5">
                         {metrics.deepTasks}
                       </p>
                     </div>
@@ -463,7 +463,7 @@ export default function HomePage() {
                       <p className="text-xs font-semibold text-[#8B6B15]">
                         {isId ? "Hari Istirahat" : "Rest Days"}
                       </p>
-                      <p className="text-xl font-extrabold text-[#111815] mt-0.5">
+                      <p className="text-xl font-extrabold text-[#111111] mt-0.5">
                         {metrics.restDays}
                       </p>
                     </div>
@@ -492,9 +492,9 @@ export default function HomePage() {
               <div className="mt-6 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                 <div className="xl:col-span-5 space-y-4">
                   <div className="rounded-2xl bg-emerald-bento p-6 text-white relative overflow-hidden">
-                    <div className="absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#52B788]/20 blur-2xl pointer-events-none" />
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-[11px] font-semibold text-[#DDF1E4]">
-                      <Sparkles className="h-3.5 w-3.5 text-[#52B788]" />
+                    <div className="absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#F5B700]/20 blur-2xl pointer-events-none" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-[11px] font-semibold text-[#FEF3C7]">
+                      <Sparkles className="h-3.5 w-3.5 text-[#F5B700]" />
                       Multi-Agent Academic Pacing
                     </span>
                     <h2 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight">
@@ -502,7 +502,7 @@ export default function HomePage() {
                         ? "Ubah Silabus Padat Menjadi Sprint 15-Menit Terverifikasi"
                         : "Turn Dense Syllabi Into Verified 15-Minute Daily Sprints"}
                     </h2>
-                    <p className="mt-2.5 text-xs sm:text-sm text-[#CBE3D6] leading-relaxed">
+                    <p className="mt-2.5 text-xs sm:text-sm text-[#E5E5E0] leading-relaxed">
                       {isId
                         ? "Dirancang agar mahasiswa menjaga konsistensi belajar tanpa begadang maupun burnout."
                         : "Designed for students who want steady academic momentum without late-night cramming or burnout."}
@@ -510,17 +510,17 @@ export default function HomePage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
-                    <div className="rounded-2xl border border-[#E5ECE8] bg-[#FAFDFB] p-4 flex items-start gap-3">
-                      <div className="rounded-xl bg-[#DDF1E4] p-2.5 text-[#125B3A]">
+                    <div className="rounded-2xl border border-[#E5E5E0] bg-[#FFFDF8] p-4 flex items-start gap-3">
+                      <div className="rounded-xl bg-[#FEF3C7] p-2.5 text-[#111111]">
                         <Cpu className="h-4 w-4" />
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-[#111815]">
+                        <h3 className="text-xs font-bold text-[#111111]">
                           {isId
                             ? "Dekomposisi Silabus Cerdas"
                             : "Smart Syllabus Decomposition"}
                         </h3>
-                        <p className="text-[11px] text-[#6B7872] mt-0.5 leading-relaxed">
+                        <p className="text-[11px] text-[#666660] mt-0.5 leading-relaxed">
                           {isId
                             ? "Memecah PDF, DOCX, PPTX, dan catatan menjadi micro-task harian 15-30 menit."
                             : "Breaks complex PDFs and briefs into daily micro-tasks with clear time estimates."}
@@ -528,17 +528,17 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-[#E5ECE8] bg-[#FAFDFB] p-4 flex items-start gap-3">
+                    <div className="rounded-2xl border border-[#E5E5E0] bg-[#FFFDF8] p-4 flex items-start gap-3">
                       <div className="rounded-xl bg-[#E9E9FD] p-2.5 text-[#4A4DC7]">
                         <ShieldCheck className="h-4 w-4" />
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-[#111815]">
+                        <h3 className="text-xs font-bold text-[#111111]">
                           {isId
                             ? "Penjaga Anti-Burnout"
                             : "Anti-Burnout Guardrails"}
                         </h3>
-                        <p className="text-[11px] text-[#6B7872] mt-0.5 leading-relaxed">
+                        <p className="text-[11px] text-[#666660] mt-0.5 leading-relaxed">
                           {isId
                             ? "Menyeimbangkan sesi fokus mendalam, hari istirahat, dan penjadwalan ulang otomatis."
                             : "Balances deep focus tasks, scheduled rest days, and guilt-free rescheduling."}

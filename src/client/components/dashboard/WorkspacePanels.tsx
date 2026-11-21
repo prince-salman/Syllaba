@@ -43,10 +43,10 @@ export function HistoryPanel({
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#111815]">
+          <h2 className="text-lg font-bold text-[#111111]">
             {isId ? "Riwayat Roadmap & Sesi Belajar" : "Study & Roadmap History"}
           </h2>
-          <p className="text-xs text-[#6B7872] mt-0.5">
+          <p className="text-xs text-[#666660] mt-0.5">
             {isId
               ? "Pilih kursus sebelumnya untuk melanjutkan progres atau melihat bukti on-chain."
               : "Reopen any generated syllabus roadmap to continue micro-tasks or inspect proofs."}
@@ -56,7 +56,7 @@ export function HistoryPanel({
         <button
           type="button"
           onClick={onCreateNew}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-[#125B3A] hover:bg-[#1F7A4F] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#111111] hover:bg-[#262626] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>{isId ? "Buat Silabus Baru" : "New Syllabus"}</span>
@@ -64,15 +64,15 @@ export function HistoryPanel({
       </div>
 
       {roadmaps.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#D3DED8] bg-[#FAFDFB] p-8 text-center space-y-3">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#DDF1E4] text-[#125B3A]">
+        <div className="rounded-2xl border border-dashed border-[#D4D4D0] bg-[#FFFDF8] p-8 text-center space-y-3">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#FEF3C7] text-[#111111]">
             <BookOpen className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-[#111815]">
+            <p className="text-sm font-bold text-[#111111]">
               {isId ? "Belum ada riwayat roadmap" : "No study history yet"}
             </p>
-            <p className="text-xs text-[#6B7872] mt-1">
+            <p className="text-xs text-[#666660] mt-1">
               {isId
                 ? "Unggah silabus pertama Anda untuk membuat roadmap micro-task anti-burnout."
                 : "Upload your first course syllabus to build a verified anti-burnout roadmap."}
@@ -81,7 +81,7 @@ export function HistoryPanel({
           <button
             type="button"
             onClick={onCreateNew}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#125B3A] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1F7A4F] transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#111111] px-4 py-2 text-xs font-semibold text-white hover:bg-[#262626] transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>{isId ? "Unggah Silabus" : "Upload Syllabus"}</span>
@@ -107,18 +107,18 @@ export function HistoryPanel({
                 key={rm.id}
                 className={`rounded-2xl border p-4 transition-all flex flex-col justify-between gap-4 ${
                   isActive
-                    ? "border-[#125B3A]/40 bg-[#F4FAF6] shadow-xs"
-                    : "border-[#E5ECE8] bg-white hover:border-[#52B788]/60"
+                    ? "border-[#111111]/40 bg-[#FFFBEB] shadow-xs"
+                    : "border-[#E5E5E0] bg-white hover:border-[#F5B700]/60"
                 }`}
               >
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-[#111815] truncate">
+                      <h3 className="text-sm font-bold text-[#111111] truncate">
                         {rm.courseTitle}
                       </h3>
-                      <p className="text-[11px] text-[#6B7872] mt-0.5 flex items-center gap-1.5">
-                        <Calendar className="h-3 w-3 text-[#125B3A]" />
+                      <p className="text-[11px] text-[#666660] mt-0.5 flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3 text-[#111111]" />
                         <span>
                           {isId ? "Diperbarui" : "Updated"} {updatedLabel} · {rm.totalDays}{" "}
                           {isId ? "hari" : "days"}
@@ -126,7 +126,7 @@ export function HistoryPanel({
                       </p>
                     </div>
                     {isActive && (
-                      <span className="shrink-0 rounded-full bg-[#DDF1E4] px-2 py-0.5 text-[10px] font-bold text-[#125B3A]">
+                      <span className="shrink-0 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-bold text-[#111111]">
                         {isId ? "Aktif" : "Active"}
                       </span>
                     )}
@@ -134,14 +134,14 @@ export function HistoryPanel({
 
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-[11px] font-semibold">
-                      <span className="text-[#4D5A54]">
+                      <span className="text-[#52524C]">
                         {completed}/{total} {isId ? "micro-task selesai" : "tasks completed"}
                       </span>
-                      <span className="text-[#125B3A]">{pct}%</span>
+                      <span className="text-[#111111]">{pct}%</span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-[#E5ECE8] overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-[#E5E5E0] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#125B3A] transition-all"
+                        className="h-full rounded-full bg-[#111111] transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -151,7 +151,7 @@ export function HistoryPanel({
                 <button
                   type="button"
                   onClick={() => onSelectRoadmap(rm.id)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E5ECE8] bg-white hover:bg-[#125B3A] hover:text-white hover:border-[#125B3A] py-2 text-xs font-semibold text-[#111815] transition cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E5E5E0] bg-white hover:bg-[#111111] hover:text-white hover:border-[#111111] py-2 text-xs font-semibold text-[#111111] transition cursor-pointer"
                 >
                   <span>{isId ? "Buka Roadmap" : "Open Roadmap"}</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -220,24 +220,24 @@ export function SettingsPanel({
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#111815]">
+          <h2 className="text-lg font-bold text-[#111111]">
             {isId ? "Pengaturan" : "Settings"}
           </h2>
-          <p className="text-xs text-[#6B7872] mt-0.5">
+          <p className="text-xs text-[#666660] mt-0.5">
             {isId
               ? "Kelola preferensi akun pelajar, wallet Web3, dan bahasa aplikasi."
               : "Manage your student account, connected Web3 wallet, and interface language."}
           </p>
         </div>
 
-        <div className="inline-flex rounded-xl border border-[#E5ECE8] bg-[#F4F7F5] p-1 self-start sm:self-auto">
+        <div className="inline-flex rounded-xl border border-[#E5E5E0] bg-[#F7F7F5] p-1 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => onChangeSubTab("account")}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
               activeSubTab === "account"
-                ? "bg-white text-[#125B3A] shadow-xs"
-                : "text-[#6B7872] hover:text-[#111815]"
+                ? "bg-white text-[#111111] shadow-xs"
+                : "text-[#666660] hover:text-[#111111]"
             }`}
           >
             <UserIcon className="h-3.5 w-3.5" />
@@ -248,8 +248,8 @@ export function SettingsPanel({
             onClick={() => onChangeSubTab("language")}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
               activeSubTab === "language"
-                ? "bg-white text-[#125B3A] shadow-xs"
-                : "text-[#6B7872] hover:text-[#111815]"
+                ? "bg-white text-[#111111] shadow-xs"
+                : "text-[#666660] hover:text-[#111111]"
             }`}
           >
             <Globe className="h-3.5 w-3.5" />
@@ -260,16 +260,16 @@ export function SettingsPanel({
 
       {activeSubTab === "account" ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 space-y-4">
+          <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DDF1E4] text-[#125B3A]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FEF3C7] text-[#111111]">
                 <UserIcon className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#111815]">
+                <h3 className="text-sm font-bold text-[#111111]">
                   {isId ? "Profil Akun" : "Account Profile"}
                 </h3>
-                <p className="text-[11px] text-[#6B7872]">
+                <p className="text-[11px] text-[#666660]">
                   {isId
                     ? "Autentikasi tersinkron dengan Supabase"
                     : "Synced with Supabase authentication"}
@@ -280,7 +280,7 @@ export function SettingsPanel({
             {user ? (
               <form onSubmit={handleSaveProfile} className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#4D5A54] mb-1">
+                  <label className="block text-[11px] font-semibold text-[#52524C] mb-1">
                     {isId ? "Nama Lengkap" : "Full Name"}
                   </label>
                   <input
@@ -288,27 +288,27 @@ export function SettingsPanel({
                     value={fullNameInput}
                     onChange={(e) => setFullNameInput(e.target.value)}
                     placeholder={isId ? "Masukkan nama Anda" : "Enter your name"}
-                    className="w-full rounded-xl border border-[#E5ECE8] bg-[#FAFDFB] px-3 py-2 text-xs text-[#111815] focus:border-[#125B3A] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E5E5E0] bg-[#FFFDF8] px-3 py-2 text-xs text-[#111111] focus:border-[#111111] focus:outline-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 rounded-xl bg-[#F4F7F5] p-3 text-xs">
+                <div className="grid grid-cols-1 gap-2 rounded-xl bg-[#F7F7F5] p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[#6B7872]">Email</span>
-                    <span className="font-mono font-semibold text-[#111815] truncate">
+                    <span className="text-[#666660]">Email</span>
+                    <span className="font-mono font-semibold text-[#111111] truncate">
                       {user.email}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[#6B7872]">User ID</span>
-                    <span className="font-mono text-[11px] text-[#4D5A54] truncate">
+                    <span className="text-[#666660]">User ID</span>
+                    <span className="font-mono text-[11px] text-[#52524C] truncate">
                       {user.id}
                     </span>
                   </div>
                 </div>
 
                 {accountNotice && (
-                  <p className="rounded-xl bg-[#DDF1E4]/70 px-3 py-2 text-xs font-semibold text-[#125B3A]">
+                  <p className="rounded-xl bg-[#FEF3C7]/70 px-3 py-2 text-xs font-semibold text-[#111111]">
                     {accountNotice}
                   </p>
                 )}
@@ -316,7 +316,7 @@ export function SettingsPanel({
                 <button
                   type="submit"
                   disabled={savingName}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#125B3A] hover:bg-[#1F7A4F] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#111111] hover:bg-[#262626] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer disabled:opacity-60"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>
@@ -331,8 +331,8 @@ export function SettingsPanel({
                 </button>
               </form>
             ) : (
-              <div className="rounded-xl bg-[#FAFDFB] border border-[#E5ECE8] p-4 space-y-3">
-                <p className="text-xs text-[#6B7872] leading-relaxed">
+              <div className="rounded-xl bg-[#FFFDF8] border border-[#E5E5E0] p-4 space-y-3">
+                <p className="text-xs text-[#666660] leading-relaxed">
                   {isId
                     ? "Anda belum masuk ke akun Syllaba. Masuk untuk menyinkronkan riwayat silabus ke akun cloud pribadi Anda."
                     : "You are not signed in yet. Sign in to sync your study roadmaps and profile across devices."}
@@ -340,14 +340,14 @@ export function SettingsPanel({
                 <div className="flex flex-wrap gap-2">
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#125B3A] hover:bg-[#1F7A4F] px-4 py-2 text-xs font-semibold text-white transition"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#111111] hover:bg-[#262626] px-4 py-2 text-xs font-semibold text-white transition"
                   >
                     <KeyRound className="h-3.5 w-3.5" />
                     <span>{isId ? "Masuk Sekarang" : "Sign In"}</span>
                   </Link>
                   <Link
                     href="/register"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5ECE8] bg-white hover:bg-[#F4F7F5] px-4 py-2 text-xs font-semibold text-[#111815] transition"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E0] bg-white hover:bg-[#F7F7F5] px-4 py-2 text-xs font-semibold text-[#111111] transition"
                   >
                     <span>{isId ? "Daftar Akun" : "Register"}</span>
                   </Link>
@@ -356,27 +356,27 @@ export function SettingsPanel({
             )}
           </div>
 
-          <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 space-y-4">
+          <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 space-y-4">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DCEBF7] text-[#235789]">
                 <Wallet className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#111815]">
+                <h3 className="text-sm font-bold text-[#111111]">
                   {isId ? "Koneksi Dompet Web3" : "Web3 Wallet Connection"}
                 </h3>
-                <p className="text-[11px] text-[#6B7872]">
+                <p className="text-[11px] text-[#666660]">
                   Base Sepolia Testnet (Chain ID: 84532)
                 </p>
               </div>
             </div>
 
-            <div className="rounded-xl bg-[#F4F7F5] p-3.5 space-y-2 text-xs">
+            <div className="rounded-xl bg-[#F7F7F5] p-3.5 space-y-2 text-xs">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[#6B7872]">Status</span>
+                <span className="text-[#666660]">Status</span>
                 <span
                   className={`inline-flex items-center gap-1.5 font-semibold ${
-                    isWalletConnected ? "text-[#125B3A]" : "text-[#8B6B15]"
+                    isWalletConnected ? "text-[#111111]" : "text-[#8B6B15]"
                   }`}
                 >
                   <span
@@ -395,8 +395,8 @@ export function SettingsPanel({
               </div>
               {walletAddress && (
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[#6B7872]">Address</span>
-                  <span className="font-mono text-[11px] text-[#111815] truncate">
+                  <span className="text-[#666660]">Address</span>
+                  <span className="font-mono text-[11px] text-[#111111] truncate">
                     {walletAddress}
                   </span>
                 </div>
@@ -406,9 +406,9 @@ export function SettingsPanel({
             <button
               type="button"
               onClick={onOpenWalletModal}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5ECE8] bg-white hover:bg-[#F4F7F5] px-4 py-2 text-xs font-semibold text-[#111815] transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E0] bg-white hover:bg-[#F7F7F5] px-4 py-2 text-xs font-semibold text-[#111111] transition cursor-pointer"
             >
-              <Wallet className="h-3.5 w-3.5 text-[#125B3A]" />
+              <Wallet className="h-3.5 w-3.5 text-[#111111]" />
               <span>
                 {isWalletConnected
                   ? isId
@@ -422,16 +422,16 @@ export function SettingsPanel({
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 space-y-4">
+        <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E9E9FD] text-[#4A4DC7]">
               <Globe className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#111815]">
+              <h3 className="text-sm font-bold text-[#111111]">
                 {isId ? "Pilihan Bahasa Antarmuka" : "Interface Language"}
               </h3>
-              <p className="text-[11px] text-[#6B7872]">
+              <p className="text-[11px] text-[#666660]">
                 {isId
                   ? "Perubahan langsung diterapkan ke menu dan ringkasan dashboard."
                   : "Changes apply immediately across navigation and dashboard cards."}
@@ -462,15 +462,15 @@ export function SettingsPanel({
                   onClick={() => setLang(opt.code)}
                   className={`rounded-2xl border p-4 text-left transition-all cursor-pointer ${
                     selected
-                      ? "border-[#125B3A] bg-[#F4FAF6] shadow-xs"
-                      : "border-[#E5ECE8] bg-white hover:border-[#52B788]"
+                      ? "border-[#111111] bg-[#FFFBEB] shadow-xs"
+                      : "border-[#E5E5E0] bg-white hover:border-[#F5B700]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-[#111815]">{opt.title}</span>
-                    {selected && <CheckCircle2 className="h-4 w-4 text-[#125B3A]" />}
+                    <span className="text-sm font-bold text-[#111111]">{opt.title}</span>
+                    {selected && <CheckCircle2 className="h-4 w-4 text-[#111111]" />}
                   </div>
-                  <p className="text-xs text-[#6B7872] mt-1">{opt.desc}</p>
+                  <p className="text-xs text-[#666660] mt-1">{opt.desc}</p>
                 </button>
               );
             })}
@@ -497,10 +497,10 @@ export function HelpContactPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold text-[#111815]">
+        <h2 className="text-lg font-bold text-[#111111]">
           {isId ? "Bantuan & Hubungi Kami" : "Help & Contact Us"}
         </h2>
-        <p className="text-xs text-[#6B7872] mt-0.5">
+        <p className="text-xs text-[#666660] mt-0.5">
           {isId
             ? "Panduan cepat penggunaan multi-agent Syllaba, koneksi Web3, serta kontak tim ITSPIRIT."
             : "Quick answers on multi-agent pacing, Base Sepolia proofs, and contacting Team ITSPIRIT."}
@@ -508,35 +508,35 @@ export function HelpContactPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 space-y-3">
+        <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 text-[#125B3A]" />
-            <h3 className="text-sm font-bold text-[#111815]">
+            <HelpCircle className="h-4 w-4 text-[#111111]" />
+            <h3 className="text-sm font-bold text-[#111111]">
               {isId ? "Pertanyaan Umum (FAQ)" : "Frequently Asked Questions"}
             </h3>
           </div>
 
           <div className="space-y-2.5 text-xs">
-            <div className="rounded-xl bg-[#FAFDFB] border border-[#E5ECE8] p-3">
-              <p className="font-bold text-[#111815]">
+            <div className="rounded-xl bg-[#FFFDF8] border border-[#E5E5E0] p-3">
+              <p className="font-bold text-[#111111]">
                 {isId
                   ? "Bagaimana cara menghubungkan dompet di HP tanpa ekstensi?"
                   : "How do I connect a mobile wallet without a browser extension?"}
               </p>
-              <p className="text-[#6B7872] mt-1 leading-relaxed">
+              <p className="text-[#666660] mt-1 leading-relaxed">
                 {isId
                   ? "Klik Connect Wallet di kanan atas, pilih Rainbow atau WalletConnect, lalu pindai kode QR langsung dari aplikasi dompet HP Anda."
                   : "Click Connect Wallet in the top bar, choose Rainbow or WalletConnect, and scan the inline QR code from your mobile wallet app."}
               </p>
             </div>
 
-            <div className="rounded-xl bg-[#FAFDFB] border border-[#E5ECE8] p-3">
-              <p className="font-bold text-[#111815]">
+            <div className="rounded-xl bg-[#FFFDF8] border border-[#E5E5E0] p-3">
+              <p className="font-bold text-[#111111]">
                 {isId
                   ? "Apakah bukti komitmen belajar tercatat di blockchain?"
                   : "Are study commitments verified on-chain?"}
               </p>
-              <p className="text-[#6B7872] mt-1 leading-relaxed">
+              <p className="text-[#666660] mt-1 leading-relaxed">
                 {isId
                   ? "Ya. Hash keccak256 roadmap Anda dicatat melalui kontrak SyllabaProofVault di Base Sepolia (Chain ID 84532) dan dapat dicek di BaseScan."
                   : "Yes. Your canonical keccak256 roadmap digest is anchored via SyllabaProofVault on Base Sepolia (Chain ID 84532) with direct BaseScan links."}
@@ -545,21 +545,21 @@ export function HelpContactPanel() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 space-y-4">
+        <div className="rounded-2xl border border-[#E5E5E0] bg-white p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-[#125B3A]" />
-            <h3 className="text-sm font-bold text-[#111815]">
+            <MessageSquare className="h-4 w-4 text-[#111111]" />
+            <h3 className="text-sm font-bold text-[#111111]">
               {isId ? "Hubungi Tim Syllaba (ITSPIRIT)" : "Contact Syllaba Team (ITSPIRIT)"}
             </h3>
           </div>
 
-          <div className="rounded-xl bg-[#F4F7F5] p-3 text-xs space-y-1.5">
-            <p className="flex items-center gap-2 text-[#111815] font-semibold">
-              <Mail className="h-3.5 w-3.5 text-[#125B3A]" />
+          <div className="rounded-xl bg-[#F7F7F5] p-3 text-xs space-y-1.5">
+            <p className="flex items-center gap-2 text-[#111111] font-semibold">
+              <Mail className="h-3.5 w-3.5 text-[#111111]" />
               <span>support@syllaba.xyz</span>
             </p>
-            <p className="flex items-center gap-2 text-[#6B7872]">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#125B3A]" />
+            <p className="flex items-center gap-2 text-[#666660]">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#111111]" />
               <span>COMPSPHERE 12 Finalist · Team ITSPIRIT (President University)</span>
             </p>
           </div>
@@ -577,10 +577,10 @@ export function HelpContactPanel() {
                   ? "Tulis pertanyaan, kendala domain/wallet, atau masukan Anda..."
                   : "Write your question, issue report, or feedback..."
               }
-              className="w-full rounded-xl border border-[#E5ECE8] bg-[#FAFDFB] p-3 text-xs text-[#111815] focus:border-[#125B3A] focus:outline-none"
+              className="w-full rounded-xl border border-[#E5E5E0] bg-[#FFFDF8] p-3 text-xs text-[#111111] focus:border-[#111111] focus:outline-none"
             />
             {sent && (
-              <p className="rounded-xl bg-[#DDF1E4] px-3 py-2 text-xs font-semibold text-[#125B3A]">
+              <p className="rounded-xl bg-[#FEF3C7] px-3 py-2 text-xs font-semibold text-[#111111]">
                 {isId
                   ? "Pesan Anda telah dicatat. Tim ITSPIRIT akan menindaklanjuti segera."
                   : "Message received. Team ITSPIRIT will review and respond promptly."}
@@ -588,7 +588,7 @@ export function HelpContactPanel() {
             )}
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#125B3A] hover:bg-[#1F7A4F] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#111111] hover:bg-[#262626] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"
             >
               <Send className="h-3.5 w-3.5" />
               <span>{isId ? "Kirim Pesan" : "Send Message"}</span>

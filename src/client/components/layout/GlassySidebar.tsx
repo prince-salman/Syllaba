@@ -86,8 +86,8 @@ export function GlassySidebar({
     <aside
       className={`lg:col-span-3 xl:col-span-2 border-b lg:border-b-0 lg:border-r p-4 sm:p-5 flex flex-col justify-between gap-5 transition-colors ${
         user
-          ? "border-white/50 bg-gradient-to-b from-white/80 via-[#F2F8F4]/75 to-[#E5F2EA]/75 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
-          : "border-[#E5ECE8] bg-[#FAFDFB]/90 backdrop-blur-xl"
+          ? "border-white/50 bg-gradient-to-b from-white/85 via-[#FFFDF5]/80 to-[#FEF9C3]/65 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.6)]"
+          : "border-[#E5E5E0] bg-[#FFFDF8]/90 backdrop-blur-xl"
       }`}
     >
       <div className="space-y-5">
@@ -95,8 +95,8 @@ export function GlassySidebar({
         <div
           className={`rounded-2xl p-3.5 border transition-all ${
             user
-              ? "border-white/60 bg-gradient-to-br from-[#0D1913]/90 via-[#125B3A]/90 to-[#1F7A4F]/85 text-white shadow-[0_12px_28px_-14px_rgba(18,91,58,0.6)] backdrop-blur-md"
-              : "border-[#E5ECE8] bg-white/80 text-[#111815] shadow-xs"
+              ? "border-white/60 bg-gradient-to-br from-[#09090B]/95 via-[#18181B]/95 to-[#27272A]/90 text-white shadow-[0_12px_28px_-14px_rgba(17,17,17,0.45)] backdrop-blur-md"
+              : "border-[#E5E5E0] bg-white/80 text-[#111111] shadow-xs"
           }`}
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -104,7 +104,7 @@ export function GlassySidebar({
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold border ${
                 user
                   ? "bg-white/20 border-white/30 text-white"
-                  : "bg-[#DDF1E4] border-[#52B788]/30 text-[#125B3A]"
+                  : "bg-[#FEF3C7] border-[#F5B700]/30 text-[#111111]"
               }`}
             >
               {displayName.charAt(0).toUpperCase()}
@@ -114,7 +114,7 @@ export function GlassySidebar({
                 <p className="text-xs font-bold truncate">{displayName}</p>
                 <span
                   className={`rounded-md px-1.5 py-0.2 text-[9px] font-mono font-semibold shrink-0 ${
-                    user ? "bg-white/15 text-[#DDF1E4]" : "bg-[#F4F7F5] text-[#6B7872]"
+                    user ? "bg-white/15 text-[#FEF3C7]" : "bg-[#F7F7F5] text-[#666660]"
                   }`}
                 >
                   {shortUserId}
@@ -122,7 +122,7 @@ export function GlassySidebar({
               </div>
               <p
                 className={`text-[11px] truncate mt-0.5 ${
-                  user ? "text-[#CBE3D6]" : "text-[#6B7872]"
+                  user ? "text-[#E5E5E0]" : "text-[#666660]"
                 }`}
               >
                 {secondaryIdentifier}
@@ -133,7 +133,7 @@ export function GlassySidebar({
 
         {/* Core Study Workspace */}
         <div>
-          <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#6B7872] mb-2">
+          <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#666660] mb-2">
             {isId ? "Ruang Belajar" : "Workspace"}
           </p>
           <nav className="space-y-1">
@@ -142,8 +142,8 @@ export function GlassySidebar({
               onClick={() => onSelectView("dashboard")}
               className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition relative cursor-pointer ${
                 activeView === "dashboard"
-                  ? "bg-white/95 text-[#125B3A] shadow-xs border border-[#52B788]/25"
-                  : "text-[#4D5A54] hover:bg-white/60 hover:text-[#111815]"
+                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                  : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -151,7 +151,7 @@ export function GlassySidebar({
                 <span>{isId ? "Dasbor" : "Dashboard"}</span>
               </span>
               {activeView === "dashboard" && (
-                <ChevronRight className="h-3.5 w-3.5 text-[#125B3A]" />
+                <ChevronRight className="h-3.5 w-3.5 text-[#111111]" />
               )}
             </button>
 
@@ -160,15 +160,15 @@ export function GlassySidebar({
               onClick={() => onSelectView("uploader")}
               className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition relative cursor-pointer ${
                 activeView === "uploader"
-                  ? "bg-white/95 text-[#125B3A] shadow-xs border border-[#52B788]/25"
-                  : "text-[#4D5A54] hover:bg-white/60 hover:text-[#111815]"
+                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                  : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
               }`}
             >
               <span className="flex items-center gap-2.5">
                 <Plus className="h-4 w-4" />
                 <span>{isId ? "Silabus Baru" : "New Syllabus"}</span>
               </span>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#125B3A] text-white text-[10px]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#111111] text-white text-[10px]">
                 +
               </span>
             </button>
@@ -178,16 +178,16 @@ export function GlassySidebar({
         {/* Quick Courses */}
         <div>
           <div className="flex items-center justify-between px-3 mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#6B7872]">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#666660]">
               {isId ? "Kursus" : "Courses"}
             </p>
-            <span className="rounded-full bg-[#DDF1E4] px-2 py-0.5 text-[10px] font-bold text-[#125B3A]">
+            <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-bold text-[#111111]">
               {storedRoadmaps.length}
             </span>
           </div>
 
           {storedRoadmaps.length === 0 ? (
-            <p className="px-3 text-[11px] text-[#6B7872] leading-relaxed">
+            <p className="px-3 text-[11px] text-[#666660] leading-relaxed">
               {isId
                 ? "Belum ada roadmap. Unggah silabus pertama Anda."
                 : "No roadmaps yet. Upload your first syllabus."}
@@ -204,8 +204,8 @@ export function GlassySidebar({
                     onClick={() => onSelectRoadmap(r.id)}
                     className={`w-full flex items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs font-semibold transition cursor-pointer ${
                       isSelected
-                        ? "bg-[#125B3A] text-white shadow-xs"
-                        : "text-[#4D5A54] hover:bg-white/70 hover:text-[#111815]"
+                        ? "bg-[#111111] text-white shadow-xs"
+                        : "text-[#52524C] hover:bg-white/70 hover:text-[#111111]"
                     }`}
                   >
                     <FolderKanban className="h-3.5 w-3.5 shrink-0" />
@@ -218,8 +218,8 @@ export function GlassySidebar({
         </div>
 
         {/* 1-5 Menu: Login (if not signed in), History, Setting (> Account, > Language), Help/Contact Us, Logout */}
-        <div className="pt-3 border-t border-[#E5ECE8]/80 space-y-1">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#6B7872] mb-2">
+        <div className="pt-3 border-t border-[#E5E5E0]/80 space-y-1">
+          <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#666660] mb-2">
             {isId ? "Menu Akun" : "Account & Tools"}
           </p>
 
@@ -227,7 +227,7 @@ export function GlassySidebar({
           {!user && (
             <Link
               href="/login"
-              className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold bg-[#DDF1E4]/80 text-[#125B3A] hover:bg-[#DDF1E4] transition"
+              className="w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold bg-[#FEF3C7]/80 text-[#111111] hover:bg-[#FEF3C7] transition"
             >
               <span className="flex items-center gap-2.5">
                 <LogIn className="h-4 w-4" />
@@ -243,8 +243,8 @@ export function GlassySidebar({
             onClick={() => onSelectView("history")}
             className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition cursor-pointer ${
               activeView === "history"
-                ? "bg-white/95 text-[#125B3A] shadow-xs border border-[#52B788]/25"
-                : "text-[#4D5A54] hover:bg-white/60 hover:text-[#111815]"
+                ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
             }`}
           >
             <span className="flex items-center gap-2.5">
@@ -261,8 +261,8 @@ export function GlassySidebar({
               onClick={handleToggleSettings}
               className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition cursor-pointer ${
                 isSettingsActive
-                  ? "bg-white/95 text-[#125B3A] shadow-xs border border-[#52B788]/25"
-                  : "text-[#4D5A54] hover:bg-white/60 hover:text-[#111815]"
+                  ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                  : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -270,21 +270,21 @@ export function GlassySidebar({
                 <span>Setting</span>
               </span>
               {settingsOpen || isSettingsActive ? (
-                <ChevronDown className="h-3.5 w-3.5 text-[#125B3A]" />
+                <ChevronDown className="h-3.5 w-3.5 text-[#111111]" />
               ) : (
                 <ChevronRight className="h-3.5 w-3.5 text-[#9AA6A0]" />
               )}
             </button>
 
             {(settingsOpen || isSettingsActive) && (
-              <div className="mt-1 ml-4 pl-3 border-l border-[#D3DED8] space-y-1">
+              <div className="mt-1 ml-4 pl-3 border-l border-[#D4D4D0] space-y-1">
                 <button
                   type="button"
                   onClick={() => onSelectView("settings-account")}
                   className={`w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     activeView === "settings-account"
-                      ? "bg-[#DDF1E4]/80 text-[#125B3A]"
-                      : "text-[#6B7872] hover:bg-white/60 hover:text-[#111815]"
+                      ? "bg-[#FEF3C7]/80 text-[#111111]"
+                      : "text-[#666660] hover:bg-white/60 hover:text-[#111111]"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -299,15 +299,15 @@ export function GlassySidebar({
                   onClick={() => onSelectView("settings-language")}
                   className={`w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     activeView === "settings-language"
-                      ? "bg-[#DDF1E4]/80 text-[#125B3A]"
-                      : "text-[#6B7872] hover:bg-white/60 hover:text-[#111815]"
+                      ? "bg-[#FEF3C7]/80 text-[#111111]"
+                      : "text-[#666660] hover:bg-white/60 hover:text-[#111111]"
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <Globe className="h-3.5 w-3.5" />
                     <span>Language</span>
                   </span>
-                  <span className="rounded bg-white/80 px-1.5 py-0.2 text-[10px] font-mono uppercase text-[#125B3A] border border-[#E5ECE8]">
+                  <span className="rounded bg-white/80 px-1.5 py-0.2 text-[10px] font-mono uppercase text-[#111111] border border-[#E5E5E0]">
                     {lang}
                   </span>
                 </button>
@@ -321,8 +321,8 @@ export function GlassySidebar({
             onClick={() => onSelectView("help")}
             className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition cursor-pointer ${
               activeView === "help"
-                ? "bg-white/95 text-[#125B3A] shadow-xs border border-[#52B788]/25"
-                : "text-[#4D5A54] hover:bg-white/60 hover:text-[#111815]"
+                ? "bg-white/95 text-[#111111] shadow-xs border border-[#F5B700]/25"
+                : "text-[#52524C] hover:bg-white/60 hover:text-[#111111]"
             }`}
           >
             <span className="flex items-center gap-2.5">
@@ -337,10 +337,10 @@ export function GlassySidebar({
       {/* Bottom Glass Card + Logout (if logged in) */}
       <div className="space-y-3">
         <div className="rounded-2xl bg-emerald-bento p-3.5 text-white relative overflow-hidden shadow-sm">
-          <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#52B788]/25 blur-xl pointer-events-none" />
+          <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#F5B700]/25 blur-xl pointer-events-none" />
           <div className="relative z-10">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#DDF1E4]">
-              <Sparkles className="h-3 w-3 text-[#52B788]" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FEF3C7]">
+              <Sparkles className="h-3 w-3 text-[#F5B700]" />
               5-Agent Pipeline
             </span>
             <p className="mt-2 text-xs font-bold leading-snug">
@@ -349,7 +349,7 @@ export function GlassySidebar({
             <button
               type="button"
               onClick={() => onSelectView("uploader")}
-              className="mt-2.5 w-full rounded-xl bg-[#52B788] hover:bg-[#3FA474] text-[#0D1913] font-bold py-1.5 text-xs transition cursor-pointer"
+              className="mt-2.5 w-full rounded-xl bg-[#F5B700] hover:bg-[#EAB308] text-[#0A0A0A] font-bold py-1.5 text-xs transition cursor-pointer"
             >
               {isId ? "+ Buat Roadmap" : "+ Generate Plan"}
             </button>
@@ -371,7 +371,7 @@ export function GlassySidebar({
           </button>
         )}
 
-        <p className="px-2 text-[10px] text-[#6B7872] leading-tight">
+        <p className="px-2 text-[10px] text-[#666660] leading-tight">
           Copyright © 2026 Syllaba · ITSPIRIT
         </p>
       </div>
