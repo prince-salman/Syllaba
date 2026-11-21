@@ -604,16 +604,18 @@ export function BlockchainCertificatePanel({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") window.print();
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Print / PDF</span>
-            </button>
+            {isModuleCompleted && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") window.print();
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 transition cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Print / PDF</span>
+              </button>
+            )}
 
             {!syllabaSbtAddress && (
               <button
@@ -674,28 +676,51 @@ export function BlockchainCertificatePanel({
         )}
       </div>
 
-      {/* 2. COURSE COMPLETION CERTIFICATE CANVAS (ONLY FOR THIS PPT) */}
+      {/* 2. COURSE COMPLETION CERTIFICATE VAULT (SEALED UNTIL TASKS + 2 EXAMS PASSED) */}
       <div
         style={{ borderColor: accentHex }}
         className="relative rounded-3xl bg-[#09090D] p-3 sm:p-5 shadow-2xl border-2 overflow-hidden text-white"
       >
-        <div
-          className="pointer-events-none absolute -top-28 left-1/2 -translate-x-1/2 h-64 w-[36rem] rounded-full opacity-20 blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(250,204,21,0.85) 0%, rgba(0,0,0,0) 70%)",
-          }}
-        />
-
-        {!isModuleCompleted && (
-          <div className="absolute top-4 right-4 z-20 inline-flex items-center gap-1.5 rounded-full bg-amber-400/95 text-[#111111] px-3 py-1 text-[11px] font-black uppercase tracking-wider shadow-md">
-            <Lock className="w-3.5 h-3.5" />
-            <span>
-              Preview Kelulusan PPT &middot; Selesaikan Tugas &amp; 2 Ujian AI
-            </span>
+        {!isModuleCompleted ? (
+          <div
+            style={{ borderColor: `${accentHex}44` }}
+            className="relative rounded-2xl border bg-gradient-to-b from-[#17140B] via-[#0E0C07] to-[#17140B] p-8 sm:p-12 text-center space-y-4"
+          >
+            <div
+              style={{
+                background: `linear-gradient(135deg, ${accentHex}, ${secondaryHex})`,
+              }}
+              className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center text-[#111111] shadow-lg"
+            >
+              <Lock className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5 max-w-lg mx-auto">
+              <div
+                style={{ color: accentHex }}
+                className="text-xs font-black uppercase tracking-[0.22em]"
+              >
+                SERTIFIKAT KELULUSAN PPT TERKUNCI
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                {roadmap.courseTitle}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {isId
+                  ? "Sertifikat Kelulusan PPT, QR Code verifikasi, Proof JSON, dan tombol Print disegel hingga seluruh tugas harian serta Ujian Tengah & Ujian Akhir Sesi dinyatakan lulus."
+                  : "This Course Completion Certificate, QR Code, Proof JSON, and Print button stay sealed until all daily tasks, Mid Exam, and Final Exam pass."}
+              </p>
+            </div>
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-xs font-bold text-slate-200">
+              <span>
+                Tugas: {roadmap.completedTasks}/{roadmap.totalTasks}
+              </span>
+              <span>&middot;</span>
+              <span>UTS: {midPassed ? "Lulus" : "Belum"}</span>
+              <span>&middot;</span>
+              <span>UAS: {finalPassed ? "Lulus" : "Belum"}</span>
+            </div>
           </div>
-        )}
-
+        ) : (
         <div
           style={{ borderColor: `${accentHex}55` }}
           className="relative rounded-2xl border bg-gradient-to-b from-[#17140B] via-[#0E0C07] to-[#17140B] p-5 sm:p-8 space-y-6"
@@ -988,6 +1013,7 @@ export function BlockchainCertificatePanel({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

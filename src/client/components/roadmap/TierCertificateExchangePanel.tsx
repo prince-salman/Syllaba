@@ -66,6 +66,7 @@ export function TierCertificateExchangePanel({
     deploySbtContractOnChain,
     claimSylCoinsOnChain,
     sylCoinAddress,
+    isSylContractOwner,
     onChainSylBalance,
     deployCoinContractOnChain,
     watchSylTokenInWallet,
@@ -786,16 +787,18 @@ export function TierCertificateExchangePanel({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") window.print();
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Print / PDF</span>
-            </button>
+            {isSelectedTierUnlocked && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") window.print();
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 transition cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Print / PDF</span>
+              </button>
+            )}
 
             {!syllabaSbtAddress && (
               <button
@@ -856,21 +859,53 @@ export function TierCertificateExchangePanel({
         )}
       </div>
 
-      {/* 2. TIER CERTIFICATE PREVIEW / ISSUED CANVAS WITH SCANNABLE QR */}
+      {/* 2. TIER CERTIFICATE VAULT (LOCKED UNTIL POINTS REACHED SO CANNOT BE SCREENSHOT-STOLEN) */}
       <div
         style={{ borderColor: activeTierMeta.primaryHex }}
         className="relative rounded-3xl bg-[#09090D] p-3 sm:p-5 shadow-2xl border-2 overflow-hidden text-white transition-colors duration-300"
       >
-        {!isSelectedTierUnlocked && (
-          <div className="absolute top-4 right-4 z-20 inline-flex items-center gap-1.5 rounded-full bg-amber-400/95 text-[#111111] px-3 py-1 text-[11px] font-black uppercase tracking-wider shadow-md">
-            <Lock className="w-3.5 h-3.5" />
-            <span>
-              Preview Tier {activeTierMeta.name} &middot; Butuh{" "}
-              {activeTierMeta.minPoints} Poin
-            </span>
+        {!isSelectedTierUnlocked ? (
+          <div
+            style={{ borderColor: `${activeTierMeta.primaryHex}44` }}
+            className={`relative rounded-2xl border bg-gradient-to-b ${activeTierMeta.bgGradientClass} p-8 sm:p-12 text-center space-y-4`}
+          >
+            <div
+              style={{
+                background: `linear-gradient(135deg, ${activeTierMeta.primaryHex}, ${activeTierMeta.secondaryHex})`,
+              }}
+              className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center text-[#111111] shadow-lg"
+            >
+              <Lock className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5 max-w-lg mx-auto">
+              <div
+                style={{ color: activeTierMeta.primaryHex }}
+                className="text-xs font-black uppercase tracking-[0.22em]"
+              >
+                {activeTierMeta.name.toUpperCase()} TIER VAULT TERKUNCI
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                {isId
+                  ? `Sertifikat Tier ${activeTierMeta.name} Belum Terbuka`
+                  : `${activeTierMeta.name} Tier Certificate Locked`}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {isId
+                  ? `Demi mencegah pemalsuan/screenshot sebelum waktunya, sertifikat, QR verifikasi, Proof JSON, dan tombol Print disembunyikan sampai poin kamu cukup dan diverifikasi Web3.`
+                  : `To prevent unauthorized screenshots before mastery, this certificate, verification QR, Proof JSON, and Print button stay sealed until unlocked.`}
+              </p>
+            </div>
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-xs font-bold">
+              <span style={{ color: activeTierMeta.primaryHex }}>
+                Poin Kamu: {totalAccumulatedPoints} / {activeTierMeta.minPoints} Poin
+              </span>
+              <span className="text-slate-400">&middot;</span>
+              <span className="text-amber-300">
+                Kurang {Math.max(0, activeTierMeta.minPoints - totalAccumulatedPoints)} Poin lagi
+              </span>
+            </div>
           </div>
-        )}
-
+        ) : (
         <div
           style={{ borderColor: `${activeTierMeta.primaryHex}66` }}
           className={`relative rounded-2xl border bg-gradient-to-b ${activeTierMeta.bgGradientClass} p-5 sm:p-8 space-y-6`}
@@ -1115,6 +1150,7 @@ export function TierCertificateExchangePanel({
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* 3. $SYL LEARN-TO-EARN COIN TREASURY & PERKS EXCHANGE */}
@@ -1168,20 +1204,33 @@ export function TierCertificateExchangePanel({
           <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold text-white">
               <Cpu className="w-4 h-4 text-[#FACC15] shrink-0" />
-              <span>ERC-20 Smart Contract: SyllabaCoin ($SYL)</span>
+              <span>ERC-20 Smart Contract: Syllaba Coin (SYL)</span>
               {sylCoinAddress ? (
-                <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[10px] font-mono text-emerald-300">
-                  {sylCoinAddress.slice(0, 8)}...{sylCoinAddress.slice(-6)}
-                </span>
+                <a
+                  href={`https://sepolia.basescan.org/token/${sylCoinAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[10px] font-mono text-emerald-300 hover:bg-emerald-500/30 transition"
+                >
+                  <span>
+                    {sylCoinAddress.slice(0, 8)}...{sylCoinAddress.slice(-6)}
+                  </span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
               ) : (
                 <span className="rounded-full bg-amber-400/20 border border-amber-400/40 px-2 py-0.5 text-[10px] font-bold text-[#FEF08A]">
                   Siap Deploy ke Base Sepolia
                 </span>
               )}
+              {isSylContractOwner && (
+                <span className="rounded-full bg-[#FACC15] text-[#111111] px-2 py-0.5 text-[10px] font-black">
+                  Owner Connected (0.25 SYL / Modul)
+                </span>
+              )}
             </div>
             {onChainSylBalance !== null && (
               <div className="text-[11px] text-emerald-300 font-bold">
-                Saldo Asli di Base Sepolia: {Number(onChainSylBalance).toLocaleString()} $SYL
+                Saldo Asli On-Chain di Base Sepolia: {onChainSylBalance} SYL (Reward Kontrak: 0.25 SYL/modul)
               </div>
             )}
           </div>

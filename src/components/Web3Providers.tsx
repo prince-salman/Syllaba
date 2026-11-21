@@ -35,6 +35,8 @@ import { base, baseSepolia, mainnet, sepolia } from "wagmi/chains";
 import { encodeFunctionData, formatEther, formatUnits, parseEther, stringToHex } from "viem";
 import { SYLLABA_VAULT_ABI, SYLLABA_VAULT_BYTECODE } from "@/shared/contracts/syllabaVault";
 import {
+  OFFICIAL_SYLLABA_COIN_ADDRESS,
+  OFFICIAL_SYLLABA_COIN_OWNER,
   SYLLABA_COIN_ABI,
   SYLLABA_COIN_ADDRESS,
   SYLLABA_COIN_BYTECODE,
@@ -144,6 +146,7 @@ interface Web3ContextValue {
   }) => Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature"; contractAddress?: `0x${string}` }>;
   sylCoinAddress: `0x${string}` | undefined;
   setSylCoinAddress: (addr: `0x${string}` | undefined) => void;
+  isSylContractOwner: boolean;
   onChainSylBalance: string | null;
   refreshSylBalance: () => Promise<void>;
   deployCoinContractOnChain: () => Promise<{ txHash: string; contractAddress: `0x${string}` | null }>;
@@ -178,8 +181,9 @@ const DEFAULT_WEB3_CONTEXT: Web3ContextValue = {
   setSyllabaSbtAddress: () => {},
   deploySbtContractOnChain: async () => ({ txHash: "", contractAddress: null }),
   claimSylCoinsOnChain: async () => ({ txHash: "", proofType: "eip191-signature" }),
-  sylCoinAddress: undefined,
+  sylCoinAddress: OFFICIAL_SYLLABA_COIN_ADDRESS,
   setSylCoinAddress: () => {},
+  isSylContractOwner: false,
   onChainSylBalance: null,
   refreshSylBalance: async () => {},
   deployCoinContractOnChain: async () => ({ txHash: "", contractAddress: null }),
@@ -308,7 +312,11 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         functionName: "balanceOf",
         args: [address],
       })) as bigint;
-      setOnChainSylBalance(Number(formatUnits(rawBal, 18)).toFixed(0));
+      const parsed = Number(formatUnits(rawBal, 18));
+      const formatted = Number.isInteger(parsed)
+        ? String(parsed)
+        : parsed.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+      setOnChainSylBalance(formatted);
     } catch {
       setOnChainSylBalance(null);
     }
@@ -653,9 +661,63 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
 
       const targetContract = params.coinAddress || sylCoinAddress;
       const hasGasBalance = balanceData?.value !== undefined && balanceData.value > BigInt(30000000000000);
+      const isOfficialDeployedSyl =
+        targetContract?.toLowerCase() === OFFICIAL_SYLLABA_COIN_ADDRESS.toLowerCase();
+      const isOwnerWallet =
+        Boolean(address) &&
+        address.toLowerCase() === OFFICIAL_SYLLABA_COIN_OWNER.toLowerCase();
 
-      // Priority 1: Real ERC-20 Smart Contract call on SyllabaCoin.sol -> claimStudyReward(...)
-      if (walletClient && targetContract && hasGasBalance) {
+      // Priority 1A: Official Base Sepolia Syllaba Coin (0x95f9...0BFA7) -> rewardCompletedModule(address)
+      if (isOfficialDeployedSyl && targetContract) {
+        if (walletClient && isOwnerWallet && hasGasBalance) {
+          try {
+            const data = encodeFunctionData({
+              abi: SYLLABA_COIN_ABI,
+              functionName: "rewardCompletedModule",
+              args: [address],
+            });
+            const txHash = await walletClient.sendTransaction({
+              account: address,
+              chain: baseSepolia,
+              to: targetContract,
+              data,
+              value: BigInt(0),
+            });
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({ hash: txHash });
+              await refreshSylBalance();
+            }
+            return { txHash, proofType: "onchain-tx", contractAddress: targetContract };
+          } catch {
+            // Continue to relayer or calldata fallback
+          }
+        }
+
+        // Priority 1B: Optional server relayer for 0.25 SYL official contract
+        try {
+          const relayRes = await fetch("/api/syl/reward", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studentAddress: address }),
+          });
+          if (relayRes.ok) {
+            const relay = await relayRes.json();
+            if (relay?.ok && relay?.txHash) {
+              await refreshSylBalance();
+              return {
+                txHash: relay.txHash,
+                proofType: "onchain-tx",
+                contractAddress: targetContract,
+              };
+            }
+          }
+        } catch {
+          // Fall back if server relayer key is unset
+        }
+      }
+
+      // Priority 1C: Custom self-deployed SyllabaCoin.sol -> claimStudyReward(...)
+      if (walletClient && targetContract && !isOfficialDeployedSyl && hasGasBalance) {
         try {
           const data = encodeFunctionData({
             abi: SYLLABA_COIN_ABI,
@@ -795,6 +857,8 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         claimSylCoinsOnChain,
         sylCoinAddress,
         setSylCoinAddress,
+        isSylContractOwner:
+          address?.toLowerCase() === OFFICIAL_SYLLABA_COIN_OWNER.toLowerCase(),
         onChainSylBalance,
         refreshSylBalance,
         deployCoinContractOnChain,
