@@ -6,11 +6,14 @@ import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader"
 import { RoadmapTimeline } from "@/client/components/roadmap/RoadmapTimeline";
 import { getActiveRoadmap, saveRoadmap, getStoredRoadmaps, setActiveRoadmapId } from "@/client/utils/storage";
 import { BookOpen, Sparkles, CheckCircle2, ShieldCheck } from "lucide-react";
+import { WalletLogin } from "@/components/WalletLogin";
+import { useAccount } from "wagmi";
 
 export default function HomePage() {
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
   const [storedRoadmaps, setStoredRoadmaps] = useState<Roadmap[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const { address, isConnected } = useAccount();
 
   useEffect(() => {
     setIsClient(true);
@@ -41,7 +44,24 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+      {/* Bar Autentikasi Web3 Wallet (MetaMask via RainbowKit/Wagmi) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Web3 Student Identity
+          </p>
+          <p className="text-sm text-slate-700 mt-0.5">
+            {isConnected && address
+              ? "Your study roadmaps are linked to your connected wallet."
+              : "Connect MetaMask to link your decentralized profile & track progress."}
+          </p>
+        </div>
+        <div className="shrink-0">
+          <WalletLogin />
+        </div>
+      </div>
+
       {activeRoadmap ? (
         <div className="space-y-6">
           {storedRoadmaps.length > 1 && (
