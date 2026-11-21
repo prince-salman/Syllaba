@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Roadmap } from "@/shared/types/roadmap";
 import { SyllabusUploader } from "@/client/components/uploader/SyllabusUploader";
@@ -21,17 +20,23 @@ import {
 } from "@/client/utils/centralRoadmapSync";
 import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
+import { useLanguage } from "@/client/context/LanguageContext";
 import {
-  LayoutDashboard,
-  FolderKanban,
+  GlassySidebar,
+  SidebarView,
+} from "@/client/components/layout/GlassySidebar";
+import {
+  HelpContactPanel,
+  HistoryPanel,
+  SettingsPanel,
+} from "@/client/components/dashboard/WorkspacePanels";
+import {
   Plus,
   Sparkles,
   Calendar,
   CheckCircle2,
   Clock,
   TrendingUp,
-  LogOut,
-  LogIn,
   Flame,
   Coffee,
   Layers,
@@ -41,11 +46,14 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
-  const { address, isConnected } = useWeb3();
+  const { address, isConnected, openConnectModal } = useWeb3();
   const { user, signOut } = useAuth();
+  const { lang } = useLanguage();
+  const isId = lang === "id";
+
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
   const [storedRoadmaps, setStoredRoadmaps] = useState<Roadmap[]>([]);
-  const [showUploader, setShowUploader] = useState(false);
+  const [sidebarView, setSidebarView] = useState<SidebarView>("dashboard");
   const [isClient, setIsClient] = useState(false);
 
   const currentScope = useMemo(
@@ -60,7 +68,7 @@ export default function HomePage() {
 
       setStoredRoadmaps(localInitial);
       setActiveRoadmap(activeInitial);
-      setShowUploader(!activeInitial);
+      setSidebarView(activeInitial ? "dashboard" : "uploader");
 
       if (walletAddr && isConnected) {
         const merged = (await fetchCentralRoadmapsByWallet(walletAddr)).filter(
@@ -73,7 +81,7 @@ export default function HomePage() {
             merged.find((r) => r.id === savedActiveId) ?? merged[0];
           setActiveRoadmapId(nextActive.id, scope);
           setActiveRoadmap(nextActive);
-          setShowUploader(false);
+          setSidebarView("dashboard");
         }
         return;
       }
@@ -88,7 +96,7 @@ export default function HomePage() {
           synced.find((r) => r.id === savedActiveId) ?? synced[0];
         setActiveRoadmapId(nextActive.id, scope);
         setActiveRoadmap(nextActive);
-        setShowUploader(false);
+        setSidebarView("dashboard");
       }
     },
     [isConnected]
@@ -100,7 +108,6 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isClient) return;
-    // Reset state terlebih dahulu agar course wallet/user sebelumnya tidak nyangkut
     setActiveRoadmap(null);
     setStoredRoadmaps([]);
     void hydrateScopeRoadmaps(currentScope, isConnected ? address : null);
@@ -113,7 +120,7 @@ export default function HomePage() {
     }
     setActiveRoadmap(roadmap);
     setStoredRoadmaps(getStoredRoadmaps(currentScope));
-    setShowUploader(false);
+    setSidebarView("dashboard");
   };
 
   const handleSelectStoredRoadmap = (roadmapId: string) => {
@@ -121,8 +128,16 @@ export default function HomePage() {
     const found = storedRoadmaps.find((r) => r.id === roadmapId);
     if (found) {
       setActiveRoadmap(found);
-      setShowUploader(false);
+      setSidebarView("dashboard");
     }
+  };
+
+  const handleSelectSidebarView = (view: SidebarView) => {
+    if (view === "dashboard" && !activeRoadmap) {
+      setSidebarView("uploader");
+      return;
+    }
+    setSidebarView(view);
   };
 
   const handleSignOut = async () => {
@@ -199,172 +214,76 @@ export default function HomePage() {
     );
   }
 
-  const todayFormatted = new Intl.DateTimeFormat("en-GB", {
+  const todayFormatted = new Intl.DateTimeFormat(isId ? "id-ID" : "en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(new Date());
 
-  const isWorkspaceView = Boolean(activeRoadmap && !showUploader);
   const riskLevel = activeRoadmap?.burnoutMetrics?.riskLevel ?? "low";
 
+  const greetingSubtitle = (() => {
+    if (sidebarView === "history") {
+      return isId
+        ? "Kelola dan buka kembali seluruh roadmap kursus Anda."
+        : "Browse and reopen all of your generated study roadmaps.";
+    }
+    if (sidebarView === "settings-account" || sidebarView === "settings-language") {
+      return isId
+        ? "Atur informasi akun, koneksi dompet, dan bahasa antarmuka."
+        : "Configure account profile, Web3 wallet connection, and language.";
+    }
+    if (sidebarView === "help") {
+      return isId
+        ? "Pusat bantuan cepat dan kontak resmi tim ITSPIRIT."
+        : "Quick answers and direct contact with Team ITSPIRIT.";
+    }
+    if (sidebarView === "dashboard" && activeRoadmap) {
+      return isId
+        ? `Memantau "${activeRoadmap.courseTitle}" — jaga ritme belajar anti-burnout.`
+        : `Tracking "${activeRoadmap.courseTitle}" — stay steady, avoid burnout.`;
+    }
+    return isId
+      ? "Unggah silabus atau ringkasan tugas untuk menyusun roadmap anti-burnout."
+      : "Upload your syllabus or brief to generate an anti-burnout study roadmap.";
+  })();
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F4F7F5] py-5 px-3 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1380px] rounded-[28px] border border-[#E5ECE8] bg-white shadow-[0_20px_60px_-28px_rgba(13,25,19,0.12)] overflow-hidden">
+    <div
+      className={`min-h-[calc(100vh-4rem)] py-5 px-3 sm:px-6 lg:px-8 ${
+        user ? "bg-glass-canvas" : "bg-[#F4F7F5]"
+      }`}
+    >
+      <div
+        className={`mx-auto max-w-[1380px] rounded-[28px] border overflow-hidden ${
+          user
+            ? "border-white/70 bg-white/80 backdrop-blur-2xl shadow-[0_24px_70px_-24px_rgba(13,25,19,0.18)]"
+            : "border-[#E5ECE8] bg-white shadow-[0_20px_60px_-28px_rgba(13,25,19,0.12)]"
+        }`}
+      >
         <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[calc(100vh-7.5rem)]">
-          {/* Left Navigation Sidebar */}
-          <aside className="lg:col-span-3 xl:col-span-2 border-b lg:border-b-0 lg:border-r border-[#E5ECE8] bg-[#FAFDFB] p-5 flex flex-col justify-between gap-6">
-            <div className="space-y-6">
-              <div>
-                <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-[#6B7872] mb-2.5">
-                  Menu
-                </p>
-                <nav className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeRoadmap) setShowUploader(false);
-                    }}
-                    className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold transition relative ${
-                      isWorkspaceView
-                        ? "bg-[#DDF1E4]/70 text-[#125B3A]"
-                        : "text-[#6B7872] hover:bg-[#F4F7F5] hover:text-[#111815]"
-                    }`}
-                  >
-                    {isWorkspaceView && (
-                      <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#125B3A]" />
-                    )}
-                    <span className="flex items-center gap-2.5">
-                      <LayoutDashboard className="h-4 w-4" />
-                      Dashboard
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowUploader(true)}
-                    className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold transition relative ${
-                      !isWorkspaceView
-                        ? "bg-[#DDF1E4]/70 text-[#125B3A]"
-                        : "text-[#6B7872] hover:bg-[#F4F7F5] hover:text-[#111815]"
-                    }`}
-                  >
-                    {!isWorkspaceView && (
-                      <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#125B3A]" />
-                    )}
-                    <span className="flex items-center gap-2.5">
-                      <Plus className="h-4 w-4" />
-                      New Syllabus
-                    </span>
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#125B3A] text-white text-[10px]">
-                      +
-                    </span>
-                  </button>
-                </nav>
-              </div>
-
-              {/* Saved Courses List */}
-              <div>
-                <div className="flex items-center justify-between px-3 mb-2">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#6B7872]">
-                    Courses
-                  </p>
-                  <span className="rounded-full bg-[#E5ECE8] px-2 py-0.5 text-[10px] font-bold text-[#125B3A]">
-                    {storedRoadmaps.length}
-                  </span>
-                </div>
-
-                {storedRoadmaps.length === 0 ? (
-                  <p className="px-3 text-xs text-[#6B7872] leading-relaxed">
-                    No roadmaps yet. Upload your first syllabus to generate tasks.
-                  </p>
-                ) : (
-                  <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
-                    {storedRoadmaps.map((r) => {
-                      const isSelected =
-                        isWorkspaceView && activeRoadmap?.id === r.id;
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => handleSelectStoredRoadmap(r.id)}
-                          className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${
-                            isSelected
-                              ? "bg-[#125B3A] text-white shadow-xs"
-                              : "text-[#4D5A54] hover:bg-[#F4F7F5] hover:text-[#111815]"
-                          }`}
-                        >
-                          <FolderKanban className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{r.courseTitle}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom Dark Bento Card + Auth Action */}
-            <div className="space-y-4">
-              <div className="rounded-2xl bg-emerald-bento p-4 text-white relative overflow-hidden">
-                <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[#52B788]/25 blur-xl pointer-events-none" />
-                <div className="relative z-10">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#DDF1E4]">
-                    <Sparkles className="h-3 w-3 text-[#52B788]" />
-                    5-Agent Pipeline
-                  </span>
-                  <p className="mt-2.5 text-sm font-bold leading-snug">
-                    Start a New Sprint
-                  </p>
-                  <p className="mt-1 text-[11px] text-[#CBE3D6] leading-relaxed">
-                    Slice heavy syllabi into calm 15–30m micro-tasks.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowUploader(true)}
-                    className="mt-3 w-full rounded-xl bg-[#52B788] hover:bg-[#3FA474] text-[#0D1913] font-bold py-2 text-xs transition"
-                  >
-                    + Generate Plan
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-[#E5ECE8]">
-                {user ? (
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-[#6B7872] hover:bg-[#F4E0E6]/60 hover:text-[#9B1C44] transition"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Log out
-                  </button>
-                ) : (
-                  <Link
-                    href="/login"
-                    className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-[#125B3A] hover:bg-[#DDF1E4]/70 transition"
-                  >
-                    <LogIn className="h-4 w-4" />
-                    Sign in / Register
-                  </Link>
-                )}
-              </div>
-            </div>
-          </aside>
+          <GlassySidebar
+            user={user}
+            walletAddress={address}
+            isWalletConnected={isConnected}
+            displayName={displayName}
+            activeView={sidebarView}
+            onSelectView={handleSelectSidebarView}
+            storedRoadmaps={storedRoadmaps}
+            activeRoadmapId={activeRoadmap?.id}
+            onSelectRoadmap={handleSelectStoredRoadmap}
+            onSignOut={() => void handleSignOut()}
+          />
 
           {/* Main Workspace Area */}
-          <section className="lg:col-span-9 xl:col-span-10 p-5 sm:p-7 lg:p-8 bg-white">
+          <section className="lg:col-span-9 xl:col-span-10 p-5 sm:p-7 lg:p-8 bg-white/95">
             {/* Top Greeting & Date Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5ECE8]">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#111815]">
-                  Hello, {displayName}
+                  {isId ? `Halo, ${displayName}` : `Hello, ${displayName}`}
                 </h1>
-                <p className="mt-1 text-sm text-[#6B7872]">
-                  {isWorkspaceView
-                    ? `Tracking "${activeRoadmap?.courseTitle}" — stay steady, avoid burnout.`
-                    : "Upload your syllabus or brief to generate an anti-burnout study roadmap."}
-                </p>
+                <p className="mt-1 text-sm text-[#6B7872]">{greetingSubtitle}</p>
               </div>
 
               <div className="flex items-center gap-2.5 self-start sm:self-auto">
@@ -372,27 +291,64 @@ export default function HomePage() {
                   <Calendar className="h-3.5 w-3.5 text-[#125B3A]" />
                   <span>{todayFormatted}</span>
                 </div>
-                {isWorkspaceView && (
+                {sidebarView !== "uploader" && (
                   <button
                     type="button"
-                    onClick={() => setShowUploader(true)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#52B788] hover:bg-[#1F7A4F] text-white px-3.5 py-2 text-xs font-bold shadow-xs transition"
+                    onClick={() => setSidebarView("uploader")}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#52B788] hover:bg-[#1F7A4F] text-white px-3.5 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Add Course
+                    <span>{isId ? "Tambah Silabus" : "Add Course"}</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {isWorkspaceView && activeRoadmap ? (
+            {sidebarView === "history" && (
+              <div className="mt-6">
+                <HistoryPanel
+                  roadmaps={storedRoadmaps}
+                  activeRoadmapId={activeRoadmap?.id}
+                  onSelectRoadmap={handleSelectStoredRoadmap}
+                  onCreateNew={() => setSidebarView("uploader")}
+                />
+              </div>
+            )}
+
+            {(sidebarView === "settings-account" ||
+              sidebarView === "settings-language") && (
+              <div className="mt-6">
+                <SettingsPanel
+                  activeSubTab={
+                    sidebarView === "settings-language" ? "language" : "account"
+                  }
+                  onChangeSubTab={(tab) =>
+                    setSidebarView(
+                      tab === "language" ? "settings-language" : "settings-account"
+                    )
+                  }
+                  user={user}
+                  walletAddress={address}
+                  isWalletConnected={isConnected}
+                  onOpenWalletModal={openConnectModal}
+                />
+              </div>
+            )}
+
+            {sidebarView === "help" && (
+              <div className="mt-6">
+                <HelpContactPanel />
+              </div>
+            )}
+
+            {sidebarView === "dashboard" && activeRoadmap && (
               <div className="mt-6 space-y-6">
                 {/* 3 KPI Bento Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-2xl bg-emerald-kpi p-5 text-white shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[#DDF1E4]">
-                        Finished Tasks
+                        {isId ? "Tugas Selesai" : "Finished Tasks"}
                       </span>
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 border border-white/20">
                         <CheckCircle2 className="h-4 w-4 text-[#DDF1E4]" />
@@ -403,16 +359,18 @@ export default function HomePage() {
                     </p>
                     <div className="mt-3 flex items-center gap-2 text-xs text-[#DDF1E4]">
                       <span className="rounded-md bg-white/15 px-2 py-0.5 font-semibold">
-                        of {metrics.total}
+                        {isId ? `dari ${metrics.total}` : `of ${metrics.total}`}
                       </span>
-                      <span>micro-tasks completed</span>
+                      <span>
+                        {isId ? "micro-task selesai" : "micro-tasks completed"}
+                      </span>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[#6B7872]">
-                        Tracked Load
+                        {isId ? "Total Beban Belajar" : "Tracked Load"}
                       </span>
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F4F7F5] border border-[#E5ECE8] text-[#111815]">
                         <Clock className="h-4 w-4" />
@@ -423,16 +381,18 @@ export default function HomePage() {
                     </p>
                     <div className="mt-3 flex items-center gap-2 text-xs text-[#6B7872]">
                       <span className="rounded-md bg-[#F4E0E6] text-[#9B1C44] px-2 py-0.5 font-semibold">
-                        {activeRoadmap.totalDays} days
+                        {activeRoadmap.totalDays} {isId ? "hari" : "days"}
                       </span>
-                      <span>anti-burnout span</span>
+                      <span>
+                        {isId ? "durasi anti-burnout" : "anti-burnout span"}
+                      </span>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-[#E5ECE8] bg-white p-5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[#6B7872]">
-                        Efficiency
+                        {isId ? "Efisiensi" : "Efficiency"}
                       </span>
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F4F7F5] border border-[#E5ECE8] text-[#111815]">
                         <TrendingUp className="h-4 w-4" />
@@ -453,7 +413,9 @@ export default function HomePage() {
                       >
                         {riskLevel} risk
                       </span>
-                      <span>burnout index</span>
+                      <span>
+                        {isId ? "indeks kelelahan" : "burnout index"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -463,7 +425,7 @@ export default function HomePage() {
                   <div className="rounded-2xl bg-[#DDF1E4] px-4 py-3.5 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold text-[#125B3A]">
-                        Completed
+                        {isId ? "Selesai" : "Completed"}
                       </p>
                       <p className="text-xl font-extrabold text-[#111815] mt-0.5">
                         {metrics.finished}
@@ -475,7 +437,7 @@ export default function HomePage() {
                   <div className="rounded-2xl bg-[#DCEBF7] px-4 py-3.5 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold text-[#235789]">
-                        In Progress
+                        {isId ? "Tersisa" : "In Progress"}
                       </p>
                       <p className="text-xl font-extrabold text-[#111815] mt-0.5">
                         {metrics.remaining}
@@ -499,7 +461,7 @@ export default function HomePage() {
                   <div className="rounded-2xl bg-[#F6EDCA] px-4 py-3.5 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold text-[#8B6B15]">
-                        Rest Days
+                        {isId ? "Hari Istirahat" : "Rest Days"}
                       </p>
                       <p className="text-xl font-extrabold text-[#111815] mt-0.5">
                         {metrics.restDays}
@@ -520,10 +482,13 @@ export default function HomePage() {
                       void syncRoadmapToCentral(address, updated);
                     }
                   }}
-                  onNewRoadmap={() => setShowUploader(true)}
+                  onNewRoadmap={() => setSidebarView("uploader")}
                 />
               </div>
-            ) : (
+            )}
+
+            {(sidebarView === "uploader" ||
+              (sidebarView === "dashboard" && !activeRoadmap)) && (
               <div className="mt-6 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                 <div className="xl:col-span-5 space-y-4">
                   <div className="rounded-2xl bg-emerald-bento p-6 text-white relative overflow-hidden">
@@ -533,10 +498,14 @@ export default function HomePage() {
                       Multi-Agent Academic Pacing
                     </span>
                     <h2 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight">
-                      Turn Dense Syllabi Into Verified 15-Minute Daily Sprints
+                      {isId
+                        ? "Ubah Silabus Padat Menjadi Sprint 15-Menit Terverifikasi"
+                        : "Turn Dense Syllabi Into Verified 15-Minute Daily Sprints"}
                     </h2>
                     <p className="mt-2.5 text-xs sm:text-sm text-[#CBE3D6] leading-relaxed">
-                      Designed for students who want steady academic momentum without late-night cramming or burnout.
+                      {isId
+                        ? "Dirancang agar mahasiswa menjaga konsistensi belajar tanpa begadang maupun burnout."
+                        : "Designed for students who want steady academic momentum without late-night cramming or burnout."}
                     </p>
                   </div>
 
@@ -547,10 +516,14 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h3 className="text-xs font-bold text-[#111815]">
-                          Smart Syllabus Decomposition
+                          {isId
+                            ? "Dekomposisi Silabus Cerdas"
+                            : "Smart Syllabus Decomposition"}
                         </h3>
                         <p className="text-[11px] text-[#6B7872] mt-0.5 leading-relaxed">
-                          Breaks complex PDFs and briefs into daily micro-tasks with clear time estimates.
+                          {isId
+                            ? "Memecah PDF, DOCX, PPTX, dan catatan menjadi micro-task harian 15-30 menit."
+                            : "Breaks complex PDFs and briefs into daily micro-tasks with clear time estimates."}
                         </p>
                       </div>
                     </div>
@@ -561,10 +534,14 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h3 className="text-xs font-bold text-[#111815]">
-                          Anti-Burnout Guardrails
+                          {isId
+                            ? "Penjaga Anti-Burnout"
+                            : "Anti-Burnout Guardrails"}
                         </h3>
                         <p className="text-[11px] text-[#6B7872] mt-0.5 leading-relaxed">
-                          Balances deep focus tasks, scheduled rest days, and guilt-free rescheduling.
+                          {isId
+                            ? "Menyeimbangkan sesi fokus mendalam, hari istirahat, dan penjadwalan ulang otomatis."
+                            : "Balances deep focus tasks, scheduled rest days, and guilt-free rescheduling."}
                         </p>
                       </div>
                     </div>

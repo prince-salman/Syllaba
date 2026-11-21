@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Web3Providers } from "@/components/Web3Providers";
 import { AuthProvider } from "@/client/components/auth/AuthProvider";
+import { LanguageProvider } from "@/client/context/LanguageContext";
 import { AppShell } from "@/client/components/layout/AppShell";
 
 export const metadata: Metadata = {
@@ -20,7 +21,9 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col antialiased bg-[#F4F7F5] text-[#111815]">
         <Web3Providers>
           <AuthProvider>
-            <AppShell>{children}</AppShell>
+            <LanguageProvider>
+              <AppShell>{children}</AppShell>
+            </LanguageProvider>
           </AuthProvider>
         </Web3Providers>
       </body>
