@@ -164,9 +164,74 @@ function buildFallbackExam(
       : stage === "mid"
       ? `Mid-Session AI Assessment — Days 1 to ${triggerDayNumber}`
       : `Final Comprehensive AI Assessment — Full Course Mastery`,
-    multipleChoice,
+    multipleChoice: randomizeMultipleChoiceOptions(multipleChoice),
     essays,
   };
+}
+
+function shuffleInPlace<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Strip accidental leading option letters (e.g. "A. ", "B) ") and redistribute
+ * correct answers evenly across A/B/C/D (indices 0..3) while keeping options synced.
+ */
+function randomizeMultipleChoiceOptions(
+  questions: ExamMultipleChoiceQuestion[]
+): ExamMultipleChoiceQuestion[] {
+  if (questions.length === 0) return questions;
+
+  // Build balanced target indices: ensure every letter A..D appears before repeating
+  const targetIndices: number[] = [];
+  while (targetIndices.length < questions.length) {
+    targetIndices.push(...shuffleInPlace([0, 1, 2, 3]));
+  }
+  const balancedTargets = shuffleInPlace(targetIndices.slice(0, questions.length));
+
+  return questions.map((q, qIdx) => {
+    const cleanedOptions = q.options.slice(0, 4).map((opt) =>
+      String(opt).replace(/^[A-Da-d][\)\.]\s+/, "").trim()
+    );
+    const origIdx =
+      typeof q.correctIndex === "number" && q.correctIndex >= 0 && q.correctIndex < cleanedOptions.length
+        ? q.correctIndex
+        : 0;
+
+    const correctText = cleanedOptions[origIdx];
+    const distractors = shuffleInPlace(
+      cleanedOptions.filter((_, idx) => idx !== origIdx)
+    );
+
+    const targetIdx = balancedTargets[qIdx] % 4;
+    const arrangedOptions: string[] = [];
+    let dPtr = 0;
+    for (let slot = 0; slot < 4; slot++) {
+      if (slot === targetIdx) {
+        arrangedOptions.push(correctText);
+      } else {
+        arrangedOptions.push(distractors[dPtr++] ?? cleanedOptions[slot] ?? "");
+      }
+    }
+
+    const tupleOptions: [string, string, string, string] = [
+      arrangedOptions[0] ?? "",
+      arrangedOptions[1] ?? "",
+      arrangedOptions[2] ?? "",
+      arrangedOptions[3] ?? "",
+    ];
+
+    return {
+      ...q,
+      options: tupleOptions,
+      correctIndex: targetIdx,
+    };
+  });
 }
 
 async function generateExamWithGemini(
@@ -211,8 +276,9 @@ STRICT RULES:
 1. Every single question MUST directly test the specific slide concepts, definitions, mechanisms, and mathematical formulas found in the provided study tasks.
 2. Every question MUST cite the exact Slide/Module reference in "slideReference".
 3. MANDATORY LATEX FORMULAS: Use valid inline LaTeX ($...$) in prompts, options, explanations, and sampleAnswers for equations, variables, functions, complexity bounds, or formal relationships.
-4. CRITICAL LANGUAGE RULE: Write EVERY field (title, prompts, options, explanations, expectedKeywords, sampleAnswers) 100% in ${langName}.
-5. Return ONLY valid JSON matching the schema.`;
+4. BALANCED ANSWER DISTRIBUTION: Do NOT put every correct answer at index 0 ("A"). Distribute "correctIndex" evenly across 0, 1, 2, and 3 across the 5 questions, and do NOT prefix option strings with "A. ", "B. ", "C. ", or "D. ".
+5. CRITICAL LANGUAGE RULE: Write EVERY field (title, prompts, options, explanations, expectedKeywords, sampleAnswers) 100% in ${langName}.
+6. Return ONLY valid JSON matching the schema.`;
 
   const prompt = `Generate the ${stage === "mid" ? "Mid-Session Exam (first half of course)" : "Final Comprehensive Exam (second half & synthesis of course)"} for:
 Course: ${courseTitle}
@@ -221,7 +287,7 @@ Milestone Trigger Day: Day ${triggerDayNumber}
 Covered Study Tasks & Slide Material:
 ${taskDigest.slice(0, 12000)}
 
-Return JSON with this exact structure:
+Return JSON with this exact structure (remember to vary correctIndex across 0, 1, 2, 3 across the 5 multipleChoice items):
 {
   "title": "${fallback.title}",
   "multipleChoice": [
@@ -229,8 +295,8 @@ Return JSON with this exact structure:
       "number": 1,
       "slideReference": "Slide 1: Exact Heading",
       "prompt": "Question text with inline LaTeX $...$",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctIndex": 0,
+      "options": ["Option text 1", "Option text 2", "Option text 3", "Option text 4"],
+      "correctIndex": 2,
       "explanation": "Detailed explanation referencing Slide 1 and formula $...$"
     }
   ],
@@ -324,7 +390,7 @@ Return JSON with this exact structure:
         stage,
         triggerDayNumber,
         title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : fallback.title,
-        multipleChoice,
+        multipleChoice: randomizeMultipleChoiceOptions(multipleChoice),
         essays,
       };
     } catch {
