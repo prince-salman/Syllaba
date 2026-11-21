@@ -32,7 +32,7 @@ import {
   useWalletClient,
 } from "wagmi";
 import { base, baseSepolia, mainnet, sepolia } from "wagmi/chains";
-import { encodeFunctionData, formatEther, parseEther } from "viem";
+import { encodeFunctionData, formatEther, parseEther, stringToHex } from "viem";
 import { SYLLABA_VAULT_ABI, SYLLABA_VAULT_BYTECODE } from "@/shared/contracts/syllabaVault";
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
@@ -109,6 +109,13 @@ interface Web3ContextValue {
     vaultAddress: `0x${string}`;
     roadmapHash: `0x${string}`;
   }) => Promise<string>;
+  anchorCertificateOnChain: (params: {
+    certificateHash: `0x${string}`;
+    ipfsCid: string;
+    courseTitle: string;
+    recipientName: string;
+    finalGradeScore: number;
+  }) => Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature" }>;
 }
 
 const DEFAULT_WEB3_CONTEXT: Web3ContextValue = {
@@ -129,6 +136,7 @@ const DEFAULT_WEB3_CONTEXT: Web3ContextValue = {
   commitStudyPlanOnChain: async () => "",
   verifyMilestoneOnChain: async () => "",
   claimStudyCredentialOnChain: async () => "",
+  anchorCertificateOnChain: async () => ({ txHash: "", proofType: "eip191-signature" }),
 };
 
 const Web3Context = createContext<Web3ContextValue>(DEFAULT_WEB3_CONTEXT);
@@ -365,6 +373,51 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
     [address, chainId, switchToBaseSepolia, walletClient]
   );
 
+  const anchorCertificateOnChain = useCallback(
+    async (params: {
+      certificateHash: `0x${string}`;
+      ipfsCid: string;
+      courseTitle: string;
+      recipientName: string;
+      finalGradeScore: number;
+    }): Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature" }> => {
+      if (!isConnected || !address) {
+        throw new Error("Wallet is not connected.");
+      }
+
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        await switchToBaseSepolia();
+      }
+
+      const hasGasBalance = balanceData?.value !== undefined && balanceData.value > BigInt(30000000000000);
+
+      if (walletClient && hasGasBalance) {
+        try {
+          const calldata = stringToHex(
+            `SYLLABA_CERT|${params.certificateHash}|${params.ipfsCid}|${params.finalGradeScore}`
+          );
+          const txHash = await walletClient.sendTransaction({
+            account: address,
+            chain: baseSepolia,
+            to: address,
+            data: calldata,
+            value: BigInt(0),
+          });
+          return { txHash, proofType: "onchain-tx" };
+        } catch {
+          // Fall back to cryptographic EIP-191 attestation if user rejects gas TX
+        }
+      }
+
+      const sigHash = await signMessageAsync({
+        message: `Syllaba On-Chain Academic Certificate\nRecipient: ${params.recipientName}\nWallet: ${address}\nCourse: ${params.courseTitle}\nFinal Score: ${params.finalGradeScore}/100\nCertificate Hash: ${params.certificateHash}\nIPFS CID: ${params.ipfsCid}\nNetwork: Base Sepolia (84532)`,
+      });
+
+      return { txHash: sigHash, proofType: "eip191-signature" };
+    },
+    [address, balanceData?.value, chainId, isConnected, signMessageAsync, switchToBaseSepolia, walletClient]
+  );
+
   return (
     <Web3Context.Provider
       value={{
@@ -385,6 +438,7 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         commitStudyPlanOnChain,
         verifyMilestoneOnChain,
         claimStudyCredentialOnChain,
+        anchorCertificateOnChain,
       }}
     >
       {children}

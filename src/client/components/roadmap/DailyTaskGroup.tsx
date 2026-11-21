@@ -2,11 +2,13 @@ import React from "react";
 import { DailySchedule, RoadmapTask } from "@/shared/types/roadmap";
 import { TaskItem } from "./TaskItem";
 import { formatDate, formatMinutes } from "@/shared/utils";
-import { Coffee, Clock, CheckCircle2 } from "lucide-react";
+import { Coffee, Clock, CheckCircle2, Lock } from "lucide-react";
 import { CognitiveBadge } from "@/client/components/common/Badge";
 
 interface DailyTaskGroupProps {
   schedule: DailySchedule;
+  isLocked?: boolean;
+  lockReason?: string;
   onToggleTask: (taskId: string, completed: boolean) => void;
   onToggleSubtask: (taskId: string, subtaskId: string, completed: boolean) => void;
   onOpenFocusTimer: (task: RoadmapTask) => void;
@@ -14,6 +16,8 @@ interface DailyTaskGroupProps {
 
 export function DailyTaskGroup({
   schedule,
+  isLocked = false,
+  lockReason,
   onToggleTask,
   onToggleSubtask,
   onOpenFocusTimer,
@@ -52,25 +56,49 @@ export function DailyTaskGroup({
   const isDayFullyCompleted = schedule.tasks.length > 0 && completedCount === schedule.tasks.length;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-slate-50/80 border-b border-slate-200/80">
+    <div
+      className={`rounded-xl border bg-white shadow-xs overflow-hidden transition-opacity ${
+        isLocked ? "border-slate-200/80 opacity-85" : "border-slate-200"
+      }`}
+    >
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b ${
+          isLocked
+            ? "bg-slate-100/90 border-slate-200"
+            : "bg-slate-50/80 border-slate-200/80"
+        }`}
+      >
         <div className="flex items-center gap-2.5">
           <div
             className={`flex h-7 w-7 items-center justify-center rounded-md font-bold text-xs ${
-              isDayFullyCompleted
+              isLocked
+                ? "bg-slate-200 text-slate-600 border border-slate-300"
+                : isDayFullyCompleted
                 ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                 : "bg-white text-slate-800 border border-slate-200"
             }`}
           >
-            {isDayFullyCompleted ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : `D${schedule.dayNumber}`}
+            {isLocked ? (
+              <Lock className="w-3.5 h-3.5 text-slate-600" />
+            ) : isDayFullyCompleted ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            ) : (
+              `D${schedule.dayNumber}`
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-slate-900">
               Day {schedule.dayNumber}
             </h3>
             <span className="text-xs text-slate-500">
               {formatDate(schedule.date)}
             </span>
+            {isLocked && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                <Lock className="w-2.5 h-2.5" />
+                <span>Sequential Lock</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -86,11 +114,19 @@ export function DailyTaskGroup({
         </div>
       </div>
 
+      {isLocked && lockReason && (
+        <div className="bg-amber-50/90 border-b border-amber-200/80 px-4 py-2 flex items-center gap-2 text-xs font-medium text-amber-900">
+          <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+          <span>{lockReason}</span>
+        </div>
+      )}
+
       <div className="divide-y divide-slate-100">
         {schedule.tasks.map((task) => (
           <TaskItem
             key={task.id}
             task={task}
+            isLocked={isLocked}
             onToggleTask={onToggleTask}
             onToggleSubtask={onToggleSubtask}
             onOpenFocusTimer={onOpenFocusTimer}

@@ -84,6 +84,67 @@ export interface OnChainProofRecord {
   createdAt: string;
 }
 
+export type ExamStage = "mid" | "final";
+
+export interface ExamMultipleChoiceQuestion {
+  id: string;
+  number: number;
+  slideReference: string;
+  prompt: string;
+  options: [string, string, string, string];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface ExamEssayQuestion {
+  id: string;
+  number: number;
+  slideReference: string;
+  prompt: string;
+  expectedKeywords: string[];
+  sampleAnswer: string;
+}
+
+export interface ExamSubmission {
+  mcAnswers: Record<string, number>;
+  essayAnswers: Record<string, string>;
+  mcScore: number;
+  essayScore: number;
+  totalScore: number;
+  passed: boolean;
+  essayFeedback: Record<string, string>;
+  submittedAt: string;
+}
+
+export interface MilestoneExam {
+  id: string;
+  stage: ExamStage;
+  triggerDayNumber: number;
+  title: string;
+  multipleChoice: ExamMultipleChoiceQuestion[];
+  essays: ExamEssayQuestion[];
+  submission?: ExamSubmission;
+}
+
+export interface BlockchainCertificateRecord {
+  certificateId: string;
+  recipientName: string;
+  walletAddress: string;
+  courseTitle: string;
+  midExamScore: number;
+  finalExamScore: number;
+  finalGradeScore: number;
+  totalDays: number;
+  totalTasks: number;
+  certificateHash: string;
+  ipfsCid: string;
+  txHash: string;
+  vaultAddress?: string;
+  chainId: number;
+  proofType: "onchain-tx" | "eip191-signature";
+  issuedAt: string;
+}
+
 export interface Roadmap {
   id: string;
   courseTitle: string;
@@ -97,6 +158,11 @@ export interface Roadmap {
   burnoutMetrics: BurnoutMetrics;
   modulesSummary?: ExtractedModule[];
   curatedResources?: CuratedResource[];
+  exams?: {
+    mid?: MilestoneExam;
+    final?: MilestoneExam;
+  };
+  certificate?: BlockchainCertificateRecord;
   walletAddress?: string;
   roadmapHash?: string;
   createdAt: string;

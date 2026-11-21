@@ -5,10 +5,11 @@ import { RoadmapTask } from "@/shared/types/roadmap";
 import { CategoryBadge, CognitiveBadge } from "@/client/components/common/Badge";
 import { LatexText } from "@/client/components/common/LatexText";
 import { formatMinutes } from "@/shared/utils";
-import { Check, Clock, ChevronDown, ChevronUp, Timer } from "lucide-react";
+import { Check, Clock, ChevronDown, ChevronUp, Lock, Timer } from "lucide-react";
 
 interface TaskItemProps {
   task: RoadmapTask;
+  isLocked?: boolean;
   onToggleTask: (taskId: string, completed: boolean) => void;
   onToggleSubtask: (taskId: string, subtaskId: string, completed: boolean) => void;
   onOpenFocusTimer: (task: RoadmapTask) => void;
@@ -16,6 +17,7 @@ interface TaskItemProps {
 
 export function TaskItem({
   task,
+  isLocked = false,
   onToggleTask,
   onToggleSubtask,
   onOpenFocusTimer,
@@ -25,25 +27,46 @@ export function TaskItem({
   return (
     <div
       className={`px-4 py-3.5 transition-colors ${
-        task.isCompleted ? "bg-slate-50/70 text-slate-500" : "bg-white hover:bg-slate-50/40 text-slate-900"
+        isLocked
+          ? "bg-slate-50/50 text-slate-500"
+          : task.isCompleted
+          ? "bg-slate-50/70 text-slate-500"
+          : "bg-white hover:bg-slate-50/40 text-slate-900"
       }`}
     >
       <div className="flex items-start gap-2.5 sm:gap-3">
         <button
           type="button"
-          onClick={() => onToggleTask(task.id, !task.isCompleted)}
-          className="-m-1.5 p-1.5 touch-manipulation flex items-center justify-center shrink-0 cursor-pointer group/check"
-          aria-label={task.isCompleted ? "Mark incomplete" : "Mark complete"}
+          disabled={isLocked}
+          onClick={() => {
+            if (!isLocked) onToggleTask(task.id, !task.isCompleted);
+          }}
+          className={`-m-1.5 p-1.5 touch-manipulation flex items-center justify-center shrink-0 ${
+            isLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer group/check"
+          }`}
+          aria-label={
+            isLocked
+              ? "Locked until previous day is complete"
+              : task.isCompleted
+              ? "Mark incomplete"
+              : "Mark complete"
+          }
           aria-pressed={task.isCompleted}
         >
           <span
-            className={`flex h-6 w-6 sm:h-5 sm:w-5 items-center justify-center rounded-md border transition-all duration-150 group-active/check:scale-90 ${
-              task.isCompleted
-                ? "border-[#111111] bg-[#111111] text-[#FACC15] shadow-2xs scale-100"
-                : "border-slate-300 bg-white hover:border-[#111111]"
+            className={`flex h-6 w-6 sm:h-5 sm:w-5 items-center justify-center rounded-md border transition-all duration-150 ${
+              isLocked
+                ? "border-slate-300 bg-slate-100 text-slate-400"
+                : task.isCompleted
+                ? "border-[#111111] bg-[#111111] text-[#FACC15] shadow-2xs scale-100 group-active/check:scale-90"
+                : "border-slate-300 bg-white hover:border-[#111111] group-active/check:scale-90"
             }`}
           >
-            {task.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+            {isLocked ? (
+              <Lock className="w-3 h-3 text-slate-400" />
+            ) : (
+              task.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />
+            )}
           </span>
         </button>
 
@@ -97,18 +120,29 @@ export function TaskItem({
                 <li key={subtask.id} className="flex items-start gap-2.5 text-xs text-slate-800 leading-relaxed">
                   <button
                     type="button"
-                    onClick={() => onToggleSubtask(task.id, subtask.id, !subtask.isCompleted)}
-                    className="mt-0.5 -m-1 p-1 touch-manipulation flex items-center justify-center shrink-0 cursor-pointer"
+                    disabled={isLocked}
+                    onClick={() => {
+                      if (!isLocked) onToggleSubtask(task.id, subtask.id, !subtask.isCompleted);
+                    }}
+                    className={`mt-0.5 -m-1 p-1 touch-manipulation flex items-center justify-center shrink-0 ${
+                      isLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                    }`}
                     aria-pressed={subtask.isCompleted}
                   >
                     <span
                       className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
-                        subtask.isCompleted
+                        isLocked
+                          ? "border-slate-300 bg-slate-100 text-slate-400"
+                          : subtask.isCompleted
                           ? "border-[#111111] bg-[#111111] text-[#FACC15]"
                           : "border-slate-300 bg-white hover:border-[#111111]"
                       }`}
                     >
-                      {subtask.isCompleted && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                      {isLocked ? (
+                        <Lock className="w-2.5 h-2.5 text-slate-400" />
+                      ) : (
+                        subtask.isCompleted && <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      )}
                     </span>
                   </button>
                   <span className={subtask.isCompleted ? "line-through text-slate-400" : "text-slate-800"}>
@@ -123,12 +157,23 @@ export function TaskItem({
         <div className="shrink-0">
           <button
             type="button"
-            onClick={() => onOpenFocusTimer(task)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700 transition-colors cursor-pointer shadow-2xs"
-            title="Launch Focus Timer"
+            disabled={isLocked}
+            onClick={() => {
+              if (!isLocked) onOpenFocusTimer(task);
+            }}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors shadow-2xs ${
+              isLocked
+                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700 cursor-pointer"
+            }`}
+            title={isLocked ? "Complete previous days to unlock" : "Launch Focus Timer"}
           >
-            <Timer className="w-3.5 h-3.5 text-brand-600" />
-            <span className="hidden sm:inline">Focus</span>
+            {isLocked ? (
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+            ) : (
+              <Timer className="w-3.5 h-3.5 text-brand-600" />
+            )}
+            <span className="hidden sm:inline">{isLocked ? "Locked" : "Focus"}</span>
           </button>
         </div>
       </div>
