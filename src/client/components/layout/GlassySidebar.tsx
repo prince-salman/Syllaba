@@ -7,6 +7,7 @@ import { Roadmap } from "@/shared/types/roadmap";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   FolderKanban,
@@ -18,9 +19,11 @@ import {
   LogOut,
   Menu,
   PanelLeftClose,
+  Pencil,
   Plus,
   Settings,
   Sparkles,
+  Trash2,
   User as UserIcon,
   X,
 } from "lucide-react";
@@ -45,6 +48,8 @@ interface GlassySidebarProps {
   storedRoadmaps: Roadmap[];
   activeRoadmapId?: string | null;
   onSelectRoadmap: (roadmapId: string) => void;
+  onRenameRoadmap: (roadmapId: string, newTitle: string) => void;
+  onDeleteRoadmap: (roadmapId: string) => void;
   onSignOut: () => void;
   onDisconnectWallet: () => void;
 }
@@ -61,10 +66,15 @@ export function GlassySidebar({
   storedRoadmaps,
   activeRoadmapId,
   onSelectRoadmap,
+  onRenameRoadmap,
+  onDeleteRoadmap,
   onSignOut,
   onDisconnectWallet,
 }: GlassySidebarProps) {
   const { lang, copy } = useLanguage();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isSettingsActive =
     activeView === "settings-account" || activeView === "settings-language";
@@ -218,24 +228,125 @@ export function GlassySidebar({
               {copy.noRoadmaps}
             </p>
           ) : (
-            <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-              {storedRoadmaps.slice(0, 6).map((r) => {
+            <div className="space-y-1 max-h-44 overflow-y-auto pr-1">
+              {storedRoadmaps.slice(0, 8).map((r) => {
                 const isSelected =
                   activeView === "dashboard" && activeRoadmapId === r.id;
+                if (editingId === r.id) {
+                  return (
+                    <form
+                      key={r.id}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (draftTitle.trim()) {
+                          onRenameRoadmap(r.id, draftTitle.trim());
+                        }
+                        setEditingId(null);
+                      }}
+                      className="flex items-center gap-1 rounded-xl bg-white px-2 py-1 border border-[#111111]/20"
+                    >
+                      <input
+                        type="text"
+                        value={draftTitle}
+                        onChange={(e) => setDraftTitle(e.target.value)}
+                        autoFocus
+                        className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-[#111111] focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="p-1 text-[#111111] hover:text-[#D97706] cursor-pointer"
+                        title={copy.save}
+                      >
+                        <Check className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="p-1 text-[#666660] hover:text-[#111111] cursor-pointer"
+                        title={copy.cancel}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </form>
+                  );
+                }
+
                 return (
-                  <button
+                  <div
                     key={r.id}
-                    type="button"
-                    onClick={() => onSelectRoadmap(r.id)}
-                    className={`w-full flex items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs font-semibold transition cursor-pointer ${
+                    className={`group flex items-center justify-between gap-1 rounded-xl px-2 py-1 transition ${
                       isSelected
                         ? "bg-[#111111] text-[#FACC15] shadow-xs"
                         : "text-[#52524C] hover:bg-white/70 hover:text-[#111111]"
                     }`}
                   >
-                    <FolderKanban className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{r.courseTitle}</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelectRoadmap(r.id)}
+                      className="min-w-0 flex-1 flex items-center gap-2 px-1 py-0.5 text-left text-xs font-semibold cursor-pointer"
+                    >
+                      <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{r.courseTitle}</span>
+                    </button>
+
+                    {confirmDeleteId === r.id ? (
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDeleteRoadmap(r.id);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="rounded-md bg-red-600 p-1 text-white cursor-pointer"
+                          title={copy.deleteCourse}
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded-md bg-white/80 p-1 text-[#111111] cursor-pointer"
+                          title={copy.cancel}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-85 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(r.id);
+                            setDraftTitle(r.courseTitle);
+                            setConfirmDeleteId(null);
+                          }}
+                          className={`rounded-md p-1 cursor-pointer ${
+                            isSelected
+                              ? "text-[#FACC15]/80 hover:text-[#FACC15]"
+                              : "text-[#666660] hover:text-[#111111]"
+                          }`}
+                          title={copy.renameCourse}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmDeleteId(r.id);
+                            setEditingId(null);
+                          }}
+                          className={`rounded-md p-1 cursor-pointer ${
+                            isSelected
+                              ? "text-[#FACC15]/80 hover:text-red-400"
+                              : "text-[#666660] hover:text-red-600"
+                          }`}
+                          title={copy.deleteCourse}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -426,6 +537,8 @@ interface MobileBottomNavProps {
   storedRoadmaps: Roadmap[];
   activeRoadmapId?: string | null;
   onSelectRoadmap: (roadmapId: string) => void;
+  onRenameRoadmap: (roadmapId: string, newTitle: string) => void;
+  onDeleteRoadmap: (roadmapId: string) => void;
   onSignOut: () => void;
   onDisconnectWallet: () => void;
 }
@@ -440,11 +553,16 @@ export function MobileBottomNav({
   storedRoadmaps,
   activeRoadmapId,
   onSelectRoadmap,
+  onRenameRoadmap,
+  onDeleteRoadmap,
   onSignOut,
   onDisconnectWallet,
 }: MobileBottomNavProps) {
   const { lang, copy, setLang } = useLanguage();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isSettingsActive =
     activeView === "settings-account" || activeView === "settings-language";
@@ -500,24 +618,117 @@ export function MobileBottomNav({
                   {copy.courses} ({storedRoadmaps.length})
                 </p>
                 <div className="space-y-1">
-                  {storedRoadmaps.slice(0, 4).map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectRoadmap(r.id);
-                        setDrawerOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold ${
-                        activeRoadmapId === r.id
-                          ? "bg-[#111111] text-[#FACC15]"
-                          : "bg-[#F7F7F5] text-[#111111]"
-                      }`}
-                    >
-                      <FolderKanban className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{r.courseTitle}</span>
-                    </button>
-                  ))}
+                  {storedRoadmaps.slice(0, 6).map((r) => {
+                    if (editingId === r.id) {
+                      return (
+                        <form
+                          key={r.id}
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (draftTitle.trim()) {
+                              onRenameRoadmap(r.id, draftTitle.trim());
+                            }
+                            setEditingId(null);
+                          }}
+                          className="flex items-center gap-1.5 rounded-xl bg-[#F7F7F5] px-3 py-1.5 border border-[#111111]/20"
+                        >
+                          <input
+                            type="text"
+                            value={draftTitle}
+                            onChange={(e) => setDraftTitle(e.target.value)}
+                            autoFocus
+                            className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-[#111111] focus:outline-none"
+                          />
+                          <button
+                            type="submit"
+                            className="p-1 text-[#111111]"
+                            title={copy.save}
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            className="p-1 text-[#666660]"
+                            title={copy.cancel}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </form>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={r.id}
+                        className={`flex items-center justify-between gap-2 rounded-xl px-3 py-1.5 ${
+                          activeRoadmapId === r.id
+                            ? "bg-[#111111] text-[#FACC15]"
+                            : "bg-[#F7F7F5] text-[#111111]"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectRoadmap(r.id);
+                            setDrawerOpen(false);
+                          }}
+                          className="min-w-0 flex-1 flex items-center gap-2 py-1 text-left text-xs font-semibold"
+                        >
+                          <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{r.courseTitle}</span>
+                        </button>
+
+                        {confirmDeleteId === r.id ? (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteRoadmap(r.id);
+                                setConfirmDeleteId(null);
+                              }}
+                              className="rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold text-white"
+                            >
+                              {copy.deleteCourse}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="rounded-md bg-white p-1 text-[#111111]"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingId(r.id);
+                                setDraftTitle(r.courseTitle);
+                                setConfirmDeleteId(null);
+                              }}
+                              className="p-1 opacity-80"
+                              title={copy.renameCourse}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setConfirmDeleteId(r.id);
+                                setEditingId(null);
+                              }}
+                              className="p-1 opacity-80"
+                              title={copy.deleteCourse}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

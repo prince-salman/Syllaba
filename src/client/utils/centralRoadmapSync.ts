@@ -1,18 +1,13 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
 import { Roadmap } from "@/shared/types/roadmap";
+import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
 import {
   saveRoadmap as saveLocalRoadmap,
   getStoredRoadmaps as getLocalRoadmaps,
   resolveOwnerScope,
 } from "@/client/utils/storage";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-const supabase =
-  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+import { upsertWalletUserToPublicUsers } from "@/client/utils/usersSync";
 
 export function normalizeWalletAddress(address?: string | null): string | null {
   if (!address) return null;
@@ -25,27 +20,47 @@ export async function syncRoadmapToCentral(
   onchainProofTx?: string
 ): Promise<void> {
   const normalized = normalizeWalletAddress(walletAddress);
-  if (!normalized || !supabase || !roadmap?.id) return;
+  if (!normalized || !isSupabaseConfigured || !supabase || !roadmap?.id) return;
+
+  const ownerScope = `wallet_${normalized}`;
 
   try {
-    const payload: Record<string, unknown> = {
-      id: `${normalized}_${roadmap.id}`,
-      wallet_address: normalized,
-      course_title: roadmap.courseTitle,
-      roadmap_data: roadmap,
-      updated_at: new Date().toISOString(),
+    await upsertWalletUserToPublicUsers({ walletAddress: normalized });
+
+    const enrichedPayload: Roadmap & {
+      _ownerScope: string;
+      onchainProofTx?: string;
+    } = {
+      ...roadmap,
+      walletAddress: normalized,
+      _ownerScope: ownerScope,
+      ...(onchainProofTx ? { onchainProofTx } : {}),
     };
 
-    if (onchainProofTx) {
-      payload.onchain_proof_tx = onchainProofTx;
-    }
+    const { error } = await supabase.from("roadmaps").upsert(
+      {
+        id: roadmap.id,
+        course_title: roadmap.courseTitle,
+        user_id: ownerScope,
+        owner_scope: ownerScope,
+        payload: enrichedPayload,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
 
-    const { error } = await supabase
-      .from("user_roadmaps")
-      .upsert(payload, { onConflict: "id" });
-
-    if (error) {
-      console.warn("[centralSync] Could not upsert user_roadmaps:", error.message);
+    if (error && (error.code === "42703" || error.code === "23503")) {
+      await supabase.from("roadmaps").upsert(
+        {
+          id: roadmap.id,
+          course_title: roadmap.courseTitle,
+          payload: enrichedPayload,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+    } else if (error) {
+      console.warn("[centralSync] Could not upsert roadmaps:", error.message);
     }
   } catch (err) {
     console.warn("[centralSync] Unexpected error syncing roadmap:", err);
@@ -61,34 +76,67 @@ export async function fetchCentralRoadmapsByWallet(
   const scope = resolveOwnerScope(normalized, null);
   const localRoadmaps = getLocalRoadmaps(scope);
 
-  if (!supabase) {
+  if (!isSupabaseConfigured || !supabase) {
     return localRoadmaps;
   }
 
   try {
-    const { data, error } = await supabase
-      .from("user_roadmaps")
-      .select("roadmap_data, updated_at")
-      .eq("wallet_address", normalized)
+    const merged = new Map<string, Roadmap>();
+
+    // Primary relational source: public.roadmaps with owner_scope column
+    const { data: relationalData, error: relError } = await supabase
+      .from("roadmaps")
+      .select("id, course_title, payload, updated_at")
+      .eq("owner_scope", scope)
       .order("updated_at", { ascending: false });
 
-    if (error) {
-      console.warn("[centralSync] Could not fetch user_roadmaps:", error.message);
+    if (!relError && relationalData) {
+      for (const row of relationalData) {
+        const rm = row.payload as Roadmap | null;
+        if (rm && rm.id) {
+          merged.set(rm.id, {
+            ...rm,
+            courseTitle: row.course_title || rm.courseTitle,
+          });
+        }
+      }
+    }
+
+    // Legacy read fallback: old user_roadmaps rows + prefixed roadmaps rows
+    const [{ data: legacyWalletData }, { data: legacyPrefixedData }] =
+      await Promise.all([
+        supabase
+          .from("user_roadmaps")
+          .select("roadmap_data, updated_at")
+          .eq("wallet_address", normalized)
+          .order("updated_at", { ascending: false }),
+        supabase
+          .from("roadmaps")
+          .select("id, payload, updated_at")
+          .like("id", `${scope}__%`)
+          .order("updated_at", { ascending: false }),
+      ]);
+
+    for (const row of legacyWalletData ?? []) {
+      const rm = row.roadmap_data as Roadmap | null;
+      if (rm && rm.id && !merged.has(rm.id)) {
+        merged.set(rm.id, rm);
+      }
+    }
+
+    for (const row of legacyPrefixedData ?? []) {
+      const rm = row.payload as Roadmap | null;
+      if (rm && rm.id && !merged.has(rm.id)) {
+        merged.set(rm.id, rm);
+      }
+    }
+
+    if (merged.size === 0) {
       return localRoadmaps;
     }
 
-    const remoteRoadmaps = (data ?? [])
-      .map((row) => row.roadmap_data as Roadmap | null)
-      .filter((item): item is Roadmap => Boolean(item && item.id));
-
-    if (remoteRoadmaps.length === 0) {
-      return localRoadmaps;
-    }
-
-    const merged = new Map<string, Roadmap>();
-    for (const rm of remoteRoadmaps) {
-      merged.set(rm.id, rm);
-      saveLocalRoadmap(rm, scope);
+    for (const rm of merged.values()) {
+      saveLocalRoadmap(rm, scope, scope);
     }
     for (const local of localRoadmaps) {
       if (!merged.has(local.id)) {

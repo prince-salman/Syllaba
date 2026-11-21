@@ -70,7 +70,7 @@ export async function saveOnChainProofToDb(proof: OnChainProofRecord): Promise<v
   if (!isSupabaseConfigured || !supabase) return;
 
   try {
-    await supabase.from("onchain_proofs").upsert({
+    const { error } = await supabase.from("onchain_proofs").upsert({
       id: proof.id,
       roadmap_id: proof.roadmapId,
       wallet_address: proof.walletAddress,
@@ -81,6 +81,9 @@ export async function saveOnChainProofToDb(proof: OnChainProofRecord): Promise<v
       status: proof.status,
       created_at: proof.createdAt,
     });
+    if (error) {
+      console.error("[proofs.repo] Failed to persist onchain_proofs:", error.message);
+    }
   } catch {
     // Non-blocking persistence
   }

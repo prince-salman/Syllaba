@@ -7,27 +7,34 @@ import { Roadmap } from "@/shared/types/roadmap";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
 import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
+import { updatePublicUserProfileName } from "@/client/utils/usersSync";
 import {
   ArrowRight,
   BookOpen,
   Calendar,
+  Check,
   CheckCircle2,
   Globe,
   HelpCircle,
   KeyRound,
   Mail,
   MessageSquare,
+  Pencil,
   Plus,
   Send,
   ShieldCheck,
+  Trash2,
   User as UserIcon,
   Wallet,
+  X,
 } from "lucide-react";
 
 interface HistoryPanelProps {
   roadmaps: Roadmap[];
   activeRoadmapId?: string | null;
   onSelectRoadmap: (roadmapId: string) => void;
+  onRenameRoadmap?: (roadmapId: string, newTitle: string) => void;
+  onDeleteRoadmap?: (roadmapId: string) => void;
   onCreateNew: () => void;
 }
 
@@ -35,10 +42,15 @@ export function HistoryPanel({
   roadmaps,
   activeRoadmapId,
   onSelectRoadmap,
+  onRenameRoadmap,
+  onDeleteRoadmap,
   onCreateNew,
 }: HistoryPanelProps) {
   const { lang, copy } = useLanguage();
   const localeMeta = LANGUAGE_OPTIONS.find((l) => l.code === lang);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   return (
     <div className="space-y-5">
@@ -105,10 +117,46 @@ export function HistoryPanel({
               >
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-[#111111] truncate">
-                        {rm.courseTitle}
-                      </h3>
+                    <div className="min-w-0 flex-1">
+                      {editingId === rm.id ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (draftTitle.trim() && onRenameRoadmap) {
+                              onRenameRoadmap(rm.id, draftTitle.trim());
+                            }
+                            setEditingId(null);
+                          }}
+                          className="flex items-center gap-1.5"
+                        >
+                          <input
+                            type="text"
+                            value={draftTitle}
+                            onChange={(e) => setDraftTitle(e.target.value)}
+                            autoFocus
+                            className="w-full rounded-lg border border-[#111111]/30 bg-white px-2.5 py-1 text-xs font-bold text-[#111111] focus:outline-none"
+                          />
+                          <button
+                            type="submit"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#111111] text-[#FACC15] cursor-pointer"
+                            title={copy.save}
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F7F7F5] text-[#666660] cursor-pointer"
+                            title={copy.cancel}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </form>
+                      ) : (
+                        <h3 className="text-sm font-bold text-[#111111] truncate">
+                          {rm.courseTitle}
+                        </h3>
+                      )}
                       <p className="text-[11px] text-[#666660] mt-0.5 flex items-center gap-1.5">
                         <Calendar className="h-3 w-3 text-[#D97706]" />
                         <span>
@@ -116,11 +164,62 @@ export function HistoryPanel({
                         </span>
                       </p>
                     </div>
-                    {isActive && (
-                      <span className="shrink-0 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-bold text-[#111111]">
-                        Active
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isActive && (
+                        <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-bold text-[#111111]">
+                          Active
+                        </span>
+                      )}
+                      {onRenameRoadmap && editingId !== rm.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(rm.id);
+                            setDraftTitle(rm.courseTitle);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#666660] hover:bg-[#FEF3C7] hover:text-[#111111] transition cursor-pointer"
+                          title={copy.renameCourse}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {onDeleteRoadmap && (
+                        confirmDeleteId === rm.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteRoadmap(rm.id);
+                                setConfirmDeleteId(null);
+                              }}
+                              className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white cursor-pointer"
+                            >
+                              {copy.deleteCourse}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="rounded-lg bg-[#F7F7F5] px-1.5 py-1 text-[10px] font-semibold text-[#52524C] cursor-pointer"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmDeleteId(rm.id);
+                              setEditingId(null);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#666660] hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                            title={copy.deleteCourse}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 pt-1">
@@ -187,12 +286,14 @@ export function SettingsPanel({
     setSavingName(true);
     setAccountNotice(null);
     try {
+      const cleanName = fullNameInput.trim();
       const { error } = await supabase.auth.updateUser({
-        data: { full_name: fullNameInput.trim() },
+        data: { full_name: cleanName },
       });
       if (error) {
         setAccountNotice(error.message);
       } else {
+        await updatePublicUserProfileName(`user_${user.id}`, cleanName);
         setAccountNotice("Profile updated.");
       }
     } catch {

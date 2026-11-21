@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/server/db/supabase";
+import { upsertEmailUserToPublicUsers } from "@/client/utils/usersSync";
 
 interface AuthContextValue {
   user: User | null;
@@ -35,9 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .getSession()
       .then(({ data }) => {
         if (!mounted) return;
+        const currentUser = data.session?.user ?? null;
         setSession(data.session ?? null);
-        setUser(data.session?.user ?? null);
+        setUser(currentUser);
         setLoading(false);
+        if (currentUser) {
+          void upsertEmailUserToPublicUsers({
+            authUserId: currentUser.id,
+            email: currentUser.email,
+            fullName:
+              (currentUser.user_metadata?.full_name as string | undefined) ??
+              null,
+          });
+        }
       })
       .catch(() => {
         if (mounted) setLoading(false);
@@ -47,9 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
+      const nextUser = nextSession?.user ?? null;
       setSession(nextSession ?? null);
-      setUser(nextSession?.user ?? null);
+      setUser(nextUser);
       setLoading(false);
+      if (nextUser) {
+        void upsertEmailUserToPublicUsers({
+          authUserId: nextUser.id,
+          email: nextUser.email,
+          fullName:
+            (nextUser.user_metadata?.full_name as string | undefined) ?? null,
+        });
+      }
     });
 
     return () => {

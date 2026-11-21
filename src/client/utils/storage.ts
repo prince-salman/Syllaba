@@ -36,6 +36,12 @@ export function resolveOwnerScope(
   return "guest";
 }
 
+function inferUserIdFromScope(scope: string, explicitUserId?: string | null): string | null {
+  if (explicitUserId && explicitUserId.trim()) return explicitUserId.trim();
+  if (scope.startsWith("user_") || scope.startsWith("wallet_")) return scope;
+  return null;
+}
+
 function roadmapsKey(scope = "guest"): string {
   return `${STORAGE_PREFIX}:${scope}`;
 }
@@ -74,10 +80,11 @@ export function saveRoadmaps(roadmaps: Roadmap[], scope = "guest"): void {
 
 export async function syncRoadmapToSupabase(
   roadmap: Roadmap,
-  scope = "guest"
+  scope = "guest",
+  explicitUserId?: string | null
 ): Promise<SupabaseSyncStatus> {
   const now = new Date().toISOString();
-  const scopedId = `${scope}__${roadmap.id}`;
+  const userId = inferUserIdFromScope(scope, explicitUserId);
 
   if (!isSupabaseConfigured || !supabase) {
     const status: SupabaseSyncStatus = {
@@ -92,15 +99,31 @@ export async function syncRoadmapToSupabase(
   }
 
   try {
-    const { error } = await supabase.from("roadmaps").upsert(
+    let { error } = await supabase.from("roadmaps").upsert(
       {
-        id: scopedId,
+        id: roadmap.id,
         course_title: roadmap.courseTitle,
+        user_id: userId,
+        owner_scope: scope,
         payload: { ...roadmap, _ownerScope: scope },
         updated_at: now,
       },
       { onConflict: "id" }
     );
+
+    // Graceful fallback if relational columns or FK row are not yet applied in DB
+    if (error && (error.code === "42703" || error.code === "23503")) {
+      const retry = await supabase.from("roadmaps").upsert(
+        {
+          id: roadmap.id,
+          course_title: roadmap.courseTitle,
+          payload: { ...roadmap, _ownerScope: scope },
+          updated_at: now,
+        },
+        { onConflict: "id" }
+      );
+      error = retry.error;
+    }
 
     if (error) {
       const status: SupabaseSyncStatus = {
@@ -147,31 +170,50 @@ export async function hydrateRoadmapsFromSupabase(
   }
 
   try {
-    const { data, error } = await supabase
+    const mergedMap = new Map<string, Roadmap>();
+
+    // Primary relational query by owner_scope
+    const { data: scopedRows, error: scopedError } = await supabase
       .from("roadmaps")
-      .select("id, payload")
+      .select("id, course_title, payload")
+      .eq("owner_scope", scope)
+      .order("updated_at", { ascending: false });
+
+    if (!scopedError && scopedRows) {
+      for (const row of scopedRows) {
+        const item = row.payload as unknown;
+        if (isValidRoadmap(item)) {
+          mergedMap.set(item.id, {
+            ...item,
+            courseTitle: row.course_title || item.courseTitle,
+          });
+        }
+      }
+    }
+
+    // Read-only merge for legacy `${scope}__roadmap_...` rows if present
+    const { data: legacyRows, error: legacyError } = await supabase
+      .from("roadmaps")
+      .select("id, course_title, payload")
       .like("id", `${scope}__%`)
       .order("updated_at", { ascending: false });
 
-    if (error) {
-      console.error(
-        `[storage] Failed to read roadmaps from Supabase (${error.code ?? "unknown"}): ${error.message}`
-      );
+    if (!legacyError && legacyRows) {
+      for (const row of legacyRows) {
+        const item = row.payload as unknown;
+        if (isValidRoadmap(item) && !mergedMap.has(item.id)) {
+          mergedMap.set(item.id, {
+            ...item,
+            courseTitle: row.course_title || item.courseTitle,
+          });
+        }
+      }
+    }
+
+    if (mergedMap.size === 0) {
       return localRoadmaps;
     }
 
-    const remoteRoadmaps = (data ?? [])
-      .map((row) => row.payload as unknown)
-      .filter(isValidRoadmap);
-
-    if (remoteRoadmaps.length === 0) {
-      return localRoadmaps;
-    }
-
-    const mergedMap = new Map<string, Roadmap>();
-    for (const item of remoteRoadmaps) {
-      mergedMap.set(item.id, item);
-    }
     for (const item of localRoadmaps) {
       if (!mergedMap.has(item.id)) {
         mergedMap.set(item.id, item);
@@ -187,7 +229,11 @@ export async function hydrateRoadmapsFromSupabase(
   }
 }
 
-export function saveRoadmap(roadmap: Roadmap, scope = "guest"): void {
+export function saveRoadmap(
+  roadmap: Roadmap,
+  scope = "guest",
+  explicitUserId?: string | null
+): void {
   if (!isValidRoadmap(roadmap)) return;
   const roadmaps = getStoredRoadmaps(scope);
   const index = roadmaps.findIndex((r) => r.id === roadmap.id);
@@ -199,7 +245,88 @@ export function saveRoadmap(roadmap: Roadmap, scope = "guest"): void {
   saveRoadmaps(roadmaps, scope);
   setActiveRoadmapId(roadmap.id, scope);
 
-  void syncRoadmapToSupabase(roadmap, scope);
+  void syncRoadmapToSupabase(roadmap, scope, explicitUserId);
+}
+
+export async function renameRoadmapInStorage(
+  roadmapId: string,
+  newTitle: string,
+  scope = "guest",
+  explicitUserId?: string | null
+): Promise<Roadmap | null> {
+  const cleanTitle = newTitle.trim();
+  if (!cleanTitle) return null;
+
+  const roadmaps = getStoredRoadmaps(scope);
+  const target = roadmaps.find((r) => r.id === roadmapId);
+  if (!target) return null;
+
+  const updated: Roadmap = {
+    ...target,
+    courseTitle: cleanTitle,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveRoadmap(updated, scope, explicitUserId);
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from("roadmaps")
+        .update({
+          course_title: cleanTitle,
+          payload: { ...updated, _ownerScope: scope },
+          updated_at: updated.updatedAt,
+        })
+        .eq("id", `${scope}__${roadmapId}`);
+    } catch {
+      // Non-blocking cleanup for legacy prefixed row if any
+    }
+  }
+
+  return updated;
+}
+
+export async function deleteRoadmapFromStorage(
+  roadmapId: string,
+  scope = "guest"
+): Promise<Roadmap[]> {
+  const current = getStoredRoadmaps(scope);
+  const remaining = current.filter((r) => r.id !== roadmapId);
+  saveRoadmaps(remaining, scope);
+
+  if (getActiveRoadmapId(scope) === roadmapId) {
+    if (remaining.length > 0) {
+      setActiveRoadmapId(remaining[0].id, scope);
+    } else if (typeof window !== "undefined") {
+      localStorage.removeItem(activeIdKey(scope));
+    }
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    const deleteTasks: Array<PromiseLike<unknown>> = [
+      supabase.from("roadmaps").delete().eq("id", roadmapId),
+      supabase.from("roadmaps").delete().eq("id", `${scope}__${roadmapId}`),
+    ];
+
+    if (scope.startsWith("wallet_")) {
+      const wallet = scope.slice("wallet_".length);
+      deleteTasks.push(
+        supabase
+          .from("user_roadmaps")
+          .delete()
+          .eq("id", `${wallet}_${roadmapId}`)
+      );
+    }
+
+    try {
+      await Promise.all(deleteTasks);
+    } catch (err) {
+      console.warn("[storage] Failed deleting roadmap from Supabase:", err);
+    }
+  }
+
+  return remaining;
 }
 
 export function getActiveRoadmapId(scope = "guest"): string | null {

@@ -129,6 +129,10 @@ export interface TranslationCopy {
   contactTitle: string;
   sendMessage: string;
   messageSent: string;
+  renameCourse: string;
+  deleteCourse: string;
+  save: string;
+  cancel: string;
 }
 
 const DICT: Record<AppLanguage, TranslationCopy> = {
@@ -201,6 +205,10 @@ const DICT: Record<AppLanguage, TranslationCopy> = {
     contactTitle: "Contact Syllaba Team (ITSPIRIT)",
     sendMessage: "Send Message",
     messageSent: "Message received. Team ITSPIRIT will review and respond promptly.",
+    renameCourse: "Rename",
+    deleteCourse: "Delete",
+    save: "Save",
+    cancel: "Cancel",
   },
   id: {
     headerSubtitle: "Ubah silabus padat menjadi jadwal belajar harian terukur",
@@ -271,6 +279,10 @@ const DICT: Record<AppLanguage, TranslationCopy> = {
     contactTitle: "Hubungi Tim Syllaba (ITSPIRIT)",
     sendMessage: "Kirim Pesan",
     messageSent: "Pesan Anda telah dicatat. Tim ITSPIRIT akan menindaklanjuti segera.",
+    renameCourse: "Ubah Nama",
+    deleteCourse: "Hapus",
+    save: "Simpan",
+    cancel: "Batal",
   },
   zh: {
     headerSubtitle: "将繁重课程大纲拆解为每日防倦怠微任务",
@@ -341,6 +353,10 @@ const DICT: Record<AppLanguage, TranslationCopy> = {
     contactTitle: "联系 Syllaba 团队 (ITSPIRIT)",
     sendMessage: "发送消息",
     messageSent: "消息已记录，ITSPIRIT 团队会尽快回复您。",
+    renameCourse: "重命名",
+    deleteCourse: "删除",
+    save: "保存",
+    cancel: "取消",
   },
   ar: {
     headerSubtitle: "حوّل المناهج الدراسية المعقدة إلى خطط يومية هادئة",
@@ -411,6 +427,10 @@ const DICT: Record<AppLanguage, TranslationCopy> = {
     contactTitle: "تواصل مع فريق Syllaba",
     sendMessage: "إرسال الرسالة",
     messageSent: "تم استلام رسالتك. سيرد عليك فريق ITSPIRIT قريباً.",
+    renameCourse: "إعادة التسمية",
+    deleteCourse: "حذف",
+    save: "حفظ",
+    cancel: "إلغاء",
   },
   es: {
     headerSubtitle: "Convierte temarios densos en planes diarios manejables",
@@ -481,6 +501,10 @@ const DICT: Record<AppLanguage, TranslationCopy> = {
     contactTitle: "Contactar al Equipo Syllaba",
     sendMessage: "Enviar Mensaje",
     messageSent: "Mensaje recibido. El equipo ITSPIRIT responderá pronto.",
+    renameCourse: "Renombrar",
+    deleteCourse: "Eliminar",
+    save: "Guardar",
+    cancel: "Cancelar",
   },
   pt: {
     headerSubtitle: "Transforme planos densos em rotinas diárias tranquilas",
@@ -551,6 +575,10 @@ const DICT: Record<AppLanguage, TranslationCopy> = {
     contactTitle: "Contato Equipe Syllaba",
     sendMessage: "Enviar Mensagem",
     messageSent: "Mensagem recebida. A equipe ITSPIRIT responderá em breve.",
+    renameCourse: "Renomear",
+    deleteCourse: "Excluir",
+    save: "Salvar",
+    cancel: "Cancelar",
   },
 };
 

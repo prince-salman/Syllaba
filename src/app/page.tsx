@@ -14,11 +14,18 @@ import {
   setActiveRoadmapId,
   hydrateRoadmapsFromSupabase,
   resolveOwnerScope,
+  renameRoadmapInStorage,
+  deleteRoadmapFromStorage,
 } from "@/client/utils/storage";
 import {
   fetchCentralRoadmapsByWallet,
   syncRoadmapToCentral,
 } from "@/client/utils/centralRoadmapSync";
+import {
+  resolveOwnerUserId,
+  upsertEmailUserToPublicUsers,
+  upsertWalletUserToPublicUsers,
+} from "@/client/utils/usersSync";
 import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
@@ -60,6 +67,11 @@ export default function HomePage() {
 
   const currentScope = useMemo(
     () => resolveOwnerScope(isConnected ? address : null, user?.id ?? null),
+    [isConnected, address, user?.id]
+  );
+
+  const currentUserId = useMemo(
+    () => resolveOwnerUserId(isConnected ? address : null, user?.id ?? null),
     [isConnected, address, user?.id]
   );
 
@@ -110,13 +122,30 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isClient) return;
+    if (user) {
+      void upsertEmailUserToPublicUsers({
+        authUserId: user.id,
+        email: user.email,
+        fullName:
+          (user.user_metadata?.full_name as string | undefined) ?? null,
+        walletAddress: isConnected ? address : null,
+      });
+    } else if (isConnected && address) {
+      void upsertWalletUserToPublicUsers({
+        walletAddress: address,
+      });
+    }
+  }, [isClient, user, isConnected, address]);
+
+  useEffect(() => {
+    if (!isClient) return;
     setActiveRoadmap(null);
     setStoredRoadmaps([]);
     void hydrateScopeRoadmaps(currentScope, isConnected ? address : null);
   }, [isClient, currentScope, isConnected, address, hydrateScopeRoadmaps]);
 
   const handleRoadmapGenerated = (roadmap: Roadmap) => {
-    saveRoadmap(roadmap, currentScope);
+    saveRoadmap(roadmap, currentScope, currentUserId);
     if (isConnected && address) {
       void syncRoadmapToCentral(address, roadmap);
     }
@@ -131,6 +160,32 @@ export default function HomePage() {
     if (found) {
       setActiveRoadmap(found);
       setSidebarView("dashboard");
+    }
+  };
+
+  const handleRenameRoadmap = async (roadmapId: string, newTitle: string) => {
+    const updated = await renameRoadmapInStorage(
+      roadmapId,
+      newTitle,
+      currentScope,
+      currentUserId
+    );
+    if (!updated) return;
+    setStoredRoadmaps(getStoredRoadmaps(currentScope));
+    if (activeRoadmap?.id === roadmapId) {
+      setActiveRoadmap(updated);
+    }
+  };
+
+  const handleDeleteRoadmap = async (roadmapId: string) => {
+    const remaining = await deleteRoadmapFromStorage(roadmapId, currentScope);
+    setStoredRoadmaps(remaining);
+    if (activeRoadmap?.id === roadmapId) {
+      const next = remaining.length > 0 ? remaining[0] : null;
+      setActiveRoadmap(next);
+      if (!next) {
+        setSidebarView("uploader");
+      }
     }
   };
 
@@ -248,6 +303,8 @@ export default function HomePage() {
           storedRoadmaps={storedRoadmaps}
           activeRoadmapId={activeRoadmap?.id}
           onSelectRoadmap={handleSelectStoredRoadmap}
+          onRenameRoadmap={(id, title) => void handleRenameRoadmap(id, title)}
+          onDeleteRoadmap={(id) => void handleDeleteRoadmap(id)}
           onSignOut={() => void handleSignOut()}
           onDisconnectWallet={disconnectWallet}
         />
@@ -300,6 +357,8 @@ export default function HomePage() {
                 roadmaps={storedRoadmaps}
                 activeRoadmapId={activeRoadmap?.id}
                 onSelectRoadmap={handleSelectStoredRoadmap}
+                onRenameRoadmap={(id, title) => void handleRenameRoadmap(id, title)}
+                onDeleteRoadmap={(id) => void handleDeleteRoadmap(id)}
                 onCreateNew={() => setSidebarView("uploader")}
               />
             </div>
@@ -416,7 +475,7 @@ export default function HomePage() {
               <RoadmapTimeline
                 roadmap={activeRoadmap}
                 onUpdateRoadmap={(updated) => {
-                  saveRoadmap(updated, currentScope);
+                  saveRoadmap(updated, currentScope, currentUserId);
                   setActiveRoadmap(updated);
                   setStoredRoadmaps(getStoredRoadmaps(currentScope));
                   if (isConnected && address) {
@@ -521,6 +580,8 @@ export default function HomePage() {
         storedRoadmaps={storedRoadmaps}
         activeRoadmapId={activeRoadmap?.id}
         onSelectRoadmap={handleSelectStoredRoadmap}
+        onRenameRoadmap={(id, title) => void handleRenameRoadmap(id, title)}
+        onDeleteRoadmap={(id) => void handleDeleteRoadmap(id)}
         onSignOut={() => void handleSignOut()}
         onDisconnectWallet={disconnectWallet}
       />
