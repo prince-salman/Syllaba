@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BlockchainCertificateRecord,
   CertificateTierId,
@@ -26,6 +26,7 @@ import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { ScannableQrCode } from "@/client/components/common/ScannableQrCode";
+import { printCertificateElement } from "@/client/utils/printCertificate";
 import { keccak256, stringToHex } from "viem";
 import {
   Award,
@@ -72,6 +73,7 @@ export function TierCertificateExchangePanel({
     watchSylTokenInWallet,
   } = useWeb3();
   const [isDeployingSbt, setIsDeployingSbt] = useState(false);
+  const tierCertCardRef = useRef<HTMLDivElement>(null);
 
   const defaultName =
     (typeof user?.user_metadata?.full_name === "string" &&
@@ -795,7 +797,10 @@ export function TierCertificateExchangePanel({
               <button
                 type="button"
                 onClick={() => {
-                  if (typeof window !== "undefined") window.print();
+                  printCertificateElement(
+                    tierCertCardRef.current,
+                    `Syllaba-Tier-${activeTierMeta.name}-Certificate`
+                  );
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 transition cursor-pointer"
               >
@@ -865,6 +870,7 @@ export function TierCertificateExchangePanel({
 
       {/* 2. TIER CERTIFICATE VAULT (LOCKED UNTIL POINTS REACHED SO CANNOT BE SCREENSHOT-STOLEN) */}
       <div
+        ref={tierCertCardRef}
         style={{ borderColor: activeTierMeta.primaryHex }}
         className="relative rounded-3xl bg-[#09090D] p-3 sm:p-5 shadow-2xl border-2 overflow-hidden text-white transition-colors duration-300"
       >
@@ -1080,6 +1086,7 @@ export function TierCertificateExchangePanel({
 
                 <button
                   type="button"
+                  data-no-print="true"
                   onClick={() => setShowProofJson((prev) => !prev)}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 hover:underline cursor-pointer"
                 >
@@ -1093,6 +1100,7 @@ export function TierCertificateExchangePanel({
 
                 <button
                   type="button"
+                  data-no-print="true"
                   onClick={handleDownloadProofJson}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-200 hover:text-white hover:underline cursor-pointer"
                 >
@@ -1102,7 +1110,10 @@ export function TierCertificateExchangePanel({
               </div>
 
               {showProofJson && (
-                <pre className="mt-2 max-h-56 overflow-auto rounded-xl border border-white/15 bg-black/70 p-3 text-[10px] leading-relaxed text-emerald-200 whitespace-pre-wrap break-all">
+                <pre
+                  data-no-print="true"
+                  className="mt-2 max-h-56 overflow-auto rounded-xl border border-white/15 bg-black/70 p-3 text-[10px] leading-relaxed text-emerald-200 whitespace-pre-wrap break-all"
+                >
                   {JSON.stringify(proofMetadataPayload, null, 2)}
                 </pre>
               )}

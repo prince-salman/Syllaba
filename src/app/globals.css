@@ -124,3 +124,55 @@ body {
     transform: none !important;
   }
 }
+
+/* Hidden offscreen certificate print container during normal screen interaction */
+#syllaba-print-stage {
+  display: none;
+}
+
+/* Isolated certificate-only printing (never prints the dashboard or sidebar) */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.syllaba-printing-cert > *:not(#syllaba-print-stage) {
+    display: none !important;
+  }
+
+  body.syllaba-printing-cert #syllaba-print-stage {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.syllaba-printing-cert #syllaba-print-stage > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    box-shadow: none !important;
+  }
+
+  body.syllaba-printing-cert #syllaba-print-stage [data-no-print="true"] {
+    display: none !important;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BlockchainCertificateRecord,
   ExamStage,
@@ -12,6 +12,7 @@ import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { ScannableQrCode } from "@/client/components/common/ScannableQrCode";
+import { printCertificateElement } from "@/client/utils/printCertificate";
 import { keccak256, stringToHex } from "viem";
 import {
   ArrowRight,
@@ -57,6 +58,7 @@ export function BlockchainCertificatePanel({
     deploySbtContractOnChain,
   } = useWeb3();
   const [isDeployingSbt, setIsDeployingSbt] = useState(false);
+  const certCardRef = useRef<HTMLDivElement>(null);
 
   const currentScope = useMemo(
     () => resolveOwnerScope(isConnected ? address : null, user?.id ?? null),
@@ -608,7 +610,10 @@ export function BlockchainCertificatePanel({
               <button
                 type="button"
                 onClick={() => {
-                  if (typeof window !== "undefined") window.print();
+                  printCertificateElement(
+                    certCardRef.current,
+                    `Syllaba-Certificate-${roadmap.courseTitle}`
+                  );
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 transition cursor-pointer"
               >
@@ -678,6 +683,7 @@ export function BlockchainCertificatePanel({
 
       {/* 2. COURSE COMPLETION CERTIFICATE VAULT (SEALED UNTIL TASKS + 2 EXAMS PASSED) */}
       <div
+        ref={certCardRef}
         style={{ borderColor: accentHex }}
         className="relative rounded-3xl bg-[#09090D] p-3 sm:p-5 shadow-2xl border-2 overflow-hidden text-white"
       >
@@ -942,6 +948,7 @@ export function BlockchainCertificatePanel({
 
                 <button
                   type="button"
+                  data-no-print="true"
                   onClick={() => setShowProofJson((prev) => !prev)}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 hover:underline cursor-pointer"
                 >
@@ -955,6 +962,7 @@ export function BlockchainCertificatePanel({
 
                 <button
                   type="button"
+                  data-no-print="true"
                   onClick={handleDownloadProofJson}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-200 hover:text-white hover:underline cursor-pointer"
                 >
@@ -964,7 +972,10 @@ export function BlockchainCertificatePanel({
               </div>
 
               {showProofJson && (
-                <pre className="mt-2 max-h-56 overflow-auto rounded-xl border border-white/15 bg-black/70 p-3 text-[10px] leading-relaxed text-emerald-200 whitespace-pre-wrap break-all">
+                <pre
+                  data-no-print="true"
+                  className="mt-2 max-h-56 overflow-auto rounded-xl border border-white/15 bg-black/70 p-3 text-[10px] leading-relaxed text-emerald-200 whitespace-pre-wrap break-all"
+                >
                   {JSON.stringify(proofMetadataPayload, null, 2)}
                 </pre>
               )}

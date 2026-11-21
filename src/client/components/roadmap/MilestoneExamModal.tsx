@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Component, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ExamStage,
@@ -22,6 +22,45 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+
+class ExamModalErrorBoundary extends Component<
+  { children: React.ReactNode; onClose: () => void; isId: boolean },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onClose: () => void; isId: boolean }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 text-center space-y-3 bg-white">
+          <p className="text-sm font-bold text-slate-900">
+            {this.props.isId
+              ? "Terjadi kendala saat menampilkan hasil ujian."
+              : "Something went wrong displaying the exam result."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              this.setState({ hasError: false });
+              this.props.onClose();
+            }}
+            className="rounded-xl bg-[#111111] text-[#FACC15] px-4 py-2 text-xs font-extrabold cursor-pointer"
+          >
+            {this.props.isId ? "Tutup & Muat Ulang" : "Close & Reload"}
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface MilestoneExamCardProps {
   stage: ExamStage;
@@ -241,6 +280,16 @@ export function MilestoneExamModal({
   const [mcAnswers, setMcAnswers] = useState<Record<string, number>>({});
   const [essayAnswers, setEssayAnswers] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -298,10 +347,13 @@ export function MilestoneExamModal({
   const handleSubmitExam = async () => {
     if (!exam) return;
 
-    const unansweredMc = exam.multipleChoice.filter(
+    const mcList = Array.isArray(exam.multipleChoice) ? exam.multipleChoice : [];
+    const essayList = Array.isArray(exam.essays) ? exam.essays : [];
+
+    const unansweredMc = mcList.filter(
       (q) => mcAnswers[q.id] === undefined
     );
-    const unansweredEssay = exam.essays.filter(
+    const unansweredEssay = essayList.filter(
       (q) => !(essayAnswers[q.id] || "").trim()
     );
 
@@ -312,6 +364,10 @@ export function MilestoneExamModal({
           : `Please answer all 7 questions first (${unansweredMc.length} MC and ${unansweredEssay.length} Essay remaining).`
       );
       return;
+    }
+
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
     }
 
     setIsGrading(true);
@@ -335,13 +391,32 @@ export function MilestoneExamModal({
         throw new Error(isId ? "Gagal menilai jawaban ujian." : "Failed to grade exam answers.");
       }
 
-      const submission: ExamSubmission = await res.json();
+      const rawSub = (await res.json()) as Partial<ExamSubmission> | null;
+      const submission: ExamSubmission = {
+        mcAnswers: rawSub?.mcAnswers || mcAnswers,
+        essayAnswers: rawSub?.essayAnswers || essayAnswers,
+        mcScore: typeof rawSub?.mcScore === "number" ? rawSub.mcScore : 0,
+        essayScore: typeof rawSub?.essayScore === "number" ? rawSub.essayScore : 0,
+        totalScore: typeof rawSub?.totalScore === "number" ? rawSub.totalScore : 0,
+        passed: Boolean(rawSub?.passed),
+        essayFeedback:
+          rawSub?.essayFeedback && typeof rawSub.essayFeedback === "object"
+            ? rawSub.essayFeedback
+            : {},
+        submittedAt: rawSub?.submittedAt || new Date().toISOString(),
+      };
       const updatedExam: MilestoneExam = {
         ...exam,
         submission,
       };
       setExam(updatedExam);
       onSaveExam(stage, updatedExam);
+
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          bodyScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      }
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Terjadi kesalahan saat menilai ujian."
@@ -359,8 +434,9 @@ export function MilestoneExamModal({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 sm:backdrop-blur-xs p-0 sm:p-6 overflow-hidden">
+      <div className="relative w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col rounded-none sm:rounded-2xl bg-white border-0 sm:border sm:border-slate-200 shadow-2xl overflow-hidden">
+        <ExamModalErrorBoundary onClose={onClose} isId={isId}>
         {/* Top Modal Header */}
         <div className="flex items-center justify-between gap-3 bg-[#111111] text-white px-5 py-4 border-b border-slate-800 shrink-0">
           <div className="min-w-0">
@@ -422,7 +498,10 @@ export function MilestoneExamModal({
         </div>
 
         {/* Scrollable Exam Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#F9F9F7]">
+        <div
+          ref={bodyScrollRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6 bg-[#F9F9F7]"
+        >
           {isGenerating ? (
             <div className="py-16 flex flex-col items-center justify-center text-center gap-3">
               <Loader2 className="w-9 h-9 text-[#111111] animate-spin" />
@@ -601,8 +680,8 @@ export function MilestoneExamModal({
                                 ? "Jawaban Benar (+14 Poin)"
                                 : "Correct Answer (+14 Points)"
                               : isId
-                              ? `Jawaban Kurang Tepat — Kunci Jawaban: ${optionLabels[q.correctIndex]}`
-                              : `Incorrect Answer — Correct Option: ${optionLabels[q.correctIndex]}`}
+                              ? `Jawaban Kurang Tepat — Kunci Jawaban: ${optionLabels[q.correctIndex] ?? "A"}`
+                              : `Incorrect Answer — Correct Option: ${optionLabels[q.correctIndex] ?? "A"}`}
                           </div>
                           <LatexText text={q.explanation} />
                         </div>
@@ -625,7 +704,7 @@ export function MilestoneExamModal({
                   </span>
                 </div>
 
-                {exam.essays.map((eq, idx) => (
+                {(exam.essays || []).map((eq, idx) => (
                   <div
                     key={eq.id}
                     className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 space-y-3 shadow-2xs"
@@ -643,7 +722,7 @@ export function MilestoneExamModal({
                       <LatexText text={eq.prompt} />
                     </div>
 
-                    {eq.expectedKeywords.length > 0 && (
+                    {Array.isArray(eq.expectedKeywords) && eq.expectedKeywords.length > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-[11px] font-semibold text-slate-500">
                           {isId ? "Konsep Kunci Slide:" : "Key Slide Concepts:"}
@@ -673,10 +752,10 @@ export function MilestoneExamModal({
                           ? "Tuliskan analisis, penjelasan mekanisme slide, dan rumus terkait di sini..."
                           : "Write your analysis, slide mechanism explanation, and relevant equations here..."
                       }
-                      className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs sm:text-sm text-slate-900 focus:border-[#111111] focus:outline-none"
+                      className="w-full rounded-xl border border-slate-300 bg-white p-3 text-base sm:text-sm text-slate-900 focus:border-[#111111] focus:outline-none"
                     />
 
-                    {submission && submission.essayFeedback[eq.id] && (
+                    {submission?.essayFeedback?.[eq.id] && (
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-950 leading-relaxed">
                         <div className="font-bold mb-1">
                           {isId ? "Evaluasi AI Examiner:" : "AI Examiner Evaluation:"}
@@ -748,6 +827,7 @@ export function MilestoneExamModal({
             </button>
           </div>
         </div>
+        </ExamModalErrorBoundary>
       </div>
     </div>,
     document.body

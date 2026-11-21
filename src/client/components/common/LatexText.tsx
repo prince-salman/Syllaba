@@ -177,6 +177,7 @@ export function LatexText({
   text: string;
   className?: string;
 }) {
+  const safeText = typeof text === "string" ? text : text == null ? "" : String(text);
   const [katexReady, setKatexReady] = useState<boolean>(
     typeof window !== "undefined" && Boolean(window.katex)
   );
@@ -184,15 +185,15 @@ export function LatexText({
   const hasMath = useMemo(
     () =>
       Boolean(
-        text &&
-          (text.includes("$") ||
-            text.includes("\\(") ||
-            text.includes("\\[") ||
+        safeText &&
+          (safeText.includes("$") ||
+            safeText.includes("\\(") ||
+            safeText.includes("\\[") ||
             /\\(frac|sqrt|sum|int|partial|alpha|beta|theta|Theta|Omega|Delta|leq|geq|times|cdot|log)\b/.test(
-              text
+              safeText
             ))
       ),
-    [text]
+    [safeText]
   );
 
   useEffect(() => {
@@ -209,9 +210,9 @@ export function LatexText({
   }, [hasMath, katexReady]);
 
   const segments = useMemo(() => {
-    if (!text) return [];
+    if (!safeText) return [];
     // If string has raw LaTeX commands without $ delimiters, wrap those expressions
-    let normalized = text;
+    let normalized = safeText;
     if (
       !normalized.includes("$") &&
       !normalized.includes("\\(") &&
@@ -224,10 +225,10 @@ export function LatexText({
       );
     }
     return tokenizeMathSegments(normalized);
-  }, [text]);
+  }, [safeText]);
 
   if (!hasMath || segments.length === 0) {
-    return <span className={className}>{text}</span>;
+    return <span className={className}>{safeText}</span>;
   }
 
   return (
