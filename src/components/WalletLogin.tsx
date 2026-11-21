@@ -2,17 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import { BASE_SEPOLIA_CHAIN_ID, useWeb3 } from "@/components/Web3Providers";
-import { Wallet, LogOut, AlertCircle } from "lucide-react";
+import { Wallet, LogOut, ChevronDown } from "lucide-react";
 
 export function WalletLogin() {
   const {
     address,
     chainId,
     chainName,
+    walletMode,
+    balanceEth,
     isConnected,
     isConnecting,
-    errorMessage,
-    connectWallet,
+    openConnectModal,
     disconnectWallet,
     switchToBaseSepolia,
   } = useWeb3();
@@ -44,15 +45,31 @@ export function WalletLogin() {
           <div className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             <span>{chainName}</span>
+            {balanceEth !== null && (
+              <span className="text-[11px] font-mono text-emerald-700 pl-1 border-l border-emerald-200">
+                {balanceEth} ETH
+              </span>
+            )}
           </div>
         )}
 
-        <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-800">
+        <button
+          type="button"
+          onClick={openConnectModal}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-800 transition-colors cursor-pointer"
+          title="Click to switch wallet or open wallet options"
+        >
           <Wallet className="h-3.5 w-3.5 text-brand-600" />
           <span>
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
-        </div>
+          {walletMode === "embedded" && (
+            <span className="rounded bg-brand-100 px-1 py-0.2 font-sans text-[9px] font-bold text-brand-800">
+              Instant
+            </span>
+          )}
+          <ChevronDown className="h-3 w-3 text-slate-400" />
+        </button>
 
         <button
           type="button"
@@ -70,26 +87,13 @@ export function WalletLogin() {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        onClick={() => void connectWallet()}
+        onClick={openConnectModal}
         disabled={isConnecting}
         className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-60 transition-colors cursor-pointer"
       >
         <Wallet className="h-3.5 w-3.5 text-brand-400" />
         <span>{isConnecting ? "Connecting..." : "Connect Wallet"}</span>
       </button>
-
-      {errorMessage && (
-        <a
-          href="https://metamask.io/download/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden md:inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-800"
-          title={errorMessage}
-        >
-          <AlertCircle className="h-3 w-3" />
-          <span>Open MetaMask</span>
-        </a>
-      )}
     </div>
   );
 }

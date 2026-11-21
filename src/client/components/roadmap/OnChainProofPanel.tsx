@@ -27,7 +27,9 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
   const {
     address,
     chainId,
+    balanceEth,
     isConnected,
+    openConnectModal,
     signPersonalMessage,
     deployVaultContractOnChain,
     commitStudyPlanOnChain,
@@ -79,12 +81,12 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
 
   const handleDeployVault = async () => {
     if (!isConnected || !address) {
-      setStatusMessage("Connect your wallet in the top navigation bar first.");
+      openConnectModal();
       return;
     }
 
     setIsDeploying(true);
-    setStatusMessage("Deploying SyllabaProofVault.sol to Base Sepolia via MetaMask...");
+    setStatusMessage("Deploying SyllabaProofVault.sol to Base Sepolia...");
 
     try {
       const { txHash, contractAddress } = await deployVaultContractOnChain();
@@ -97,8 +99,15 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
       } else {
         setStatusMessage(`Deployment TX broadcast (${txHash.slice(0, 14)}...). Waiting for block confirmation.`);
       }
-    } catch {
-      setStatusMessage("Contract deployment cancelled or insufficient Base Sepolia ETH.");
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message || "";
+      if (msg.toLowerCase().includes("insufficient funds")) {
+        setStatusMessage(
+          "Insufficient Base Sepolia ETH for contract deployment gas. Fund your wallet via a Base Sepolia faucet or click 'Snapshot & Sign Study Proof' for zero-gas EIP-191 cryptographic attestation."
+        );
+      } else {
+        setStatusMessage("Contract deployment cancelled or insufficient Base Sepolia ETH.");
+      }
     } finally {
       setIsDeploying(false);
     }
@@ -106,7 +115,7 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
 
   const handleCommitProof = async () => {
     if (!isConnected || !address) {
-      setStatusMessage("Connect your wallet in the top navigation bar first.");
+      openConnectModal();
       return;
     }
 
@@ -243,12 +252,28 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-            <span className="inline-flex items-center gap-1.5">
-              <Wallet className="h-4 w-4 text-slate-500" />
-              {isConnected && address
-                ? `Connected: ${address.slice(0, 6)}...${address.slice(-4)}`
-                : "Wallet not connected"}
-            </span>
+            {isConnected && address ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Wallet className="h-4 w-4 text-emerald-600" />
+                <span>
+                  Connected: <span className="font-mono font-semibold">{address.slice(0, 6)}...{address.slice(-4)}</span>
+                </span>
+                {balanceEth !== null && (
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700">
+                    {balanceEth} ETH
+                  </span>
+                )}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={openConnectModal}
+                className="inline-flex items-center gap-1.5 text-brand-600 hover:text-brand-800 font-semibold underline cursor-pointer"
+              >
+                <Wallet className="h-4 w-4" />
+                <span>Wallet not connected (Click to Connect)</span>
+              </button>
+            )}
 
             {vaultAddress && (
               <label className="inline-flex items-center gap-1.5">
@@ -273,7 +298,6 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
                 size="sm"
                 isLoading={isDeploying}
                 onClick={handleDeployVault}
-                disabled={!isConnected}
               >
                 <Cpu className="h-4 w-4 text-brand-600" />
                 <span>1-Click Deploy Vault (Base Sepolia)</span>
@@ -286,7 +310,6 @@ export function OnChainProofPanel({ roadmap }: OnChainProofPanelProps) {
               size="sm"
               isLoading={isSubmitting}
               onClick={handleCommitProof}
-              disabled={!isConnected}
             >
               <ShieldCheck className="h-4 w-4" />
               <span>
