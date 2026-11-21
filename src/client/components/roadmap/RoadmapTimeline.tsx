@@ -365,21 +365,15 @@ export function RoadmapTimeline({
           }`}
         >
           <Award className="h-4 w-4 shrink-0 text-amber-600" />
-          <span>Blockchain Certificate</span>
+          <span>Certificate &amp; $SYL Coin</span>
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
               roadmap.certificate
                 ? "bg-emerald-100 text-emerald-800"
-                : isCertificateUnlocked
-                ? "bg-[#FACC15] text-[#111111]"
-                : "bg-[#F7F7F5] text-[#52524C]"
+                : "bg-[#FEF3C7] text-[#111111]"
             }`}
           >
-            {roadmap.certificate
-              ? "Minted"
-              : isCertificateUnlocked
-              ? "Unlocked"
-              : "Locked"}
+            +{pptPointBreakdown.totalSylFromRoadmap} $SYL
           </span>
         </button>
 
@@ -603,10 +597,11 @@ export function RoadmapTimeline({
               <div className="rounded-xl bg-[#111111] text-white p-3 space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[#FACC15] font-extrabold">
-                    AI PPT Rating: +{pptPointBreakdown.pptDifficultyPoints}/5 Poin
+                    AI PPT: +{pptPointBreakdown.pptDifficultyPoints}/5 Poin
                   </span>
                   <span className="font-bold text-emerald-300">
-                    Earned: {pptPointBreakdown.totalEarnedFromRoadmap} Poin
+                    +{pptPointBreakdown.totalEarnedFromRoadmap} Poin &middot; +
+                    {pptPointBreakdown.totalSylFromRoadmap} $SYL
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-snug">

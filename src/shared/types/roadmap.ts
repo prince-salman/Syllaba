@@ -147,6 +147,7 @@ export interface BlockchainCertificateRecord {
   ownerScope?: string;
   tier: CertificateTierId;
   totalPointsAtIssue: number;
+  totalSylCoinsAtIssue?: number;
   pptDifficultyPoints: number;
   recipientName: string;
   walletAddress: string;
@@ -163,6 +164,28 @@ export interface BlockchainCertificateRecord {
   chainId: number;
   proofType: "onchain-tx" | "eip191-signature";
   issuedAt: string;
+}
+
+export interface SyllabaCoinClaimRecord {
+  id: string;
+  ownerScope: string;
+  walletAddress: string;
+  amountSyl: number;
+  txHash: string;
+  chainId: number;
+  proofType: "onchain-tx" | "eip191-signature";
+  claimedAt: string;
+}
+
+export type SylPerkId = "ai_exam_boost" | "burnout_shield" | "gasless_sponsorship";
+
+export interface SyllabaCoinRedemptionRecord {
+  id: string;
+  ownerScope: string;
+  perkId: SylPerkId;
+  perkTitle: string;
+  costSyl: number;
+  redeemedAt: string;
 }
 
 export interface Roadmap {

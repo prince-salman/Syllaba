@@ -2,6 +2,9 @@ import {
   CertificateTierId,
   PptDifficultyAnalysis,
   Roadmap,
+  SyllabaCoinClaimRecord,
+  SyllabaCoinRedemptionRecord,
+  SylPerkId,
 } from "@/shared/types/roadmap";
 
 export interface CertificateTierMeta {
@@ -243,6 +246,11 @@ export interface RoadmapPointBreakdown {
   finalExamPoints: number;
   totalEarnedFromRoadmap: number;
   maxPossibleFromRoadmap: number;
+  baseSylCoins: number;
+  tasksSylCoins: number;
+  midExamSylCoins: number;
+  finalExamSylCoins: number;
+  totalSylFromRoadmap: number;
 }
 
 export function computeRoadmapPointBreakdown(
@@ -277,6 +285,18 @@ export function computeRoadmapPointBreakdown(
     basePptPoints + tasksCompletionPoints + midExamPoints + finalExamPoints;
   const maxPossibleFromRoadmap = d * 4 + 2;
 
+  // $SYL Coin Rewards scaled by AI PPT Difficulty (1-5)
+  const baseSylCoins = d * 10;
+  const tasksSylCoins = Math.max(0, roadmap.completedTasks) * (d * 15);
+  const midExamSylCoins = midSub?.passed
+    ? d * 40 + Math.round(midSub.totalScore * 0.5)
+    : 0;
+  const finalExamSylCoins = finalSub?.passed
+    ? d * 60 + Math.round(finalSub.totalScore * 1.0)
+    : 0;
+  const totalSylFromRoadmap =
+    baseSylCoins + tasksSylCoins + midExamSylCoins + finalExamSylCoins;
+
   return {
     roadmapId: roadmap.id,
     courseTitle: roadmap.courseTitle,
@@ -289,6 +309,11 @@ export function computeRoadmapPointBreakdown(
     finalExamPoints,
     totalEarnedFromRoadmap,
     maxPossibleFromRoadmap,
+    baseSylCoins,
+    tasksSylCoins,
+    midExamSylCoins,
+    finalExamSylCoins,
+    totalSylFromRoadmap,
   };
 }
 
@@ -300,6 +325,8 @@ export function computeGlobalAcademicPoints(
   currentBreakdown: RoadmapPointBreakdown;
   allBreakdowns: RoadmapPointBreakdown[];
   totalAccumulatedPoints: number;
+  totalEarnedSylCoins: number;
+  tierBonusSylCoins: number;
   currentTier: CertificateTierMeta;
   nextTier: CertificateTierMeta | null;
   isBronzeUnlocked: boolean;
@@ -331,12 +358,133 @@ export function computeGlobalAcademicPoints(
 
   const tierResolution = resolveTierByPoints(totalAccumulatedPoints);
 
+  const tierBonusMap: Record<CertificateTierId, number> = {
+    bronze: 100,
+    silver: 250,
+    gold: 500,
+    platinum: 900,
+    diamond: 1500,
+    emerald: 2500,
+  };
+  const tierBonusSylCoins = tierResolution.isBronzeUnlocked
+    ? tierBonusMap[tierResolution.currentTier.id]
+    : 0;
+
+  const roadmapSylSum = allBreakdowns.reduce(
+    (sum, item) => sum + item.totalSylFromRoadmap,
+    0
+  );
+  const totalEarnedSylCoins = roadmapSylSum + tierBonusSylCoins;
+
   return {
     currentBreakdown,
     allBreakdowns,
     totalAccumulatedPoints,
+    totalEarnedSylCoins,
+    tierBonusSylCoins,
     currentTier: tierResolution.currentTier,
     nextTier: tierResolution.nextTier,
     isBronzeUnlocked: tierResolution.isBronzeUnlocked,
   };
 }
+
+const SYL_CLAIMS_PREFIX = "syllaba_coin_claims_v1";
+const SYL_REDEMPTIONS_PREFIX = "syllaba_coin_redemptions_v1";
+
+export function getStoredSylClaims(scope = "guest"): SyllabaCoinClaimRecord[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`${SYL_CLAIMS_PREFIX}:${scope}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item: SyllabaCoinClaimRecord) =>
+        item && item.ownerScope === scope && typeof item.amountSyl === "number"
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function saveSylClaimRecord(
+  record: SyllabaCoinClaimRecord,
+  scope = "guest"
+): SyllabaCoinClaimRecord[] {
+  const existing = getStoredSylClaims(scope);
+  const next = [{ ...record, ownerScope: scope }, ...existing];
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`${SYL_CLAIMS_PREFIX}:${scope}`, JSON.stringify(next));
+    } catch {
+      // Ignore storage quota error
+    }
+  }
+  return next;
+}
+
+export function getStoredSylRedemptions(
+  scope = "guest"
+): SyllabaCoinRedemptionRecord[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`${SYL_REDEMPTIONS_PREFIX}:${scope}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item: SyllabaCoinRedemptionRecord) =>
+        item && item.ownerScope === scope && typeof item.costSyl === "number"
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function saveSylRedemptionRecord(
+  record: SyllabaCoinRedemptionRecord,
+  scope = "guest"
+): SyllabaCoinRedemptionRecord[] {
+  const existing = getStoredSylRedemptions(scope);
+  const next = [{ ...record, ownerScope: scope }, ...existing];
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(
+        `${SYL_REDEMPTIONS_PREFIX}:${scope}`,
+        JSON.stringify(next)
+      );
+    } catch {
+      // Ignore storage quota error
+    }
+  }
+  return next;
+}
+
+export const SYL_COIN_PERKS: Array<{
+  id: SylPerkId;
+  title: string;
+  costSyl: number;
+  description: string;
+}> = [
+  {
+    id: "ai_exam_boost",
+    title: "AI Exam Formula Hint & Remedial Shield",
+    costSyl: 35,
+    description:
+      "Membuka petunjuk rumus LaTeX & kesempatan remedial instan pada Ujian AI 5 PG + 2 Esai.",
+  },
+  {
+    id: "burnout_shield",
+    title: "Burnout Recovery Streak Shield",
+    costSyl: 50,
+    description:
+      "Menjaga pengali poin kesulitan PPT tetap utuh saat melakukan Reschedule jadwal belajar.",
+  },
+  {
+    id: "gasless_sponsorship",
+    title: "Base Sepolia On-Chain Gas Sponsorship",
+    costSyl: 75,
+    description:
+      "Menanggung biaya anchor transaksi on-chain Sertifikat Blockchain di jaringan Base Sepolia.",
+  },
+];
