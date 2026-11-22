@@ -10,6 +10,7 @@ import { computeRoadmapPointBreakdown } from "@/shared/utils/certificateTiers";
 import { resolveOwnerScope } from "@/client/utils/storage";
 import { useWeb3 } from "@/components/Web3Providers";
 import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
+import { autoAnchorCourseCertificate } from "@/client/lib/autoMintCertificates";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { getPanelCopy } from "@/client/i18n/panelCopy";
@@ -88,6 +89,7 @@ export function BlockchainCertificatePanel({
   const [isMinting, setIsMinting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [showProofJson, setShowProofJson] = useState(false);
+  const autoAttemptedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setRecipientName(defaultName);
@@ -102,6 +104,64 @@ export function BlockchainCertificatePanel({
   const midPassed = breakdown.midExamPassed;
   const finalPassed = breakdown.finalExamPassed;
   const isModuleCompleted = breakdown.isFullyCompletedAtEnd;
+
+  useEffect(() => {
+    if (!isModuleCompleted) return;
+    if (ownedCert?.proofType === "onchain-tx") return;
+
+    const attemptKey = `${roadmap.id}:${currentScope}`;
+    if (autoAttemptedRef.current.has(attemptKey)) return;
+    autoAttemptedRef.current.add(attemptKey);
+
+    let cancelled = false;
+    setIsMinting(true);
+    setStatusMsg(
+      isId
+        ? `Mencatat Sertifikat Kelulusan "${roadmap.courseTitle}" secara otomatis ke Base Sepolia...`
+        : `Automatically anchoring Course Certificate for "${roadmap.courseTitle}" onto Base Sepolia...`
+    );
+
+    autoAnchorCourseCertificate({
+      roadmap,
+      recipientName: defaultName,
+      ownerScope: currentScope,
+      walletAddress: isConnected ? address : null,
+      chainId,
+    })
+      .then((certRecord) => {
+        if (!certRecord || cancelled) return;
+        onSaveCertificate(certRecord);
+        setStatusMsg(
+          isId
+            ? `Sertifikat otomatis masuk on-chain ke Base Sepolia (TX: ${certRecord.txHash.slice(
+                0,
+                14
+              )}...)!`
+            : `Certificate automatically anchored on Base Sepolia (TX: ${certRecord.txHash.slice(
+                0,
+                14
+              )}...)!`
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsMinting(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    address,
+    chainId,
+    currentScope,
+    defaultName,
+    isConnected,
+    isId,
+    isModuleCompleted,
+    onSaveCertificate,
+    ownedCert?.proofType,
+    roadmap,
+  ]);
 
   const midScore = roadmap.exams?.mid?.submission?.totalScore ?? 0;
   const finalScore = roadmap.exams?.final?.submission?.totalScore ?? 0;

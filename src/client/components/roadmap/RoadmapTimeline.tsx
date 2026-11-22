@@ -37,6 +37,9 @@ import {
 } from "lucide-react";
 import { keccak256, stringToHex } from "viem";
 import { useWeb3 } from "@/components/Web3Providers";
+import { useAuth } from "@/client/components/auth/AuthProvider";
+import { resolveOwnerScope } from "@/client/utils/storage";
+import { autoAnchorCourseCertificate } from "@/client/lib/autoMintCertificates";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 import { formatDate } from "@/shared/utils";
@@ -87,8 +90,24 @@ export function RoadmapTimeline({
   const [activeExamModalStage, setActiveExamModalStage] =
     useState<ExamStage | null>(null);
   const [visibleDaysCount, setVisibleDaysCount] = useState(INITIAL_DAYS_BATCH);
+  const [isAutoAnchoringCert, setIsAutoAnchoringCert] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const { isConnected } = useWeb3();
+  const roadmapRef = useRef(roadmap);
+  roadmapRef.current = roadmap;
+  const autoAnchoredKeysRef = useRef<Set<string>>(new Set());
+  const { address, chainId, isConnected } = useWeb3();
+  const { user } = useAuth();
+  const currentScope = useMemo(
+    () => resolveOwnerScope(isConnected ? address : null, user?.id ?? null),
+    [address, isConnected, user?.id]
+  );
+  const defaultScholarName =
+    (typeof user?.user_metadata?.full_name === "string" &&
+      user.user_metadata.full_name) ||
+    (typeof user?.user_metadata?.name === "string" &&
+      user.user_metadata.name) ||
+    user?.email?.split("@")[0] ||
+    "Scholar";
 
   // Reset progressive batch whenever user switches to another course
   useEffect(() => {
@@ -344,6 +363,58 @@ export function RoadmapTimeline({
   const allTasksDone =
     roadmap.totalTasks > 0 && roadmap.completedTasks >= roadmap.totalTasks;
   const isCertificateUnlocked = allTasksDone && midPassed && finalPassed;
+  const ownedCourseCert = useMemo(() => {
+    const c = roadmap.certificate;
+    if (!c) return undefined;
+    if (c.ownerScope && c.ownerScope !== currentScope) return undefined;
+    return c;
+  }, [currentScope, roadmap.certificate]);
+
+  // Automatically record newly earned course certificates onto Base Sepolia without manual click
+  useEffect(() => {
+    if (!isCertificateUnlocked) return;
+    if (ownedCourseCert?.proofType === "onchain-tx") return;
+
+    const attemptKey = `${roadmap.id}:${currentScope}`;
+    if (autoAnchoredKeysRef.current.has(attemptKey)) return;
+    autoAnchoredKeysRef.current.add(attemptKey);
+
+    let cancelled = false;
+    setIsAutoAnchoringCert(true);
+    autoAnchorCourseCertificate({
+      roadmap: roadmapRef.current,
+      recipientName: ownedCourseCert?.recipientName || defaultScholarName,
+      ownerScope: currentScope,
+      walletAddress: isConnected ? address : null,
+      chainId,
+    })
+      .then((cert) => {
+        if (!cert || cancelled) return;
+        onUpdateRoadmap({
+          ...roadmapRef.current,
+          certificate: cert,
+          updatedAt: new Date().toISOString(),
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setIsAutoAnchoringCert(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    address,
+    chainId,
+    currentScope,
+    defaultScholarName,
+    isCertificateUnlocked,
+    isConnected,
+    onUpdateRoadmap,
+    ownedCourseCert?.proofType,
+    ownedCourseCert?.recipientName,
+    roadmap.id,
+  ]);
   const pptPointBreakdown = useMemo(
     () => computeRoadmapPointBreakdown(roadmap),
     [roadmap]
@@ -541,14 +612,18 @@ export function RoadmapTimeline({
                                       : "text-slate-500"
                                   }`}
                                 >
-                                  {roadmap.certificate
+                                  {ownedCourseCert?.proofType === "onchain-tx"
                                     ? isId
-                                      ? `Sertifikat telah diterbitkan di Base Sepolia (ID: ${roadmap.certificate.certificateId}).`
-                                      : `Certificate issued on Base Sepolia (ID: ${roadmap.certificate.certificateId}).`
+                                      ? `Sertifikat otomatis tercatat di Base Sepolia (ID: ${ownedCourseCert.certificateId}).`
+                                      : `Certificate automatically anchored on Base Sepolia (ID: ${ownedCourseCert.certificateId}).`
+                                    : isAutoAnchoringCert
+                                    ? isId
+                                      ? "Seluruh tugas & ujian lulus! Sedang mencatat Sertifikat SBT otomatis ke blockchain Base Sepolia..."
+                                      : "All tasks & exams passed! Automatically recording your SBT Certificate onto Base Sepolia..."
                                     : isCertificateUnlocked
                                     ? isId
-                                      ? "Seluruh tugas harian, Ujian Tengah Sesi, dan Ujian Akhir Sesi tuntas! Poin PPT & $SYL Coin sudah cair — klaim Sertifikat Blockchain sekarang."
-                                      : "All daily tasks, Mid-Session Exam, and Final Exam completed! PPT Points & $SYL Coins unlocked — claim your Blockchain Certificate now."
+                                      ? "Seluruh tugas harian, Ujian Tengah Sesi, dan Ujian Akhir Sesi tuntas! Sertifikat siap dilihat & diverifikasi on-chain."
+                                      : "All daily tasks, Mid-Session Exam, and Final Exam completed! Your Blockchain Certificate & $SYL Coins are ready."
                                     : isId
                                     ? "Selesaikan seluruh hari belajar sesuai jadwal harian serta lulus Ujian Tengah & Ujian Akhir Sesi untuk mencairkan poin akhir (1-5 Poin PPT) & membuka sertifikat ini."
                                     : "Complete all daily sprints in order and pass both Mid & Final AI Exams to earn your final PPT points (1-5 pts) and unlock this certificate."}

@@ -24,6 +24,7 @@ import {
 import { generateId } from "@/shared/utils";
 import { useWeb3 } from "@/components/Web3Providers";
 import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
+import { autoAnchorTierCertificate } from "@/client/lib/autoMintCertificates";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { getPanelCopy } from "@/client/i18n/panelCopy";
@@ -102,6 +103,7 @@ export function TierCertificateExchangePanel({
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [coinStatusMsg, setCoinStatusMsg] = useState<string | null>(null);
   const [showProofJson, setShowProofJson] = useState(false);
+  const autoTierAttemptedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setRecipientName(defaultName);
@@ -173,7 +175,7 @@ export function TierCertificateExchangePanel({
       recipientName: recipientName.trim() || "Scholar",
       walletAddress: address || "0x000000000000000000000000000000000000dEaD",
     });
-    return keccak256(stringToHex(payload));
+      return keccak256(stringToHex(payload));
   }, [
     activeTierMeta.id,
     activeTierMeta.minPoints,
@@ -183,6 +185,75 @@ export function TierCertificateExchangePanel({
     ownedTierCert?.certificateHash,
     recipientName,
     totalAccumulatedPoints,
+  ]);
+
+  // Automatically anchor unlocked Tier Certificates onto Base Sepolia without manual click
+  useEffect(() => {
+    if (!isSelectedTierUnlocked) return;
+    if (ownedTierCert?.proofType === "onchain-tx") return;
+
+    const attemptKey = `${activeTierMeta.id}:${currentScope}`;
+    if (autoTierAttemptedRef.current.has(attemptKey)) return;
+    autoTierAttemptedRef.current.add(attemptKey);
+
+    let cancelled = false;
+    setIsMinting(true);
+    setStatusMsg(
+      isId
+        ? `Mencatat Sertifikat Tier ${activeTierMeta.name.toUpperCase()} secara otomatis ke Base Sepolia...`
+        : `Automatically anchoring ${activeTierMeta.name.toUpperCase()} Tier Certificate onto Base Sepolia...`
+    );
+
+    autoAnchorTierCertificate({
+      tierMeta: activeTierMeta,
+      representativeRoadmap: roadmaps[0],
+      certificateHash,
+      totalAccumulatedPoints,
+      totalEarnedSylCoins,
+      completedCoursesCount,
+      recipientName: defaultName,
+      ownerScope: currentScope,
+      walletAddress: isConnected ? address : null,
+      chainId,
+    })
+      .then((certRecord) => {
+        if (!certRecord || cancelled) return;
+        const nextMap = saveTierCertificateRecord(certRecord, currentScope);
+        setTierCerts(nextMap);
+        setStatusMsg(
+          isId
+            ? `Sertifikat Tier ${activeTierMeta.name.toUpperCase()} otomatis masuk ke Base Sepolia (TX: ${certRecord.txHash.slice(
+                0,
+                14
+              )}...)!`
+            : `${activeTierMeta.name.toUpperCase()} Tier Certificate automatically anchored on Base Sepolia (TX: ${certRecord.txHash.slice(
+                0,
+                14
+              )}...)!`
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsMinting(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTierMeta,
+    address,
+    certificateHash,
+    chainId,
+    completedCoursesCount,
+    currentScope,
+    defaultName,
+    isConnected,
+    isId,
+    isSelectedTierUnlocked,
+    ownedTierCert?.proofType,
+    roadmaps,
+    totalAccumulatedPoints,
+    totalEarnedSylCoins,
   ]);
 
   const displayCertId =
