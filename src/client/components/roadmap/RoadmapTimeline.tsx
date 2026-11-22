@@ -168,7 +168,7 @@ export function RoadmapTimeline({
       return {
         isLocked: true,
         isWaitingNextDay: true,
-        lockReason: wcopy.lockedUntilTomorrowReason(formatDate(targetSchedule.date)),
+        lockReason: wcopy.lockedUntilTomorrowReason(formatDate(targetSchedule.date, lang)),
       };
     }
 

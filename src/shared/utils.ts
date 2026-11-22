@@ -5,11 +5,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(dateString: string): string {
+const DATE_LOCALES: Record<string, string> = {
+  en: "en-US",
+  id: "id-ID",
+  zh: "zh-CN",
+  ar: "ar-EG",
+  es: "es-ES",
+  pt: "pt-BR",
+};
+
+/**
+ * Formats a YYYY-MM-DD (or ISO) date string without UTC timezone rollback.
+ */
+export function formatDate(dateString: string, lang = "en"): string {
   try {
-    const date = new Date(dateString);
+    const trimmed = (dateString || "").trim();
+    let date: Date;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, d] = trimmed.split("-").map((n) => parseInt(n, 10));
+      date = new Date(y, (m || 1) - 1, d || 1);
+    } else {
+      date = new Date(trimmed);
+    }
     if (isNaN(date.getTime())) return dateString;
-    return new Intl.DateTimeFormat("en-US", {
+    const locale = DATE_LOCALES[lang.toLowerCase()] ?? "en-US";
+    return new Intl.DateTimeFormat(locale, {
       weekday: "short",
       month: "short",
       day: "numeric",

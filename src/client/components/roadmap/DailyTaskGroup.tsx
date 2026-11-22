@@ -45,7 +45,7 @@ export function DailyTaskGroup({
                   {wcopy.dayLabel(schedule.dayNumber)}
                 </span>
                 <span className="text-xs text-emerald-700">
-                  {formatDate(schedule.date)}
+                  {formatDate(schedule.date, lang)}
                 </span>
               </div>
               <p className="text-xs text-emerald-800 mt-0.5">
@@ -104,14 +104,14 @@ export function DailyTaskGroup({
               {wcopy.dayLabel(schedule.dayNumber)}
             </h3>
             <span className="text-xs text-slate-500">
-              {formatDate(schedule.date)}
+              {formatDate(schedule.date, lang)}
             </span>
             {isLocked && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-900">
                 {isWaitingNextDay ? (
                   <>
                     <CalendarClock className="w-2.5 h-2.5" />
-                    <span>{wcopy.nextDayWaitBadge(formatDate(schedule.date))}</span>
+                    <span>{wcopy.nextDayWaitBadge(formatDate(schedule.date, lang))}</span>
                   </>
                 ) : (
                   <>

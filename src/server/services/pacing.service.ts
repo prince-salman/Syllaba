@@ -393,14 +393,34 @@ export function generateHeuristicRoadmap(
   };
 }
 
+function addDaysYmd(dateStr: string, delayDays: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const shifted = new Date(Date.UTC(year, month - 1, day + delayDays));
+    if (!Number.isNaN(shifted.getTime())) {
+      return shifted.toISOString().split("T")[0];
+    }
+  }
+  const fallback = new Date(dateStr);
+  if (Number.isNaN(fallback.getTime())) {
+    const today = new Date();
+    const shifted = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + delayDays),
+    );
+    return shifted.toISOString().split("T")[0];
+  }
+  const shifted = new Date(fallback.getTime() + delayDays * 24 * 60 * 60 * 1000);
+  return shifted.toISOString().split("T")[0];
+}
+
 export function rescheduleRoadmap(currentRoadmap: Roadmap, delayDays: number): Roadmap {
   const updatedSchedules: DailySchedule[] = [];
-  const shiftMs = delayDays * 24 * 60 * 60 * 1000;
 
   currentRoadmap.dailySchedules.forEach((schedule, index) => {
-    const oldDate = new Date(schedule.date);
-    const newDate = new Date(oldDate.getTime() + shiftMs);
-    const newDateStr = newDate.toISOString().split("T")[0];
+    const newDateStr = addDaysYmd(schedule.date, delayDays);
 
     const updatedTasks = schedule.tasks.map((task) => ({
       ...task,
