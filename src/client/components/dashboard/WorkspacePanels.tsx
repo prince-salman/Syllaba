@@ -463,14 +463,16 @@ export function SettingsPanel({
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={onOpenWalletModal}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E0] bg-white hover:bg-[#F7F7F5] px-4 py-2 text-xs font-semibold text-[#111111] transition cursor-pointer"
-            >
-              <Wallet className="h-3.5 w-3.5 text-[#D97706]" />
-              <span>{isWalletConnected ? copy.manageWallet : copy.connectWallet}</span>
-            </button>
+            {!isWalletConnected && (
+              <button
+                type="button"
+                onClick={onOpenWalletModal}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E5E0] bg-white hover:bg-[#F7F7F5] px-4 py-2 text-xs font-semibold text-[#111111] transition cursor-pointer"
+              >
+                <Wallet className="h-3.5 w-3.5 text-[#D97706]" />
+                <span>{copy.connectWallet}</span>
+              </button>
+            )}
           </div>
         </div>
       ) : (
