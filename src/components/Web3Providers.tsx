@@ -676,10 +676,6 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         throw new Error("Wallet is not connected.");
       }
 
-      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
-        await switchToBaseSepolia();
-      }
-
       const targetContract = params.coinAddress || sylCoinAddress;
       const hasGasBalance = balanceData?.value !== undefined && balanceData.value > BigInt(30000000000000);
       const isOfficialDeployedSyl =
@@ -688,33 +684,8 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         Boolean(address) &&
         address.toLowerCase() === OFFICIAL_SYLLABA_COIN_OWNER.toLowerCase();
 
-      // Priority 1A: Official Base Sepolia Syllaba Coin (0x95f9...0BFA7) -> rewardCompletedModule(address)
+      // Priority 1A: Gasless server relayer FIRST (zero MetaMask tx/network popups for all users including owner)
       if (isOfficialDeployedSyl && targetContract) {
-        if (walletClient && isOwnerWallet && hasGasBalance) {
-          try {
-            const data = encodeFunctionData({
-              abi: SYLLABA_COIN_ABI,
-              functionName: "rewardCompletedModule",
-              args: [address],
-            });
-            const txHash = await walletClient.sendTransaction({
-              account: address,
-              chain: baseSepolia,
-              to: targetContract,
-              data,
-              value: BigInt(0),
-            });
-            if (publicClient) {
-              await publicClient.waitForTransactionReceipt({ hash: txHash });
-              await refreshSylBalance();
-            }
-            return { txHash, proofType: "onchain-tx", contractAddress: targetContract };
-          } catch {
-            // Continue to relayer or calldata fallback
-          }
-        }
-
-        // Priority 1B: Optional server relayer for 0.25 SYL official contract
         try {
           const relayRes = await fetch("/api/syl/reward", {
             method: "POST",
@@ -733,7 +704,36 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
             }
           }
         } catch {
-          // Fall back if server relayer key is unset
+          // Fall back to direct owner wallet TX below if server relayer is unavailable
+        }
+      }
+
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        await switchToBaseSepolia();
+      }
+
+      // Priority 1B: Direct owner wallet TX fallback -> rewardCompletedModule(address)
+      if (isOfficialDeployedSyl && targetContract && walletClient && isOwnerWallet && hasGasBalance) {
+        try {
+          const data = encodeFunctionData({
+            abi: SYLLABA_COIN_ABI,
+            functionName: "rewardCompletedModule",
+            args: [address],
+          });
+          const txHash = await walletClient.sendTransaction({
+            account: address,
+            chain: baseSepolia,
+            to: targetContract,
+            data,
+            value: BigInt(0),
+          });
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
+            await refreshSylBalance();
+          }
+          return { txHash, proofType: "onchain-tx", contractAddress: targetContract };
+        } catch {
+          // Continue to calldata fallback
         }
       }
 
