@@ -23,6 +23,7 @@ import {
 } from "@/shared/utils/certificateTiers";
 import { generateId } from "@/shared/utils";
 import { useWeb3 } from "@/components/Web3Providers";
+import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { ScannableQrCode } from "@/client/components/common/ScannableQrCode";
@@ -321,14 +322,13 @@ export function TierCertificateExchangePanel({
   const handleExchangeTierCertificate = async (useGasless = false) => {
     if (!isSelectedTierUnlocked) return;
 
-    if (!useGasless && (!isConnected || !address)) {
-      openConnectModal();
-      return;
-    }
-
     setIsMinting(true);
     setStatusMsg(
-      isId
+      !isConnected
+        ? isId
+          ? `Mencatat Sertifikat Tier ${activeTierMeta.name.toUpperCase()} (${totalAccumulatedPoints} Poin) ke Base Sepolia (Mode Tanpa Wallet)...`
+          : `Recording ${activeTierMeta.name.toUpperCase()} Tier Certificate (${totalAccumulatedPoints} Points) to Base Sepolia (Non-Wallet Relayer)...`
+        : isId
         ? `Memproses penukaran Sertifikat Tier ${activeTierMeta.name.toUpperCase()} (${totalAccumulatedPoints} Poin)...`
         : `Exchanging ${activeTierMeta.name.toUpperCase()} Tier Certificate (${totalAccumulatedPoints} Points)...`
     );
@@ -356,8 +356,9 @@ export function TierCertificateExchangePanel({
           // Canonical digest fallback
         }
       }
-      const signerAddress =
+      let signerAddress: string =
         address || "0x71C95911E9a5D330f4D621842EC243EE1343292e";
+      let anchoredCertHash: `0x${string}` = certificateHash;
       let txHash: string = keccak256(
         stringToHex(
           `SYLLABA_TIER_EXCHANGE:${activeTierMeta.id}:${certificateHash}:${Date.now()}`
@@ -380,17 +381,57 @@ export function TierCertificateExchangePanel({
         txHash = anchored.txHash;
         proofType = anchored.proofType;
         sbtAddressUsed = anchored.sbtAddress;
+        if (anchored.certHash) anchoredCertHash = anchored.certHash;
       } else if (useGasless && isConnected && address) {
         txHash = await signPersonalMessage(
           `Syllaba Tier Certificate Redemption\nTier: ${activeTierMeta.name.toUpperCase()} (${activeTierMeta.minPoints}+ Points)\nAccumulated Points: ${totalAccumulatedPoints}\nHolder: ${recipientName.trim() || "Scholar"}\nWallet: ${address}\nCertificate Hash: ${certificateHash}\nNetwork: Base Sepolia (84532)`
         );
         proofType = "eip191-signature";
+      } else {
+        // Non-wallet / guest / email mode: server-sponsored Base Sepolia anchoring
+        const relay = await anchorCertificateViaRelayer({
+          certHash: certificateHash,
+          ipfsCid: resolvedCid,
+          courseTitle: `Syllaba ${activeTierMeta.name.toUpperCase()} Tier Credential (${completedCoursesCount} PPTs)`,
+          recipientName: recipientName.trim() || "Scholar",
+          finalGradeScore: Math.min(100, totalAccumulatedPoints),
+          certKind: `TIER_${activeTierMeta.id.toUpperCase()}`,
+          points: totalAccumulatedPoints,
+        });
+        if (relay) {
+          txHash = relay.txHash;
+          proofType = relay.proofType;
+          sbtAddressUsed = relay.sbtContractAddress;
+          signerAddress = relay.relayerAddress;
+          anchoredCertHash = relay.certHash;
+        }
+      }
+
+      try {
+        await fetch("/api/proofs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roadmapId: `tier-${activeTierMeta.id}`,
+            walletAddress: signerAddress,
+            roadmapHash: anchoredCertHash,
+            ipfsCid: resolvedCid,
+            txHash,
+            chainId: chainId || 84532,
+            status:
+              proofType === "onchain-tx"
+                ? `cert-tier-${activeTierMeta.id}-onchain`
+                : `cert-tier-${activeTierMeta.id}-attested`,
+          }),
+        });
+      } catch {
+        // Non-blocking ledger sync
       }
 
       const certRecord: BlockchainCertificateRecord = {
         certificateId: `SYL-TIER-${activeTierMeta.id
           .slice(0, 3)
-          .toUpperCase()}-${certificateHash.slice(2, 9).toUpperCase()}`,
+          .toUpperCase()}-${anchoredCertHash.slice(2, 9).toUpperCase()}`,
         ownerScope: currentScope,
         tier: activeTierMeta.id,
         totalPointsAtIssue: totalAccumulatedPoints,
@@ -404,7 +445,7 @@ export function TierCertificateExchangePanel({
         finalGradeScore: 100,
         totalDays: completedCoursesCount,
         totalTasks: totalAccumulatedPoints,
-        certificateHash,
+        certificateHash: anchoredCertHash,
         ipfsCid: resolvedCid,
         ipfsStorageMode: resolvedStorageMode,
         txHash,
@@ -779,13 +820,17 @@ export function TierCertificateExchangePanel({
                   <span>
                     {ownedTierCert
                       ? `Update ${activeTierMeta.name} Tier On-Chain`
-                      : `Tukar & Mint ${activeTierMeta.name} (${activeTierMeta.minPoints}+ Poin)`}
+                      : isConnected
+                      ? `Tukar & Mint ${activeTierMeta.name} (${activeTierMeta.minPoints}+ Poin)`
+                      : isId
+                      ? `Tukar & Mint ${activeTierMeta.name} (Tanpa Wallet)`
+                      : `Redeem & Mint ${activeTierMeta.name} (No Wallet)`}
                   </span>
                 </>
               )}
             </button>
 
-            {isSelectedTierUnlocked && (
+            {isSelectedTierUnlocked && isConnected && (
               <button
                 type="button"
                 disabled={isMinting}
@@ -794,6 +839,18 @@ export function TierCertificateExchangePanel({
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Sign Cryptographic Attestation (Gasless)</span>
+              </button>
+            )}
+
+            {isSelectedTierUnlocked && !isConnected && (
+              <button
+                type="button"
+                disabled={isMinting}
+                onClick={openConnectModal}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>{isId ? "Hubungkan Wallet (Opsional)" : "Connect Wallet (Optional)"}</span>
               </button>
             )}
 

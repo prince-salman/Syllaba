@@ -9,6 +9,7 @@ import {
 import { computeRoadmapPointBreakdown } from "@/shared/utils/certificateTiers";
 import { resolveOwnerScope } from "@/client/utils/storage";
 import { useWeb3 } from "@/components/Web3Providers";
+import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { ScannableQrCode } from "@/client/components/common/ScannableQrCode";
@@ -144,14 +145,13 @@ export function BlockchainCertificatePanel({
   const handleMintCertificate = async (useProtocolRelayer = false) => {
     if (!isModuleCompleted) return;
 
-    if (!useProtocolRelayer && (!isConnected || !address)) {
-      openConnectModal();
-      return;
-    }
-
     setIsMinting(true);
     setStatusMsg(
-      isId
+      !isConnected
+        ? isId
+          ? `Mencatat Sertifikat Kelulusan PPT "${roadmap.courseTitle}" ke Base Sepolia (Mode Tanpa Wallet)...`
+          : `Recording Course Completion Certificate for "${roadmap.courseTitle}" to Base Sepolia (Non-Wallet Relayer)...`
+        : isId
         ? `Menerbitkan Sertifikat Kelulusan PPT "${roadmap.courseTitle}"...`
         : `Issuing Course Completion Certificate for "${roadmap.courseTitle}"...`
     );
@@ -177,8 +177,9 @@ export function BlockchainCertificatePanel({
         // Fallback deterministic canonical digest
       }
 
-      const signerAddress =
+      let signerAddress: string =
         address || "0x71C95911E9a5D330f4D621842EC243EE1343292e";
+      let anchoredCertHash: `0x${string}` = certificateHash;
       let txHash: string = keccak256(
         stringToHex(
           `SYLLABA_COURSE_ATTEST:${roadmap.id}:${certificateHash}:${Date.now()}`
@@ -201,11 +202,30 @@ export function BlockchainCertificatePanel({
         txHash = anchored.txHash;
         proofType = anchored.proofType;
         sbtAddressUsed = anchored.sbtAddress;
+        if (anchored.certHash) anchoredCertHash = anchored.certHash;
       } else if (useProtocolRelayer && isConnected && address) {
         txHash = await signPersonalMessage(
           `Syllaba Course Completion Certificate\nCourse: ${roadmap.courseTitle}\nRecipient: ${recipientName.trim() || "Scholar"}\nWallet: ${address}\nFinal Score: ${finalGradeScore}/100\nCertificate Hash: ${certificateHash}\nSnapshot Ref: ${resolvedCid}\nChain: Base Sepolia (84532)`
         );
         proofType = "eip191-signature";
+      } else {
+        // Non-wallet / guest / email mode: server-sponsored Base Sepolia anchoring
+        const relay = await anchorCertificateViaRelayer({
+          certHash: certificateHash,
+          ipfsCid: resolvedCid,
+          courseTitle: `${roadmap.courseTitle} [PPT COMPLETION]`,
+          recipientName: recipientName.trim() || "Scholar",
+          finalGradeScore,
+          certKind: "COURSE_PASS",
+          points: breakdown.pptDifficultyPoints,
+        });
+        if (relay) {
+          txHash = relay.txHash;
+          proofType = relay.proofType;
+          sbtAddressUsed = relay.sbtContractAddress;
+          signerAddress = relay.relayerAddress;
+          anchoredCertHash = relay.certHash;
+        }
       }
 
       try {
@@ -215,7 +235,7 @@ export function BlockchainCertificatePanel({
           body: JSON.stringify({
             roadmapId: roadmap.id,
             walletAddress: signerAddress,
-            roadmapHash: certificateHash,
+            roadmapHash: anchoredCertHash,
             ipfsCid: resolvedCid,
             txHash,
             chainId: chainId || 84532,
@@ -230,7 +250,7 @@ export function BlockchainCertificatePanel({
       }
 
       const certRecord: BlockchainCertificateRecord = {
-        certificateId: `SYL-PPT-${certificateHash.slice(2, 9).toUpperCase()}`,
+        certificateId: `SYL-PPT-${anchoredCertHash.slice(2, 9).toUpperCase()}`,
         ownerScope: currentScope,
         tier: "bronze",
         totalPointsAtIssue: breakdown.totalEarnedFromRoadmap,
@@ -244,7 +264,7 @@ export function BlockchainCertificatePanel({
         finalGradeScore,
         totalDays: roadmap.totalDays,
         totalTasks: roadmap.totalTasks,
-        certificateHash,
+        certificateHash: anchoredCertHash,
         ipfsCid: resolvedCid,
         ipfsStorageMode: resolvedStorageMode,
         txHash,
@@ -588,13 +608,17 @@ export function BlockchainCertificatePanel({
                   <span>
                     {cert
                       ? "Update Sertifikat PPT (Base Sepolia)"
-                      : "Mint Sertifikat Lulus PPT (Base Sepolia)"}
+                      : isConnected
+                      ? "Mint Sertifikat Lulus PPT (Base Sepolia)"
+                      : isId
+                      ? "Mint Sertifikat On-Chain (Gratis · Tanpa Wallet)"
+                      : "Mint Certificate On-Chain (Free · No Wallet)"}
                   </span>
                 </>
               )}
             </button>
 
-            {isModuleCompleted && (
+            {isModuleCompleted && isConnected && (
               <button
                 type="button"
                 disabled={isMinting}
@@ -603,6 +627,18 @@ export function BlockchainCertificatePanel({
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Sign Cryptographic Attestation (Gasless)</span>
+              </button>
+            )}
+
+            {isModuleCompleted && !isConnected && (
+              <button
+                type="button"
+                disabled={isMinting}
+                onClick={openConnectModal}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>{isId ? "Hubungkan Wallet (Opsional)" : "Connect Wallet (Optional)"}</span>
               </button>
             )}
 

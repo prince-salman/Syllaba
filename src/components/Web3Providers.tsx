@@ -33,6 +33,7 @@ import {
 } from "wagmi";
 import { base, baseSepolia, mainnet, sepolia } from "wagmi/chains";
 import { encodeFunctionData, formatEther, formatUnits, parseEther, stringToHex } from "viem";
+import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
 import { SYLLABA_VAULT_ABI, SYLLABA_VAULT_BYTECODE } from "@/shared/contracts/syllabaVault";
 import {
   OFFICIAL_SYLLABA_COIN_ADDRESS,
@@ -132,7 +133,7 @@ interface Web3ContextValue {
     finalGradeScore: number;
     certKind?: string;
     points?: number;
-  }) => Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature"; sbtAddress?: `0x${string}` }>;
+  }) => Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature"; sbtAddress?: `0x${string}`; certHash?: `0x${string}` }>;
   syllabaSbtAddress: `0x${string}` | undefined;
   setSyllabaSbtAddress: (addr: `0x${string}` | undefined) => void;
   deploySbtContractOnChain: () => Promise<{ txHash: string; contractAddress: `0x${string}` | null }>;
@@ -537,7 +538,7 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
       finalGradeScore: number;
       certKind?: string;
       points?: number;
-    }): Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature"; sbtAddress?: `0x${string}` }> => {
+    }): Promise<{ txHash: string; proofType: "onchain-tx" | "eip191-signature"; sbtAddress?: `0x${string}`; certHash?: `0x${string}` }> => {
       if (!isConnected || !address) {
         throw new Error("Wallet is not connected.");
       }
@@ -578,6 +579,26 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         } catch {
           // Fall back if user rejects or digest already minted
         }
+      }
+
+      // Priority 1B: Server-sponsored Base Sepolia SBT mint (when connected wallet has 0 ETH or direct mint skipped)
+      const relay = await anchorCertificateViaRelayer({
+        certHash: params.certificateHash,
+        ipfsCid: params.ipfsCid,
+        courseTitle: params.courseTitle,
+        recipientName: params.recipientName,
+        finalGradeScore: params.finalGradeScore,
+        certKind: params.certKind || "COURSE_PASS",
+        points: params.points ?? 0,
+        studentAddress: address,
+      });
+      if (relay) {
+        return {
+          txHash: relay.txHash,
+          proofType: relay.proofType,
+          sbtAddress: relay.sbtContractAddress || syllabaSbtAddress,
+          certHash: relay.certHash,
+        };
       }
 
       // Priority 2: Direct Base Sepolia calldata TX if SBT contract not deployed yet
