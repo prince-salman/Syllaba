@@ -209,9 +209,33 @@ function parseSyllabusFallback(syllabusText: string, courseTitle?: string): Syll
     });
   }
 
+  if (modules.length <= 32) {
+    return {
+      courseTitle: detectedTitle,
+      modules,
+    };
+  }
+
+  // Group excess slides evenly into <=24 combined modules so NO final slides/pages are ever dropped
+  const groupSize = Math.ceil(modules.length / 24);
+  const merged: ExtractedModule[] = [];
+  for (let i = 0; i < modules.length; i += groupSize) {
+    const chunk = modules.slice(i, i + groupSize);
+    const first = chunk[0];
+    const last = chunk[chunk.length - 1];
+    merged.push({
+      title:
+        chunk.length > 1
+          ? `${first.title.split(":")[0]}–${last.title}`
+          : first.title,
+      topics: chunk.flatMap((c) => c.topics).slice(0, 8),
+      estimatedHours: Math.min(8, chunk.reduce((a, b) => a + (b.estimatedHours ?? 1), 0)),
+    });
+  }
+
   return {
     courseTitle: detectedTitle,
-    modules: modules.slice(0, 16),
+    modules: merged,
   };
 }
 
@@ -237,8 +261,8 @@ Document / Slide Content:
 ${compactDocumentForPrompt(syllabusText, 48000)}
 
 Rules:
-1. Group content by the actual slides or sections in the document (e.g., "Slide 1-2: <Exact Slide Heading>" or "Slide 3: <Exact Slide Heading>").
-2. Each module's "topics" array MUST contain the exact specific bullet points, definitions, formulas, examples, or sub-concepts written on those slides (4 to 8 specific items per module).
+1. Group content to cover ALL slides/pages from the first slide to the very last slide (NEVER omit later pages). If the document has more than 20 pages, group consecutive slides (e.g., "Slide 1-2: ...", "Slide 3-4: ...") into 10 to 20 cohesive modules so every page through the end is represented cleanly.
+2. Each module's "topics" array MUST contain 3 to 6 specific concepts, definitions, formulas, or examples from those pages.
 3. Wrap all mathematical formulas, complexities, equations, Greek symbols, or chemical notations in inline LaTeX delimiters $...$ (for example: $T(n) = aT(n/b) + f(n)$, $O(n \\log n)$, $(4n+2)\\ \\pi$, $MRS = \\frac{MU_x}{MU_y}$).
 4. Do NOT output generic placeholders like "Core concepts" or "Introduction". Extract all exact technical concepts from the document and translate/write every title and topic strictly in the target language specified by CRITICAL LANGUAGE RULE above.
 

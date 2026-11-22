@@ -161,18 +161,40 @@ function buildFallbackExam(
       ? "id"
       : "en";
 
+  const examTitleMap: Record<string, { mid: string; final: string }> = {
+    id: {
+      mid: `Ujian Tengah Sesi — Hari 1 s/d Hari ${triggerDayNumber}`,
+      final: `Ujian Akhir Sesi — Evaluasi Komprehensif`,
+    },
+    en: {
+      mid: `Mid-Session AI Assessment — Days 1 to ${triggerDayNumber}`,
+      final: `Final Comprehensive AI Assessment — Full Course Mastery`,
+    },
+    zh: {
+      mid: `期中 AI 综合测评 — 第 1 至第 ${triggerDayNumber} 天`,
+      final: `期末 AI 综合测评 — 课程全面掌握`,
+    },
+    ar: {
+      mid: `اختبار منتصف الجلسة — الأيام 1 إلى ${triggerDayNumber}`,
+      final: `الاختبار النهائي الشامل — إتقان المقرر`,
+    },
+    es: {
+      mid: `Evaluación Parcial IA — Días 1 a ${triggerDayNumber}`,
+      final: `Evaluación Final Integral IA — Dominio del Curso`,
+    },
+    pt: {
+      mid: `Avaliação Intermediária IA — Dias 1 a ${triggerDayNumber}`,
+      final: `Avaliação Final Abrangente IA — Domínio do Curso`,
+    },
+  };
+  const localizedTitles = examTitleMap[targetLang] ?? examTitleMap.en;
+
   return {
     id: generateId(`exam_${stage}`),
     stage,
     triggerDayNumber,
     language: targetLang,
-    title: isId
-      ? stage === "mid"
-        ? `Ujian Tengah Sesi (Mid-Session Exam) — Hari 1 s/d Hari ${triggerDayNumber}`
-        : `Ujian Akhir Sesi (Final Exam) — Evaluasi Komprehensif`
-      : stage === "mid"
-      ? `Mid-Session AI Assessment — Days 1 to ${triggerDayNumber}`
-      : `Final Comprehensive AI Assessment — Full Course Mastery`,
+    title: stage === "mid" ? localizedTitles.mid : localizedTitles.final,
     multipleChoice: randomizeMultipleChoiceOptions(multipleChoice),
     essays,
   };
