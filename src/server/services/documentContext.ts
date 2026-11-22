@@ -12,7 +12,7 @@ export function compactDocumentForPrompt(
   }
 
   const sections = normalized
-    .split(/\n{2,}(?=(?:Slide|Page|Halaman|Bab|Chapter|Module|Section)\s*\d+)/i)
+    .split(/\n{2,}(?=(?:Deck|Slide|Page|Halaman|Bab|Chapter|Module|Section)\s*\d+)/i)
     .map((s) => s.trim())
     .filter(Boolean);
 

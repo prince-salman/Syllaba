@@ -186,7 +186,7 @@ const EN_COPY: WorkspaceCopy = {
   syllabusDocLabel: "Upload Slide Deck (PPTX, PDF) or Syllabus (DOCX, TXT)",
   dropzoneIdleTitle: "Click or drag syllabus / deck here",
   dropzoneLoadingTitle: "Extracting document text...",
-  dropzoneFormatsHint: "Supports .pdf, .docx, .pptx, or .txt (maximum 15 MB)",
+  dropzoneFormatsHint: "Supports up to 10 files (.pdf, .docx, .pptx, .txt · max 15 MB each)",
   dropzoneRemoveTitle: "Remove file",
   pasteSyllabusLabel: "Syllabus or Slide Content Text",
   pastePlaceholder:
@@ -307,7 +307,7 @@ const ID_COPY: WorkspaceCopy = {
   syllabusDocLabel: "Unggah Slide PPTX / PDF atau Silabus (DOCX, TXT)",
   dropzoneIdleTitle: "Klik atau seret silabus / file PPT ke sini",
   dropzoneLoadingTitle: "Mengekstrak isi dokumen...",
-  dropzoneFormatsHint: "Mendukung .pdf, .docx, .pptx, atau .txt (maksimal 15 MB)",
+  dropzoneFormatsHint: "Mendukung hingga 10 file (.pdf, .docx, .pptx, .txt · maks 15 MB/file)",
   dropzoneRemoveTitle: "Hapus file",
   pasteSyllabusLabel: "Teks Silabus atau Isi Slide PPT",
   pastePlaceholder:
@@ -423,7 +423,7 @@ const ZH_COPY: WorkspaceCopy = {
   syllabusDocLabel: "上传课件 (PPTX, PDF) 或大纲文档 (DOCX, TXT)",
   dropzoneIdleTitle: "点击或拖拽教学大纲 / 课件到此",
   dropzoneLoadingTitle: "正在解析文档内容...",
-  dropzoneFormatsHint: "支持 .pdf, .docx, .pptx 或 .txt（最大 15 MB）",
+  dropzoneFormatsHint: "支持最多同时上传 10 个文件（.pdf, .docx, .pptx, .txt · 单个最大 15 MB）",
   dropzoneRemoveTitle: "移除文件",
   pasteSyllabusLabel: "大纲或幻灯片文本内容",
   pastePlaceholder: "请在此粘贴课程幻灯片内容、主题列表或作业要求...",
@@ -533,7 +533,7 @@ const AR_COPY: WorkspaceCopy = {
   syllabusDocLabel: "ارفع عرض شرائح (PPTX, PDF) أو منهجًا (DOCX, TXT)",
   dropzoneIdleTitle: "انقر أو اسحب المنهج أو الشرائح هنا",
   dropzoneLoadingTitle: "جارٍ استخراج نص المستند...",
-  dropzoneFormatsHint: "يدعم .pdf و .docx و .pptx و .txt (الحد الأقصى 15 ميجابايت)",
+  dropzoneFormatsHint: "يدعم رفع حتى 10 ملفات (.pdf و .docx و .pptx و .txt · حد أقصى 15 ميجابايت للملف)",
   dropzoneRemoveTitle: "إزالة الملف",
   pasteSyllabusLabel: "نص المنهج أو محتوى الشرائح",
   pastePlaceholder: "الصق محتوى الشرائح أو قائمة المواضيع أو متطلبات المقرر هنا...",
@@ -648,7 +648,7 @@ const ES_COPY: WorkspaceCopy = {
   syllabusDocLabel: "Sube Diapositivas (PPTX, PDF) o Temario (DOCX, TXT)",
   dropzoneIdleTitle: "Haz clic o arrastra tu temario / presentación aquí",
   dropzoneLoadingTitle: "Extrayendo texto del documento...",
-  dropzoneFormatsHint: "Compatible con .pdf, .docx, .pptx o .txt (máx. 15 MB)",
+  dropzoneFormatsHint: "Admite hasta 10 archivos (.pdf, .docx, .pptx, .txt · máx. 15 MB c/u)",
   dropzoneRemoveTitle: "Eliminar archivo",
   pasteSyllabusLabel: "Texto del Temario o Diapositivas",
   pastePlaceholder:
@@ -769,7 +769,7 @@ const PT_COPY: WorkspaceCopy = {
   syllabusDocLabel: "Envie Slides (PPTX, PDF) ou Ementa (DOCX, TXT)",
   dropzoneIdleTitle: "Clique ou arraste sua ementa / slides aqui",
   dropzoneLoadingTitle: "Extraindo texto do documento...",
-  dropzoneFormatsHint: "Suporta .pdf, .docx, .pptx ou .txt (máximo 15 MB)",
+  dropzoneFormatsHint: "Suporta até 10 arquivos (.pdf, .docx, .pptx, .txt · máx. 15 MB cada)",
   dropzoneRemoveTitle: "Remover arquivo",
   pasteSyllabusLabel: "Texto da Ementa ou Conteúdo dos Slides",
   pastePlaceholder:
