@@ -153,10 +153,18 @@ function buildFallbackExam(
     },
   ];
 
+  const targetLang =
+    language && ["en", "id", "zh", "ar", "es", "pt"].includes(language.toLowerCase())
+      ? language.toLowerCase()
+      : isId
+      ? "id"
+      : "en";
+
   return {
     id: generateId(`exam_${stage}`),
     stage,
     triggerDayNumber,
+    language: targetLang,
     title: isId
       ? stage === "mid"
         ? `Ujian Tengah Sesi (Mid-Session Exam) — Hari 1 s/d Hari ${triggerDayNumber}`
@@ -277,7 +285,7 @@ STRICT RULES:
 2. EVEN TOPIC COVERAGE: Spread the 5 Multiple Choice and 2 Essay questions across DIFFERENT study tasks / slides in the provided material rather than clustering multiple questions on only the first 1-2 slides. Cite the exact Slide/Module heading in "slideReference".
 3. NATURAL NOTATION (NO FAKE MATH): Only use inline LaTeX ($...$) when the subject genuinely uses mathematics, equations, algorithms, complexity bounds, bit counts, or quantitative formulas (e.g., $O(n \\log n)$, $48$-bit). For purely descriptive/conceptual topics (such as networking layers, protocol definitions, management, or theory), write clean natural prose WITHOUT inventing artificial formulas like $\\sum Poin_i$.
 4. DISTINCT OPTIONS & BALANCED ANSWERS: Ensure all 4 options per MC question are conceptually distinct (never two variants of the same phrase). Do NOT put every correct answer at index 0 ("A"). Distribute "correctIndex" evenly across 0, 1, 2, and 3 across the 5 questions, and do NOT prefix option strings with "A. ", "B. ", "C. ", or "D. ".
-5. CRITICAL LANGUAGE RULE: Write EVERY field (title, prompts, options, explanations, expectedKeywords, sampleAnswers) 100% in ${langName}.
+5. CRITICAL LANGUAGE & TRANSLATION RULE: EVEN IF the source slide titles, task descriptions, or courseTitle are written in a different language, you MUST translate and write EVERY SINGLE field (title, slideReference, prompts, options, explanations, expectedKeywords, sampleAnswers) 100% in ${langName}. Zero mixed languages.
 6. Return ONLY valid JSON matching the schema.`;
 
   const prompt = `Generate the ${stage === "mid" ? "Mid-Session Exam (first half of course)" : "Final Comprehensive Exam (second half & synthesis of course)"} for:
@@ -385,10 +393,18 @@ Return JSON with this exact structure (cover different tasks/slides evenly, vary
         }
       }
 
+      const targetLang =
+        language && ["en", "id", "zh", "ar", "es", "pt"].includes(language.toLowerCase())
+          ? language.toLowerCase()
+          : isId
+          ? "id"
+          : "en";
+
       return {
         id: generateId(`exam_${stage}`),
         stage,
         triggerDayNumber,
+        language: targetLang,
         title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : fallback.title,
         multipleChoice: randomizeMultipleChoiceOptions(multipleChoice),
         essays,

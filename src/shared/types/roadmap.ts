@@ -120,6 +120,7 @@ export interface MilestoneExam {
   id: string;
   stage: ExamStage;
   triggerDayNumber: number;
+  language?: string;
   title: string;
   multipleChoice: ExamMultipleChoiceQuestion[];
   essays: ExamEssayQuestion[];

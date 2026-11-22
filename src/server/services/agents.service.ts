@@ -40,17 +40,17 @@ function resolveTargetLang(language?: string, sampleText?: string): string {
 function getStrictLanguageRule(langCode: string): string {
   switch (langCode) {
     case "id":
-      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE field (courseTitle, titles, descriptions, subtasks, slideDigest, burnoutFactors, labels) 100% in natural academic Bahasa Indonesia. Do NOT mix English phrases where natural Indonesian exists. Only keep standard technical terms or LaTeX symbols if universal.";
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE generated field (courseTitle, titles, descriptions, subtasks, rationale, burnoutFactors, aiReadingTitle, aiReadingNote, slideDigest) 100% in natural academic Bahasa Indonesia. EVEN IF the uploaded slides/document are in English or another language, TRANSLATE and adapt every heading, explanation, and step into Bahasa Indonesia. Zero mixed English sentences.";
     case "zh":
-      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in Simplified Chinese (简体中文). Do NOT mix languages.";
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE generated text field 100% in Simplified Chinese (简体中文). EVEN IF the uploaded slides/document are in English or Indonesian, TRANSLATE every heading, explanation, and task into Simplified Chinese. Zero mixed languages.";
     case "ar":
-      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in Modern Standard Arabic (العربية). Do NOT mix languages.";
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE generated text field 100% in Modern Standard Arabic (العربية). EVEN IF the uploaded slides/document are in another language, TRANSLATE every heading, explanation, and task into Arabic. Zero mixed languages.";
     case "es":
-      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in natural academic Spanish (Español). Do NOT mix languages.";
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE generated text field 100% in natural academic Spanish (Español). EVEN IF the uploaded slides/document are in another language, TRANSLATE every heading, explanation, and task into Spanish. Zero mixed languages.";
     case "pt":
-      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE text field 100% in natural academic Portuguese (Português). Do NOT mix languages.";
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE generated text field 100% in natural academic Portuguese (Português). EVEN IF the uploaded slides/document are in another language, TRANSLATE every heading, explanation, and task into Portuguese. Zero mixed languages.";
     default:
-      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE field (courseTitle, titles, descriptions, subtasks, slideDigest, burnoutFactors, labels) 100% in clear academic English. Do NOT mix Indonesian or other languages.";
+      return "CRITICAL LANGUAGE RULE: Write EVERY SINGLE generated field (courseTitle, titles, descriptions, subtasks, rationale, burnoutFactors, aiReadingTitle, aiReadingNote, slideDigest) 100% in clear academic English. EVEN IF the uploaded slides/document are written in Bahasa Indonesia or another language, TRANSLATE and adapt EVERY heading, bullet, and explanation into English. Zero mixed Indonesian words.";
   }
 }
 
@@ -239,7 +239,7 @@ Rules:
 1. Group content by the actual slides or sections in the document (e.g., "Slide 1-2: <Exact Slide Heading>" or "Slide 3: <Exact Slide Heading>").
 2. Each module's "topics" array MUST contain the exact specific bullet points, definitions, formulas, examples, or sub-concepts written on those slides (4 to 8 specific items per module).
 3. Wrap all mathematical formulas, complexities, equations, Greek symbols, or chemical notations in inline LaTeX delimiters $...$ (for example: $T(n) = aT(n/b) + f(n)$, $O(n \\log n)$, $(4n+2)\\ \\pi$, $MRS = \\frac{MU_x}{MU_y}$).
-4. Do NOT output generic placeholders like "Core concepts" or "Introduction". Use the exact terminology and language of the document.
+4. Do NOT output generic placeholders like "Core concepts" or "Introduction". Extract all exact technical concepts from the document and translate/write every title and topic strictly in the target language specified by CRITICAL LANGUAGE RULE above.
 
 Return JSON matching:
 {
@@ -505,6 +505,7 @@ export async function planMicroTasksWithAgent(
         targetDays,
         dailyHoursLimit,
         includeRestDays,
+        language: targetLang,
       }
     );
     const validated = validateAndNormalizeRoadmap(fallback, {
@@ -591,17 +592,26 @@ Return JSON:
               ? rawSubtasks.map(String)
               : (fallbackMod?.topics || [String(t.title || extraction.courseTitle)]).map(
                   (tp, sIdx) =>
-                    `[${modTitle} · Langkah ${sIdx + 1}] Bedah & kuasai poin: "${tp}" ($w_{${
-                      sIdx + 1
-                    }} = \\frac{1}{${Math.max(1, fallbackMod?.topics?.length || 1)}}$)`
+                    isId
+                      ? `[${modTitle} · Langkah ${sIdx + 1}] Bedah & kuasai poin: "${tp}" ($w_{${
+                          sIdx + 1
+                        }} = \\frac{1}{${Math.max(1, fallbackMod?.topics?.length || 1)}}$)`
+                      : `[${modTitle} · Step ${sIdx + 1}] Break down & master: "${tp}" ($w_{${
+                          sIdx + 1
+                        }} = \\frac{1}{${Math.max(1, fallbackMod?.topics?.length || 1)}}$)`
                 );
 
           return {
             id: generateId("task"),
-            title: String(t.title || `${modTitle}: ${fallbackMod?.topics?.[0] || "Materi Inti"}`),
+            title: String(
+              t.title ||
+                `${modTitle}: ${fallbackMod?.topics?.[0] || (isId ? "Materi Inti" : "Core Material")}`
+            ),
             description: String(
               t.description ||
-                `Bedah materi spesifik ${modTitle}: ${(fallbackMod?.topics || []).join(" · ")}`
+                (isId
+                  ? `Bedah materi spesifik ${modTitle}: ${(fallbackMod?.topics || []).join(" · ")}`
+                  : `Study specific concepts in ${modTitle}: ${(fallbackMod?.topics || []).join(" · ")}`)
             ),
             moduleTitle: modTitle,
             dayNumber: idx + 1,
@@ -708,6 +718,7 @@ Return JSON:
         targetDays,
         dailyHoursLimit,
         includeRestDays,
+        language: targetLang,
       }
     );
     const validated = validateAndNormalizeRoadmap(fallback, {
@@ -812,7 +823,7 @@ async function fetchWikipediaForTopic(
   roadmapId: string,
   moduleHeading: string,
   wikiQuery: string,
-  preferIndonesian = false
+  targetLang = "en"
 ): Promise<CuratedResource[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4500);
@@ -821,9 +832,10 @@ async function fetchWikipediaForTopic(
     const cleanQuery = cleanSearchKeywords(wikiQuery).slice(0, 55);
     if (!cleanQuery || cleanQuery.length < 3) return [];
 
-    const hosts = preferIndonesian
-      ? ["id.wikipedia.org", "en.wikipedia.org"]
-      : ["en.wikipedia.org", "id.wikipedia.org"];
+    const primaryHost = ["id", "zh", "ar", "es", "pt"].includes(targetLang)
+      ? `${targetLang}.wikipedia.org`
+      : "en.wikipedia.org";
+    const hosts = Array.from(new Set([primaryHost, "en.wikipedia.org"]));
 
     for (const host of hosts) {
       const searchUrl = `https://${host}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
@@ -857,11 +869,14 @@ async function fetchWikipediaForTopic(
           id: generateId("res"),
           roadmapId,
           moduleTopic: moduleHeading,
-          title: `${pageTitle} (${host.startsWith("id.") ? "Ensiklopedia Konsep" : "Concept Reference"})`,
+          title: `${pageTitle} (${targetLang === "id" ? "Ensiklopedia Konsep" : "Concept Reference"})`,
           url: wikiUrl,
           sourceType: "wikipedia",
           summary:
-            rawSnippet || `Referensi konsep ensiklopedis untuk ${moduleHeading}.`,
+            rawSnippet ||
+            (targetLang === "id"
+              ? `Referensi konsep ensiklopedis untuk ${moduleHeading}.`
+              : `Encyclopedic concept reference for ${moduleHeading}.`),
         },
       ];
     }
@@ -1041,7 +1056,7 @@ Return JSON:
         roadmapId,
         plan.moduleHeading,
         plan.wikipediaQuery,
-        isIndonesian
+        targetLang
       ),
     ])
   );

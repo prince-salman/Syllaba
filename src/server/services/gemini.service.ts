@@ -49,7 +49,7 @@ CRITICAL REQUIREMENTS:
 - Every task title MUST reference the exact Slide/Module number and topic from the uploaded content (e.g., "Slide 1: Pendahuluan Agentic AI & ReAct Loop").
 - Every task description and its 3 to 4 subtasks MUST quote or explain the specific bullet points, definitions, mechanisms, and formulas from that slide.
 - Include valid inline LaTeX math ($...$) in task descriptions and subtasks for all equations, variables, complexity bounds, or formal relationships.
-- Respond in the same language (Indonesian or English) as the uploaded slide content.
+- STRICT LANGUAGE RULE: Translate and write EVERY generated field 100% in clear academic English (unless another target language is explicitly requested), even if the uploaded slides are in Indonesian or another language. Never mix languages.
 
 Uploaded Slide / Syllabus Content:
 ${request.syllabusText.slice(0, 15000)}
@@ -74,9 +74,9 @@ Return JSON with this exact structure (dailySchedules MUST contain exactly ${req
           "cognitiveLoad": "moderate",
           "category": "reading",
           "subtasks": [
-            "Slide 1 — Bedah definisi spesifik dan komponen utama dari slide",
-            "Turunkan dan verifikasi persamaan $E[U(s,a)] = \\sum_{s'} P(s'|s,a)R(s,a,s')$ pada contoh kasus slide",
-            "Uji pemahaman mekanisme teknis melalui latihan aplikasi konsep Slide 1"
+            "Slide 1 — Break down core definitions and primary components from the slide",
+            "Derive and verify equation $E[U(s,a)] = \\sum_{s'} P(s'|s,a)R(s,a,s')$ on the slide example",
+            "Test technical mechanism mastery through Slide 1 concept application"
           ]
         }
       ]

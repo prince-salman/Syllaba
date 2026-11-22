@@ -294,6 +294,13 @@ export function MilestoneExamModal({
   useEffect(() => {
     if (!isOpen) return;
     if (existingExam) {
+      const langChangedBeforeSubmit =
+        !existingExam.submission &&
+        (!existingExam.language || existingExam.language !== lang);
+      if (langChangedBeforeSubmit) {
+        void handleGenerateExam();
+        return;
+      }
       setExam(existingExam);
       setMcAnswers(existingExam.submission?.mcAnswers || {});
       setEssayAnswers(existingExam.submission?.essayAnswers || {});
@@ -301,7 +308,7 @@ export function MilestoneExamModal({
     }
     void handleGenerateExam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, stage, existingExam?.id]);
+  }, [isOpen, stage, existingExam?.id, lang]);
 
   const handleGenerateExam = async () => {
     setIsGenerating(true);

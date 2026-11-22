@@ -116,6 +116,7 @@ export function generateHeuristicRoadmap(
     targetDays?: number;
     dailyHoursLimit?: number;
     includeRestDays?: boolean;
+    language?: string;
   }
 ): Roadmap {
   const { courseTitle: parsedTitle, sections } = parseSyllabusLines(syllabusText);
@@ -123,6 +124,7 @@ export function generateHeuristicRoadmap(
   const targetDays = Math.max(1, Math.min(60, Math.round(options?.targetDays || 14)));
   const dailyMinutesCap = (options?.dailyHoursLimit || 2) * 60;
   const includeRestDays = options?.includeRestDays ?? true;
+  const isId = options?.language === "id";
 
   const rawTasks: Array<{
     title: string;
@@ -165,28 +167,49 @@ export function generateHeuristicRoadmap(
 
       const specificSubtasks =
         chunk.length >= 3
-          ? [
-              `[${section.title}] Bedah konsep & definisi spesifik: "${p1}"`,
-              `[${section.title}] Analisis mekanisme & hubungan antar-poin: "${p2}" ($\\text{Konsep}_1 \\Longrightarrow \\text{Konsep}_2$)`,
-              `[${section.title}] Studi kasus & penerapan materi slide: "${p3}"`,
-              `[${section.title}] Latihan sintesis mandiri (${shortP1} + ${shortP2}) dengan target akurasi $\\eta \\ge 90\\%$`,
-            ]
+          ? isId
+            ? [
+                `[${section.title}] Bedah konsep & definisi spesifik: "${p1}"`,
+                `[${section.title}] Analisis mekanisme & hubungan antar-poin: "${p2}"`,
+                `[${section.title}] Studi kasus & penerapan materi slide: "${p3}"`,
+                `[${section.title}] Latihan sintesis mandiri (${shortP1} + ${shortP2})`,
+              ]
+            : [
+                `[${section.title}] Break down core concept & definition: "${p1}"`,
+                `[${section.title}] Analyze mechanisms & relationships: "${p2}"`,
+                `[${section.title}] Case study & practical application: "${p3}"`,
+                `[${section.title}] Practice independent synthesis (${shortP1} + ${shortP2})`,
+              ]
           : chunk.length === 2
+          ? isId
+            ? [
+                `[${section.title}] Bedah konsep & definisi spesifik: "${p1}"`,
+                `[${section.title}] Analisis struktur & poin lanjutan slide: "${p2}"`,
+                `[${section.title}] Sintesis keterkaitan antara "${shortP1}" dan "${shortP2}"`,
+              ]
+            : [
+                `[${section.title}] Break down core concept & definition: "${p1}"`,
+                `[${section.title}] Analyze structural details & follow-up point: "${p2}"`,
+                `[${section.title}] Synthesize connections between "${shortP1}" and "${shortP2}"`,
+              ]
+          : isId
           ? [
-              `[${section.title}] Bedah konsep & definisi spesifik: "${p1}"`,
-              `[${section.title}] Analisis struktur & poin lanjutan slide: "${p2}"`,
-              `[${section.title}] Sintesis keterkaitan "$\\text{Poin}_1 \\iff \\text{Poin}_2$" antara "${shortP1}" dan "${shortP2}"`,
+              `[${section.title}] Bedah materi inti slide: "${p1}"`,
+              `[${section.title}] Uraian komponen teknis & pemetaan konsep pada "${cleanSectionTopic}"`,
+              `[${section.title}] Latihan evaluasi mandiri & penerapan contoh spesifik untuk "${shortP1}" (~25 menit)`,
             ]
           : [
-              `[${section.title}] Bedah materi inti slide: "${p1}"`,
-              `[${section.title}]uraian komponen teknis & pemetaan konsep $\\mathcal{M}(\\text{Slide}) \\to \\text{Aplikasi}$ pada "${cleanSectionTopic}"`,
-              `[${section.title}] Latihan evaluasi mandiri & penerapan contoh spesifik untuk "${shortP1}" ($\\Delta t \\approx 25\\text{ min}$)`,
+              `[${section.title}] Deep-dive core slide concept: "${p1}"`,
+              `[${section.title}] Map technical components & applications in "${cleanSectionTopic}"`,
+              `[${section.title}] Self-check exercise & concrete example for "${shortP1}" (~25 min)`,
             ];
 
       rawTasks.push({
         title: taskTitle,
         moduleTitle: section.title,
-        description: `Bedah materi spesifik ${section.title}: ${chunk.join(" · ")} ($\\sum_{i=1}^{${chunk.length}} \\text{Poin}_i$)`,
+        description: isId
+          ? `Bedah materi spesifik ${section.title}: ${chunk.join(" · ")}`
+          : `Master key concepts from ${section.title}: ${chunk.join(" · ")}`,
         category: i === 0 ? "reading" : "practice",
         load: chunk.length >= 3 ? "deep" : "moderate",
         minutes: 25,
@@ -196,22 +219,21 @@ export function generateHeuristicRoadmap(
 
     if (items.length >= 2) {
       rawTasks.push({
-        title: `Latihan & Sintesis Slide: ${section.title}`,
+        title: isId
+          ? `Latihan & Sintesis Slide: ${section.title}`
+          : `Slide Review & Synthesis: ${section.title}`,
         moduleTitle: section.title,
-        description: `Uji penguasaan materi ${section.title}: ${items
-          .slice(0, 4)
-          .join(" · ")} ($\\eta_{\\text{target}} = 100\\%$)`,
+        description: isId
+          ? `Uji penguasaan materi ${section.title}: ${items.slice(0, 4).join(" · ")}`
+          : `Test mastery of ${section.title}: ${items.slice(0, 4).join(" · ")}`,
         category: "review",
         load: "moderate",
         minutes: 20,
-        subtasks: items
-          .slice(0, 4)
-          .map(
-            (pt, idx) =>
-              `[${section.title} · Poin #${idx + 1}] Verifikasi & praktikkan materi: "${pt}" ($w_{${
-                idx + 1
-              }} = \\frac{1}{${Math.min(4, items.length)}}$)`
-          ),
+        subtasks: items.slice(0, 4).map((pt, idx) =>
+          isId
+            ? `[${section.title} · Poin #${idx + 1}] Verifikasi & praktikkan materi: "${pt}"`
+            : `[${section.title} · Point #${idx + 1}] Verify & practice concept: "${pt}"`
+        ),
       });
     }
   });

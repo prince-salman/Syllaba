@@ -126,6 +126,9 @@ export function CuratedResourcesPanel({
         const data = await res.json();
         if (Array.isArray(data.resources) && onUpdateResources) {
           onUpdateResources(data.resources);
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`syllaba_resources_lang_${roadmap.id}`, lang);
+          }
         }
       }
     } catch {
@@ -144,8 +147,13 @@ export function CuratedResourcesPanel({
     const hasAiNotes =
       Array.isArray(resources) &&
       resources.some((r) => r.sourceType === "ai_notes");
+    const savedResourceLang =
+      typeof window !== "undefined"
+        ? localStorage.getItem(`syllaba_resources_lang_${roadmap.id}`)
+        : null;
+    const needsLangResync = Boolean(hasAiNotes && savedResourceLang && savedResourceLang !== lang);
 
-    if (!hasAiNotes && pptSlideModules.length > 0) {
+    if ((!hasAiNotes || needsLangResync) && pptSlideModules.length > 0) {
       autoRefreshedKey.current = key;
       void handleRecurateFromPpt();
     }

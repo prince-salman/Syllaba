@@ -680,10 +680,11 @@ export function TierCertificateExchangePanel({
               {isId ? "Total Akumulasi Poin" : "Accumulated Points"}
             </div>
             <div className="text-xl font-black">
-              {totalAccumulatedPoints} Poin
+              {totalAccumulatedPoints} {isId ? "Poin" : "Pts"}
             </div>
             <div className="text-[10px] text-slate-300">
-              {completedCoursesCount} / {allBreakdowns.length} PPT Lulus
+              {completedCoursesCount} / {allBreakdowns.length}{" "}
+              {isId ? "PPT Lulus" : "PPT Passed"}
             </div>
           </div>
         </div>
@@ -764,7 +765,9 @@ export function TierCertificateExchangePanel({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="rounded bg-[#111111] text-[#FACC15] px-1.5 py-0.5 text-[10px] font-extrabold shrink-0">
-                      Bobot {b.pptDifficultyPoints}/5
+                      {isId
+                        ? `Bobot ${b.pptDifficultyPoints}/5`
+                        : `Weight ${b.pptDifficultyPoints}/5`}
                     </span>
                     <span className="font-semibold text-slate-800 truncate">
                       {b.courseTitle}
@@ -772,8 +775,12 @@ export function TierCertificateExchangePanel({
                   </div>
                   <span className="font-extrabold text-slate-900 shrink-0">
                     {b.isFullyCompletedAtEnd
-                      ? `+${b.totalEarnedFromRoadmap} Poin ✓`
-                      : `0 / ${b.maxPossibleFromRoadmap} Poin (Belum Lulus PPT)`}
+                      ? isId
+                        ? `+${b.totalEarnedFromRoadmap} Poin ✓`
+                        : `+${b.totalEarnedFromRoadmap} Pts ✓`
+                      : isId
+                      ? `0 / ${b.maxPossibleFromRoadmap} Poin (Belum Lulus PPT)`
+                      : `0 / ${b.maxPossibleFromRoadmap} Pts (Incomplete)`}
                   </span>
                 </div>
               ))}
@@ -793,7 +800,7 @@ export function TierCertificateExchangePanel({
               type="text"
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
-              placeholder="Masukkan nama lengkap..."
+              placeholder={isId ? "Masukkan nama lengkap..." : "Enter full name..."}
               className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900 focus:border-[#111111] focus:bg-white focus:outline-none"
             />
           </div>
@@ -1052,8 +1059,8 @@ export function TierCertificateExchangePanel({
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-[11px] font-bold text-[#FEF08A]">
                 <Award className="w-3 h-3" />
                 <span>
-                  {totalAccumulatedPoints} Poin Akumulasi &middot;{" "}
-                  {completedCoursesCount} PPT Lulus
+                  {totalAccumulatedPoints} {isId ? "Poin Akumulasi" : "Accumulated Pts"} &middot;{" "}
+                  {completedCoursesCount} {isId ? "PPT Lulus" : "Courses Passed"}
                 </span>
               </span>
             </div>
@@ -1250,10 +1257,20 @@ export function TierCertificateExchangePanel({
               <span>$SYL Learn-to-Earn Academic Coin &amp; Perks</span>
             </span>
             <h3 className="text-base sm:text-lg font-extrabold text-white">
-              Saldo Akumulasi $SYL Coin &amp; Penukaran Perks Akademik
+              {isId
+                ? "Saldo Akumulasi $SYL Coin & Penukaran Perks Akademik"
+                : "$SYL Coin Balance & Academic Perks Exchange"}
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Setiap PPT yang kamu selesaikan menyumbang <strong>0.25 SYL</strong> sesuai konstanta <code>MODULE_REWARD()</code> di smart contract Base Sepolia, ditambah bonus tier saat Bronze+ terbuka (+{tierBonusSylCoins} SYL).
+              {isId ? (
+                <>
+                  Setiap PPT yang kamu selesaikan menyumbang <strong>0.25 SYL</strong> sesuai konstanta <code>MODULE_REWARD()</code> di smart contract Base Sepolia, ditambah bonus tier saat Bronze+ terbuka (+{tierBonusSylCoins} SYL).
+                </>
+              ) : (
+                <>
+                  Each completed PPT awards <strong>0.25 SYL</strong> matching <code>MODULE_REWARD()</code> on Base Sepolia, plus tier bonuses when Bronze+ unlocks (+{tierBonusSylCoins} SYL).
+                </>
+              )}
             </p>
           </div>
 
@@ -1269,12 +1286,14 @@ export function TierCertificateExchangePanel({
             </div>
             <div className="rounded-xl bg-emerald-500/15 border border-emerald-400/40 px-3 py-2 text-center">
               <div className="text-[10px] font-bold uppercase text-emerald-300">
-                Saldo Aktif
+                {isId ? "Saldo Aktif" : "Available"}
               </div>
               <div className="text-base sm:text-lg font-black text-emerald-300">
                 {availableSylToSpend}
               </div>
-              <div className="text-[10px] text-emerald-200">Siap Pakai</div>
+              <div className="text-[10px] text-emerald-200">
+                {isId ? "Siap Pakai" : "Spendable"}
+              </div>
             </div>
             <div className="rounded-xl bg-[#FACC15]/15 border border-[#FACC15]/40 px-3 py-2 text-center">
               <div className="text-[10px] font-bold uppercase text-[#FEF08A]">
@@ -1407,14 +1426,20 @@ export function TierCertificateExchangePanel({
 
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-[10px] font-semibold text-emerald-300">
-                    {countOwned > 0 ? `Aktif (${countOwned}x)` : "Tersedia"}
+                    {countOwned > 0
+                      ? isId
+                        ? `Aktif (${countOwned}x)`
+                        : `Active (${countOwned}x)`
+                      : isId
+                      ? "Tersedia"
+                      : "Available"}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRedeemPerk(perk)}
                     className="rounded-lg bg-[#FACC15] hover:bg-[#FDE047] text-[#111111] px-2.5 py-1 text-[11px] font-extrabold transition cursor-pointer"
                   >
-                    Tukar {perk.costSyl} $SYL
+                    {isId ? "Tukar" : "Redeem"} {perk.costSyl} $SYL
                   </button>
                 </div>
               </div>

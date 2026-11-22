@@ -344,7 +344,7 @@ export default async function VerifyCertificatePage({
             htmlFor="verify-query"
             className="block text-[11px] font-bold uppercase tracking-wider text-slate-300"
           >
-            Cek Keaslian Sertifikat Langsung dari Blockchain Base Sepolia
+            Verify Credential Directly on Base Sepolia Blockchain
           </label>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
@@ -352,7 +352,7 @@ export default async function VerifyCertificatePage({
               name="q"
               type="text"
               defaultValue={searchInput}
-              placeholder="Masukkan TX Hash (0x...), KECCAK-256 Digest, atau Token ID (misal: 1)"
+              placeholder="Enter TX Hash (0x...), KECCAK-256 Digest, or Token ID (e.g. 1)"
               className="flex-1 rounded-xl border border-white/15 bg-black/50 px-3.5 py-2.5 text-xs font-mono text-white placeholder:text-slate-500 focus:border-[#FACC15] focus:outline-none"
             />
             <button
@@ -360,12 +360,12 @@ export default async function VerifyCertificatePage({
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#FACC15] hover:bg-[#FDE047] text-[#111111] px-4 py-2.5 text-xs font-black transition cursor-pointer shrink-0"
             >
               <Search className="h-3.5 w-3.5" />
-              <span>Verifikasi RPC</span>
+              <span>Verify On-Chain</span>
             </button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
             <span>
-              Kontrak SBT:{" "}
+              SBT Contract:{" "}
               <a
                 href={`https://sepolia.basescan.org/address/${SYLLABA_SBT_ADDRESS}`}
                 target="_blank"
@@ -377,7 +377,7 @@ export default async function VerifyCertificatePage({
             </span>
             {totalMinted !== null && (
               <span className="font-semibold text-emerald-300">
-                Total SBT Tercetak On-Chain: #{totalMinted}
+                Total On-Chain SBT Minted: #{totalMinted}
               </span>
             )}
           </div>
@@ -388,12 +388,11 @@ export default async function VerifyCertificatePage({
             <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold">
-                Data tidak ditemukan di kontrak Syllaba SBT Base Sepolia.
+                Credential not found on the Syllaba Base Sepolia SBT registry.
               </p>
               <p className="text-amber-200/80">
-                Pastikan TX Hash (66 karakter), Digest (`0x...`), atau Token ID
-                benar dan sudah terkonfirmasi di jaringan Base Sepolia (Chain ID
-                84532).
+                Check that the TX Hash (66 chars), KECCAK-256 Digest, or Token ID
+                is confirmed on Base Sepolia (Chain ID 84532).
               </p>
             </div>
           </div>

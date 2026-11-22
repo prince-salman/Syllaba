@@ -482,7 +482,7 @@ export function BlockchainCertificatePanel({
 
           <div className="rounded-2xl bg-[#111111] text-white px-4 py-3 text-center shrink-0 border border-[#FACC15]/40">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
-              Bobot Kesulitan PPT
+              {isId ? "Bobot Kesulitan PPT" : "PPT Difficulty Weight"}
             </div>
             <div className="flex items-center justify-center gap-1 my-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -498,8 +498,12 @@ export function BlockchainCertificatePanel({
             </div>
             <div className="text-xs font-black text-[#FACC15]">
               {isModuleCompleted
-                ? `+${breakdown.pptDifficultyPoints} Poin Disetor ✓`
-                : `+${breakdown.pptDifficultyPoints} Poin Saat Lulus`}
+                ? isId
+                  ? `+${breakdown.pptDifficultyPoints} Poin Disetor ✓`
+                  : `+${breakdown.pptDifficultyPoints} Pts Credited ✓`
+                : isId
+                ? `+${breakdown.pptDifficultyPoints} Poin Saat Lulus`
+                : `+${breakdown.pptDifficultyPoints} Pts on Pass`}
             </div>
           </div>
         </div>
@@ -514,13 +518,20 @@ export function BlockchainCertificatePanel({
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              1 &middot; Tugas Harian PPT Ini
+              {isId ? "1 · Tugas Harian PPT Ini" : "1 · Daily Tasks Completed"}
             </div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {roadmap.completedTasks} / {roadmap.totalTasks} Selesai
+              {roadmap.completedTasks} / {roadmap.totalTasks}{" "}
+              {isId ? "Selesai" : "Done"}
             </div>
             <div className="text-[11px] text-slate-500">
-              {allTasksDone ? "Seluruh materi tuntas" : "Selesaikan berurutan"}
+              {allTasksDone
+                ? isId
+                  ? "Seluruh materi tuntas"
+                  : "All study tasks complete"
+                : isId
+                ? "Selesaikan berurutan"
+                : "Complete sequentially"}
             </div>
           </div>
 
@@ -532,17 +543,31 @@ export function BlockchainCertificatePanel({
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              2 &middot; Ujian Tengah Sesi (5 PG + 2 Esai)
+              {isId
+                ? "2 · Ujian Tengah Sesi (5 PG + 2 Esai)"
+                : "2 · Mid-Session Exam (5 MC + 2 Essays)"}
             </div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {midPassed ? `Lulus (${midScore}/100)` : "Belum Lulus"}
+              {midPassed
+                ? isId
+                  ? `Lulus (${midScore}/100)`
+                  : `Passed (${midScore}/100)`
+                : isId
+                ? "Belum Lulus"
+                : "Not Passed"}
             </div>
             <button
               type="button"
               onClick={() => onOpenExam("mid")}
               className="text-[11px] font-bold text-[#111111] underline hover:text-amber-700 cursor-pointer"
             >
-              {midPassed ? "Lihat Pembahasan UTS" : "Kerjakan Ujian Tengah"}
+              {midPassed
+                ? isId
+                  ? "Lihat Pembahasan UTS"
+                  : "Review Mid Exam"
+                : isId
+                ? "Kerjakan Ujian Tengah"
+                : "Take Mid Exam"}
             </button>
           </div>
 
@@ -554,17 +579,31 @@ export function BlockchainCertificatePanel({
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              3 &middot; Ujian Akhir Sesi (5 PG + 2 Esai)
+              {isId
+                ? "3 · Ujian Akhir Sesi (5 PG + 2 Esai)"
+                : "3 · Final Exam (5 MC + 2 Essays)"}
             </div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {finalPassed ? `Lulus (${finalScore}/100)` : "Belum Lulus"}
+              {finalPassed
+                ? isId
+                  ? `Lulus (${finalScore}/100)`
+                  : `Passed (${finalScore}/100)`
+                : isId
+                ? "Belum Lulus"
+                : "Not Passed"}
             </div>
             <button
               type="button"
               onClick={() => onOpenExam("final")}
               className="text-[11px] font-bold text-[#111111] underline hover:text-amber-700 cursor-pointer"
             >
-              {finalPassed ? "Lihat Pembahasan UAS" : "Kerjakan Ujian Akhir"}
+              {finalPassed
+                ? isId
+                  ? "Lihat Pembahasan UAS"
+                  : "Review Final Exam"
+                : isId
+                ? "Kerjakan Ujian Akhir"
+                : "Take Final Exam"}
             </button>
           </div>
         </div>
@@ -581,7 +620,7 @@ export function BlockchainCertificatePanel({
               type="text"
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
-              placeholder="Masukkan nama lengkap..."
+              placeholder={isId ? "Masukkan nama lengkap..." : "Enter full name..."}
               className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900 focus:border-[#111111] focus:bg-white focus:outline-none"
             />
           </div>
@@ -607,9 +646,13 @@ export function BlockchainCertificatePanel({
                   <Wallet className="w-4 h-4" />
                   <span>
                     {cert
-                      ? "Update Sertifikat PPT (Base Sepolia)"
+                      ? isId
+                        ? "Update Sertifikat PPT (Base Sepolia)"
+                        : "Update Course Certificate (Base Sepolia)"
                       : isConnected
-                      ? "Mint Sertifikat Lulus PPT (Base Sepolia)"
+                      ? isId
+                        ? "Mint Sertifikat Lulus PPT (Base Sepolia)"
+                        : "Mint Course Certificate (Base Sepolia)"
                       : isId
                       ? "Mint Sertifikat On-Chain (Gratis · Tanpa Wallet)"
                       : "Mint Certificate On-Chain (Free · No Wallet)"}
@@ -741,7 +784,9 @@ export function BlockchainCertificatePanel({
                 style={{ color: accentHex }}
                 className="text-xs font-black uppercase tracking-[0.22em]"
               >
-                SERTIFIKAT KELULUSAN PPT TERKUNCI
+                {isId
+                  ? "SERTIFIKAT KELULUSAN PPT TERKUNCI"
+                  : "COURSE COMPLETION CERTIFICATE LOCKED"}
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white">
                 {roadmap.courseTitle}
@@ -754,12 +799,18 @@ export function BlockchainCertificatePanel({
             </div>
             <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-xs font-bold text-slate-200">
               <span>
-                Tugas: {roadmap.completedTasks}/{roadmap.totalTasks}
+                {isId ? "Tugas" : "Tasks"}: {roadmap.completedTasks}/{roadmap.totalTasks}
               </span>
               <span>&middot;</span>
-              <span>UTS: {midPassed ? "Lulus" : "Belum"}</span>
+              <span>
+                {isId ? "UTS" : "Mid Exam"}:{" "}
+                {midPassed ? (isId ? "Lulus" : "Passed") : isId ? "Belum" : "Pending"}
+              </span>
               <span>&middot;</span>
-              <span>UAS: {finalPassed ? "Lulus" : "Belum"}</span>
+              <span>
+                {isId ? "UAS" : "Final Exam"}:{" "}
+                {finalPassed ? (isId ? "Lulus" : "Passed") : isId ? "Belum" : "Pending"}
+              </span>
             </div>
           </div>
         ) : (
@@ -829,7 +880,11 @@ export function BlockchainCertificatePanel({
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-[11px] font-bold text-[#FEF08A]">
                 <Star className="w-3 h-3" />
-                <span>Bobot PPT: {breakdown.pptDifficultyPoints}/5 Poin</span>
+                <span>
+                  {isId
+                    ? `Bobot PPT: ${breakdown.pptDifficultyPoints}/5 Poin`
+                    : `PPT Weight: ${breakdown.pptDifficultyPoints}/5 Pts`}
+                </span>
               </span>
             </div>
             <p className="text-xs text-slate-300 pt-2 max-w-2xl mx-auto leading-relaxed">

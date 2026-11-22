@@ -75,7 +75,11 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!syllabusText.trim()) {
-      setErrorMessage("Please upload a PDF/DOCX/PPTX file, select a preset course, or paste your syllabus content.");
+      setErrorMessage(
+        lang === "id"
+          ? "Silakan unggah file PDF/DOCX/PPTX, pilih preset materi, atau tempel teks silabus terlebih dahulu."
+          : "Please upload a PDF/DOCX/PPTX file, select a preset course, or paste your syllabus content."
+      );
       return;
     }
 
@@ -137,6 +141,9 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         if (curateRes.ok) {
           const data = await curateRes.json();
           resources = Array.isArray(data.resources) ? data.resources : [];
+          if (typeof window !== "undefined") {
+            localStorage.setItem(`syllaba_resources_lang_${roadmap.id}`, lang);
+          }
         }
       } catch {
         // Curated references are non-blocking enhancements
