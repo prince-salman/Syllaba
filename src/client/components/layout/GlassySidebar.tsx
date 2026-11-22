@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { Roadmap } from "@/shared/types/roadmap";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 import {
   Award,
   Check,
@@ -77,6 +78,7 @@ export function GlassySidebar({
   onDisconnectWallet,
 }: GlassySidebarProps) {
   const { lang, copy } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -471,9 +473,7 @@ export function GlassySidebar({
                   }`}
                 />
                 <span className="truncate">
-                  {lang === "id"
-                    ? "Tukar Sertifikat & $SYL"
-                    : "Tier Exchange & $SYL"}
+                  {wcopy.tierExchangeNav}
                 </span>
               </span>
               <span
@@ -754,7 +754,7 @@ export function GlassySidebar({
           <div className="relative z-10">
             <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FEF3C7]">
               <Sparkles className="h-3 w-3 text-[#F5B700]" />
-              5-Agent Pipeline
+              {wcopy.pipelineBadge}
             </span>
             <p className="mt-2 text-xs font-bold leading-snug">
               {copy.startSprint}
@@ -836,6 +836,7 @@ export function MobileBottomNav({
   onDisconnectWallet,
 }: MobileBottomNavProps) {
   const { lang, copy, setLang } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
@@ -1036,11 +1037,7 @@ export function MobileBottomNav({
               >
                 <span className="flex items-center gap-2">
                   <Award className="h-4 w-4 text-amber-700" />
-                  <span>
-                    {lang === "id"
-                      ? "Tukar Sertifikat (Bronze+) & $SYL"
-                      : "Tier Exchange (Bronze+) & $SYL"}
-                  </span>
+                  <span>{wcopy.tierExchangeMobileNav}</span>
                 </span>
                 <ChevronRight className="h-4 w-4" />
               </button>

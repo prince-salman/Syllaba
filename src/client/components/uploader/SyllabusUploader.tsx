@@ -163,6 +163,7 @@ export function SyllabusUploader({ onRoadmapGenerated }: SyllabusUploaderProps) 
         targetDays: normalizedDays,
         dailyHoursLimit: dailyHours,
         includeRestDays,
+        language: lang,
       });
       setStage("idle");
       onRoadmapGenerated(fallbackRoadmap);

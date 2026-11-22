@@ -1,5 +1,42 @@
 import React from "react";
 import { Terminal, FlaskConical, TrendingUp } from "lucide-react";
+import { useLanguage, AppLanguage } from "@/client/context/LanguageContext";
+
+const PRESET_LOCALIZED_LABELS: Record<
+  AppLanguage,
+  Record<string, { title: string; category: string }>
+> = {
+  en: {
+    cs161: { title: "Algorithms & Data Structures", category: "Computer Science" },
+    chem230: { title: "Organic Chemistry II", category: "Chemistry" },
+    econ202: { title: "Microeconomic Theory & Research", category: "Economics" },
+  },
+  id: {
+    cs161: { title: "Algoritma & Struktur Data", category: "Ilmu Komputer" },
+    chem230: { title: "Kimia Organik II", category: "Kimia" },
+    econ202: { title: "Teori & Riset Mikroekonomi", category: "Ekonomi" },
+  },
+  zh: {
+    cs161: { title: "算法与数据结构", category: "计算机科学" },
+    chem230: { title: "有机化学 II", category: "化学" },
+    econ202: { title: "微观经济理论与研究", category: "经济学" },
+  },
+  ar: {
+    cs161: { title: "الخوارزميات وهياكل البيانات", category: "علوم الحاسب" },
+    chem230: { title: "الكيمياء العضوية II", category: "الكيمياء" },
+    econ202: { title: "النظرية الاقتصادية الجزئية والبحث", category: "الاقتصاد" },
+  },
+  es: {
+    cs161: { title: "Algoritmos y Estructuras de Datos", category: "Ciencias de la Computación" },
+    chem230: { title: "Química Orgánica II", category: "Química" },
+    econ202: { title: "Teoría Microeconómica e Investigación", category: "Economía" },
+  },
+  pt: {
+    cs161: { title: "Algoritmos e Estruturas de Dados", category: "Ciência da Computação" },
+    chem230: { title: "Química Orgânica II", category: "Química" },
+    econ202: { title: "Teoria Microeconômica e Pesquisa", category: "Economia" },
+  },
+};
 
 export interface PresetCourse {
   id: string;
@@ -90,16 +127,26 @@ interface CoursePresetsProps {
 }
 
 export function CoursePresets({ onSelectPreset, selectedId }: CoursePresetsProps) {
+  const { lang } = useLanguage();
+  const labels = PRESET_LOCALIZED_LABELS[lang] ?? PRESET_LOCALIZED_LABELS.en;
+
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {PRESET_COURSES.map((preset) => {
         const Icon = preset.icon;
         const isSelected = selectedId === preset.id;
+        const loc = labels[preset.id];
         return (
           <button
             key={preset.id}
             type="button"
-            onClick={() => onSelectPreset(preset)}
+            onClick={() =>
+              onSelectPreset({
+                ...preset,
+                title: loc?.title || preset.title,
+                category: loc?.category || preset.category,
+              })
+            }
             className={`flex flex-col items-start rounded-xl border p-4 text-left transition-all cursor-pointer ${
               isSelected
                 ? "border-brand-600 bg-brand-50/70 ring-1 ring-brand-500"
@@ -112,8 +159,12 @@ export function CoursePresets({ onSelectPreset, selectedId }: CoursePresetsProps
               </span>
               <Icon className="w-4 h-4 text-brand-600" />
             </div>
-            <h4 className="text-sm font-semibold text-slate-900">{preset.title}</h4>
-            <p className="mt-1 text-xs text-slate-500">{preset.category}</p>
+            <h4 className="text-sm font-semibold text-slate-900">
+              {loc?.title || preset.title}
+            </h4>
+            <p className="mt-1 text-xs text-slate-500">
+              {loc?.category || preset.category}
+            </p>
           </button>
         );
       })}

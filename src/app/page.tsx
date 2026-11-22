@@ -30,6 +30,7 @@ import { useWeb3 } from "@/components/Web3Providers";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
 import { LANGUAGE_OPTIONS } from "@/client/i18n/translations";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 import {
   GlassySidebar,
   MobileBottomNav,
@@ -58,6 +59,7 @@ export default function HomePage() {
   const { address, isConnected, openConnectModal, disconnectWallet } = useWeb3();
   const { user, signOut } = useAuth();
   const { lang, copy } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
 
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
   const [storedRoadmaps, setStoredRoadmaps] = useState<Roadmap[]>([]);
@@ -467,15 +469,11 @@ export default function HomePage() {
                             : "bg-[#FFE4E6] text-[#9F1239]"
                         }`}
                       >
-                        {lang === "id"
-                          ? `Risiko Burnout ${
-                              riskLevel === "low"
-                                ? "Rendah"
-                                : riskLevel === "moderate"
-                                ? "Sedang"
-                                : "Tinggi"
-                            }`
-                          : `${riskLevel} burnout risk`}
+                        {riskLevel === "low"
+                          ? wcopy.lowRiskTitle
+                          : riskLevel === "moderate"
+                          ? wcopy.modRiskTitle
+                          : wcopy.highRiskTitle}
                       </span>
                       <span>{copy.healthyPace}</span>
                     </div>

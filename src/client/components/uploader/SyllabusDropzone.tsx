@@ -4,6 +4,8 @@ import {
   extractTextFromDocument,
   getSupportedExtension,
 } from "@/client/utils/document-extractor";
+import { useLanguage } from "@/client/context/LanguageContext";
+import { getWorkspaceCopy } from "@/client/i18n/workspaceCopy";
 
 interface SyllabusDropzoneProps {
   onExtractedText: (text: string, fileName: string) => void;
@@ -18,6 +20,8 @@ export function SyllabusDropzone({
   currentFileName,
   onClear,
 }: SyllabusDropzoneProps) {
+  const { lang } = useLanguage();
+  const wcopy = getWorkspaceCopy(lang);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +116,7 @@ export function SyllabusDropzone({
           type="button"
           onClick={onClear}
           className="rounded-lg p-2 text-[#666660] hover:bg-[#FEF3C7] hover:text-[#111111] transition-colors cursor-pointer shrink-0"
-          title="Remove file"
+          title={wcopy.dropzoneRemoveTitle}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -150,12 +154,10 @@ export function SyllabusDropzone({
         </div>
 
         <p className="text-sm font-semibold text-[#111111]">
-          {isLoading
-            ? "Extracting document text..."
-            : "Click or drag syllabus / deck here"}
+          {isLoading ? wcopy.dropzoneLoadingTitle : wcopy.dropzoneIdleTitle}
         </p>
         <p className="mt-1 text-xs text-[#666660]">
-          Supports .pdf, .docx, .pptx, or .txt (maximum 15 MB)
+          {wcopy.dropzoneFormatsHint}
         </p>
 
         <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
