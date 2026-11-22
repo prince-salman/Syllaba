@@ -9,6 +9,7 @@ import {
   RoadmapTask,
 } from "@/shared/types/roadmap";
 import { generateId } from "@/shared/utils";
+import { compactDocumentForPrompt } from "@/server/services/documentContext";
 
 const GEMINI_MODELS = [
   "gemini-3.1-flash-lite",
@@ -293,7 +294,7 @@ Course: ${courseTitle}
 Milestone Trigger Day: Day ${triggerDayNumber}
 
 Covered Study Tasks & Slide Material:
-${taskDigest.slice(0, 12000)}
+${compactDocumentForPrompt(taskDigest, 36000)}
 
 Return JSON with this exact structure (cover different tasks/slides evenly, vary correctIndex across 0..3, and only use $...$ notation where genuinely appropriate):
 {

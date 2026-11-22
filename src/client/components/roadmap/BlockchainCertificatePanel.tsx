@@ -12,6 +12,7 @@ import { useWeb3 } from "@/components/Web3Providers";
 import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
+import { getPanelCopy } from "@/client/i18n/panelCopy";
 import { ScannableQrCode } from "@/client/components/common/ScannableQrCode";
 import { printCertificateElement } from "@/client/utils/printCertificate";
 import { keccak256, stringToHex } from "viem";
@@ -48,6 +49,7 @@ export function BlockchainCertificatePanel({
   const { user } = useAuth();
   const { lang } = useLanguage();
   const isId = lang === "id";
+  const pcopy = getPanelCopy(lang);
   const {
     address,
     chainId,
@@ -482,7 +484,7 @@ export function BlockchainCertificatePanel({
 
           <div className="rounded-2xl bg-[#111111] text-white px-4 py-3 text-center shrink-0 border border-[#FACC15]/40">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
-              {isId ? "Bobot Kesulitan PPT" : "PPT Difficulty Weight"}
+              {pcopy.pptDifficultyWeight}
             </div>
             <div className="flex items-center justify-center gap-1 my-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -498,12 +500,8 @@ export function BlockchainCertificatePanel({
             </div>
             <div className="text-xs font-black text-[#FACC15]">
               {isModuleCompleted
-                ? isId
-                  ? `+${breakdown.pptDifficultyPoints} Poin Disetor ✓`
-                  : `+${breakdown.pptDifficultyPoints} Pts Credited ✓`
-                : isId
-                ? `+${breakdown.pptDifficultyPoints} Poin Saat Lulus`
-                : `+${breakdown.pptDifficultyPoints} Pts on Pass`}
+                ? pcopy.ptsCredited(breakdown.pptDifficultyPoints)
+                : pcopy.ptsOnPass(breakdown.pptDifficultyPoints)}
             </div>
           </div>
         </div>
@@ -518,20 +516,13 @@ export function BlockchainCertificatePanel({
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              {isId ? "1 · Tugas Harian PPT Ini" : "1 · Daily Tasks Completed"}
+              {pcopy.cpTasksTitle}
             </div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {roadmap.completedTasks} / {roadmap.totalTasks}{" "}
-              {isId ? "Selesai" : "Done"}
+              {pcopy.cpTasksDone(roadmap.completedTasks, roadmap.totalTasks)}
             </div>
             <div className="text-[11px] text-slate-500">
-              {allTasksDone
-                ? isId
-                  ? "Seluruh materi tuntas"
-                  : "All study tasks complete"
-                : isId
-                ? "Selesaikan berurutan"
-                : "Complete sequentially"}
+              {allTasksDone ? pcopy.cpTasksAllClear : pcopy.cpTasksSequential}
             </div>
           </div>
 
@@ -543,31 +534,17 @@ export function BlockchainCertificatePanel({
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              {isId
-                ? "2 · Ujian Tengah Sesi (5 PG + 2 Esai)"
-                : "2 · Mid-Session Exam (5 MC + 2 Essays)"}
+              {pcopy.cpMidTitle}
             </div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {midPassed
-                ? isId
-                  ? `Lulus (${midScore}/100)`
-                  : `Passed (${midScore}/100)`
-                : isId
-                ? "Belum Lulus"
-                : "Not Passed"}
+              {midPassed ? pcopy.passedWithScore(midScore) : pcopy.notPassed}
             </div>
             <button
               type="button"
               onClick={() => onOpenExam("mid")}
               className="text-[11px] font-bold text-[#111111] underline hover:text-amber-700 cursor-pointer"
             >
-              {midPassed
-                ? isId
-                  ? "Lihat Pembahasan UTS"
-                  : "Review Mid Exam"
-                : isId
-                ? "Kerjakan Ujian Tengah"
-                : "Take Mid Exam"}
+              {midPassed ? pcopy.reviewMidBtn : pcopy.takeMidBtn}
             </button>
           </div>
 
@@ -579,31 +556,17 @@ export function BlockchainCertificatePanel({
             }`}
           >
             <div className="text-[10px] font-bold uppercase text-slate-600">
-              {isId
-                ? "3 · Ujian Akhir Sesi (5 PG + 2 Esai)"
-                : "3 · Final Exam (5 MC + 2 Essays)"}
+              {pcopy.cpFinalTitle}
             </div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {finalPassed
-                ? isId
-                  ? `Lulus (${finalScore}/100)`
-                  : `Passed (${finalScore}/100)`
-                : isId
-                ? "Belum Lulus"
-                : "Not Passed"}
+              {finalPassed ? pcopy.passedWithScore(finalScore) : pcopy.notPassed}
             </div>
             <button
               type="button"
               onClick={() => onOpenExam("final")}
               className="text-[11px] font-bold text-[#111111] underline hover:text-amber-700 cursor-pointer"
             >
-              {finalPassed
-                ? isId
-                  ? "Lihat Pembahasan UAS"
-                  : "Review Final Exam"
-                : isId
-                ? "Kerjakan Ujian Akhir"
-                : "Take Final Exam"}
+              {finalPassed ? pcopy.reviewFinalBtn : pcopy.takeFinalBtn}
             </button>
           </div>
         </div>
@@ -612,15 +575,13 @@ export function BlockchainCertificatePanel({
         <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div className="flex-1 max-w-sm">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-              {isId
-                ? "Nama Penerima Sertifikat Kelulusan PPT"
-                : "Course Certificate Recipient Name"}
+              {pcopy.recipientLabel}
             </label>
             <input
               type="text"
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
-              placeholder={isId ? "Masukkan nama lengkap..." : "Enter full name..."}
+              placeholder={pcopy.recipientPlaceholder}
               className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900 focus:border-[#111111] focus:bg-white focus:outline-none"
             />
           </div>
@@ -646,16 +607,10 @@ export function BlockchainCertificatePanel({
                   <Wallet className="w-4 h-4" />
                   <span>
                     {cert
-                      ? isId
-                        ? "Update Sertifikat PPT (Base Sepolia)"
-                        : "Update Course Certificate (Base Sepolia)"
+                      ? pcopy.updateCourseCert
                       : isConnected
-                      ? isId
-                        ? "Mint Sertifikat Lulus PPT (Base Sepolia)"
-                        : "Mint Course Certificate (Base Sepolia)"
-                      : isId
-                      ? "Mint Sertifikat On-Chain (Gratis · Tanpa Wallet)"
-                      : "Mint Certificate On-Chain (Free · No Wallet)"}
+                      ? pcopy.mintCourseConnected
+                      : pcopy.mintCourseNoWallet}
                   </span>
                 </>
               )}
@@ -681,7 +636,7 @@ export function BlockchainCertificatePanel({
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700 transition cursor-pointer"
               >
                 <Wallet className="w-3.5 h-3.5" />
-                <span>{isId ? "Hubungkan Wallet (Opsional)" : "Connect Wallet (Optional)"}</span>
+                <span>{pcopy.connectWalletOptional}</span>
               </button>
             )}
 
@@ -784,9 +739,7 @@ export function BlockchainCertificatePanel({
                 style={{ color: accentHex }}
                 className="text-xs font-black uppercase tracking-[0.22em]"
               >
-                {isId
-                  ? "SERTIFIKAT KELULUSAN PPT TERKUNCI"
-                  : "COURSE COMPLETION CERTIFICATE LOCKED"}
+                {pcopy.courseLockedHeading}
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white">
                 {roadmap.courseTitle}
@@ -799,17 +752,17 @@ export function BlockchainCertificatePanel({
             </div>
             <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-xs font-bold text-slate-200">
               <span>
-                {isId ? "Tugas" : "Tasks"}: {roadmap.completedTasks}/{roadmap.totalTasks}
+                {pcopy.tasksShort}: {roadmap.completedTasks}/{roadmap.totalTasks}
               </span>
               <span>&middot;</span>
               <span>
-                {isId ? "UTS" : "Mid Exam"}:{" "}
-                {midPassed ? (isId ? "Lulus" : "Passed") : isId ? "Belum" : "Pending"}
+                {pcopy.midShort}:{" "}
+                {midPassed ? pcopy.passedShort : pcopy.pendingShort}
               </span>
               <span>&middot;</span>
               <span>
-                {isId ? "UAS" : "Final Exam"}:{" "}
-                {finalPassed ? (isId ? "Lulus" : "Passed") : isId ? "Belum" : "Pending"}
+                {pcopy.finalShort}:{" "}
+                {finalPassed ? pcopy.passedShort : pcopy.pendingShort}
               </span>
             </div>
           </div>
@@ -880,11 +833,7 @@ export function BlockchainCertificatePanel({
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-[11px] font-bold text-[#FEF08A]">
                 <Star className="w-3 h-3" />
-                <span>
-                  {isId
-                    ? `Bobot PPT: ${breakdown.pptDifficultyPoints}/5 Poin`
-                    : `PPT Weight: ${breakdown.pptDifficultyPoints}/5 Pts`}
-                </span>
+                <span>{pcopy.pptWeightTag(breakdown.pptDifficultyPoints)}</span>
               </span>
             </div>
             <p className="text-xs text-slate-300 pt-2 max-w-2xl mx-auto leading-relaxed">

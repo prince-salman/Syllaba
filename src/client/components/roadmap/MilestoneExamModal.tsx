@@ -10,6 +10,7 @@ import {
 } from "@/shared/types/roadmap";
 import { LatexText } from "@/client/components/common/LatexText";
 import { useLanguage } from "@/client/context/LanguageContext";
+import { getPanelCopy } from "@/client/i18n/panelCopy";
 import {
   Award,
   BrainCircuit,
@@ -81,6 +82,7 @@ export function MilestoneExamCard({
 }: MilestoneExamCardProps) {
   const { lang } = useLanguage();
   const isId = lang === "id";
+  const pcopy = getPanelCopy(lang);
   const submission = exam?.submission;
   const isPassed = Boolean(submission?.passed);
 
@@ -274,6 +276,7 @@ export function MilestoneExamModal({
 }: MilestoneExamModalProps) {
   const { lang } = useLanguage();
   const isId = lang === "id";
+  const pcopy = getPanelCopy(lang);
   const [exam, setExam] = useState<MilestoneExam | null>(existingExam || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
@@ -451,19 +454,11 @@ export function MilestoneExamModal({
               <span className="inline-flex items-center gap-1 rounded-full bg-[#FACC15] text-[#111111] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
                 <BrainCircuit className="w-3 h-3" />
                 <span>
-                  {isId
-                    ? stage === "mid"
-                      ? "Ujian Tengah Sesi"
-                      : "Ujian Akhir Sesi"
-                    : stage === "mid"
-                    ? "Mid-Session Exam"
-                    : "Final-Session Exam"}
+                  {stage === "mid" ? pcopy.midSessionTag : pcopy.finalSessionTag}
                 </span>
               </span>
               <span className="text-xs text-slate-300 font-medium">
-                {isId
-                  ? "7 Soal Spesifik Slide (5 PG + 2 Esai) · Passing Grade 60/100"
-                  : "7 Slide-Specific Questions (5 MC + 2 Essays) · Passing Grade 60/100"}
+                {pcopy.examSubtitleRule}
               </span>
             </div>
             <h3 className="text-base sm:text-lg font-extrabold text-white mt-1 truncate">
@@ -490,7 +485,7 @@ export function MilestoneExamModal({
                 className={`w-3.5 h-3.5 ${isGenerating ? "animate-spin" : ""}`}
               />
               <span className="hidden sm:inline">
-                {isId ? "Regenerate Soal AI" : "Regenerate AI Exam"}
+                {pcopy.regenerateExamBtn}
               </span>
             </button>
             <button
@@ -546,18 +541,14 @@ export function MilestoneExamModal({
                       )}
                       <span className="text-sm font-black uppercase tracking-wide">
                         {submission.passed
-                          ? isId
-                            ? "Selamat! Kamu Lulus Evaluasi Ini"
-                            : "Congratulations! Evaluation Passed"
-                          : isId
-                          ? "Skor Belum Mencapai Passing Grade (60/100)"
-                          : "Score Below Passing Grade (60/100)"}
+                          ? pcopy.examPassedHeading
+                          : pcopy.examFailedHeading}
                       </span>
                     </div>
                     <p className="text-xs">
-                      {isId ? "Skor Pilihan Ganda" : "Multiple Choice"}:{" "}
+                      {pcopy.mcScoreLabel}:{" "}
                       <strong>{submission.mcScore}/70</strong> ·{" "}
-                      {isId ? "Skor Esai Analitis" : "Analytical Essays"}:{" "}
+                      {pcopy.essayScoreLabel}:{" "}
                       <strong>{submission.essayScore}/30</strong>
                       {submission.passed
                         ? isId

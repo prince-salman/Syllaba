@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GenerationRequest, Roadmap } from "@/shared/types/roadmap";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { generateId } from "@/shared/utils";
+import { compactDocumentForPrompt } from "@/server/services/documentContext";
 
 const GEMINI_MODELS = [
   "gemini-3.1-flash-lite",
@@ -52,7 +53,7 @@ CRITICAL REQUIREMENTS:
 - STRICT LANGUAGE RULE: Translate and write EVERY generated field 100% in clear academic English (unless another target language is explicitly requested), even if the uploaded slides are in Indonesian or another language. Never mix languages.
 
 Uploaded Slide / Syllabus Content:
-${request.syllabusText.slice(0, 15000)}
+${compactDocumentForPrompt(request.syllabusText, 48000)}
 
 Return JSON with this exact structure (dailySchedules MUST contain exactly ${requestedDays} entries):
 {

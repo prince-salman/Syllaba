@@ -14,6 +14,7 @@ import { generateId } from "@/shared/utils";
 import { analyzeRoadmapPptDifficulty } from "@/shared/utils/certificateTiers";
 import { generateHeuristicRoadmap } from "./pacing.service";
 import { saveCuratedResourcesToDb, saveRoadmapToDb } from "@/server/db/proofs.repo";
+import { compactDocumentForPrompt } from "@/server/services/documentContext";
 
 const GEMINI_MODELS = [
   "gemini-3.1-flash-lite",
@@ -21,7 +22,7 @@ const GEMINI_MODELS = [
   "gemini-omni-1.2-flash",
   "gemini-3.8-flash",
 ];
-const AGENT_TIMEOUT_MS = 16000;
+const AGENT_TIMEOUT_MS = 25000;
 
 function resolveTargetLang(language?: string, sampleText?: string): string {
   const valid = new Set(["en", "id", "zh", "ar", "es", "pt"]);
@@ -233,7 +234,7 @@ export async function extractSyllabusWithAgent(
     const prompt = `Extract the detailed, specific slide/module breakdown from this uploaded presentation (PPT), PDF, or syllabus document.
 Provided courseTitle hint: ${courseTitle || "Auto-detect"}
 Document / Slide Content:
-${syllabusText.slice(0, 14000)}
+${compactDocumentForPrompt(syllabusText, 48000)}
 
 Rules:
 1. Group content by the actual slides or sections in the document (e.g., "Slide 1-2: <Exact Slide Heading>" or "Slide 3: <Exact Slide Heading>").
@@ -268,7 +269,7 @@ Return JSON matching:
       courseTitle: parsed.courseTitle || courseTitle || "Academic Course Plan",
       courseCode: parsed.courseCode || undefined,
       hardDeadline: parsed.hardDeadline || undefined,
-      modules: parsed.modules.slice(0, 16).map((m: Record<string, unknown>) => ({
+      modules: parsed.modules.slice(0, 32).map((m: Record<string, unknown>) => ({
         title: String(m.title || "Study Module"),
         topics: Array.isArray(m.topics) && m.topics.length > 0
           ? m.topics.map(String).slice(0, 8)
@@ -525,7 +526,7 @@ export async function planMicroTasksWithAgent(
     const systemInstruction =
       `You are Agent 2 (Slide-Specific Micro-Task Decomposition Planner). Slice the uploaded PPT slides or syllabus modules into hyper-specific 15-30 minute daily study micro-tasks. Every task title, description, moduleTitle, and subtask MUST directly quote and teach the exact slide headings, bullet points, definitions, formulas, and examples from the uploaded document. Never use generic placeholders. Never exceed 150 minutes/day. ${getStrictLanguageRule(targetLang)} Return ONLY valid JSON.`;
 
-    const rawSlideContext = (options.syllabusText || "").slice(0, 12000);
+    const rawSlideContext = compactDocumentForPrompt(options.syllabusText || "", 48000);
 
     const prompt = `Build an exact ${targetDays}-day micro-task roadmap for "${extraction.courseTitle}".
 You MUST return exact ${targetDays} entries in dailySchedules (dayNumber 1 through ${targetDays}).
@@ -982,7 +983,7 @@ Return ONLY valid JSON.`;
 
       const prompt = `Course Title: ${courseTitle || "Academic Course"}
 Raw Uploaded PPT Content:
-${(syllabusText || "").slice(0, 10000)}
+${compactDocumentForPrompt(syllabusText || "", 36000)}
 
 PPT Slide Modules:
 ${JSON.stringify(

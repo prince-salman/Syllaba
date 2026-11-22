@@ -26,6 +26,7 @@ import { useWeb3 } from "@/components/Web3Providers";
 import { anchorCertificateViaRelayer } from "@/client/lib/anchorCertificateViaRelayer";
 import { useAuth } from "@/client/components/auth/AuthProvider";
 import { useLanguage } from "@/client/context/LanguageContext";
+import { getPanelCopy } from "@/client/i18n/panelCopy";
 import { ScannableQrCode } from "@/client/components/common/ScannableQrCode";
 import { printCertificateElement } from "@/client/utils/printCertificate";
 import { keccak256, stringToHex } from "viem";
@@ -57,6 +58,7 @@ export function TierCertificateExchangePanel({
   const { user } = useAuth();
   const { lang } = useLanguage();
   const isId = lang === "id";
+  const pcopy = getPanelCopy(lang);
   const {
     address,
     chainId,
@@ -636,17 +638,12 @@ export function TierCertificateExchangePanel({
               </span>
             </div>
             <h2 className="text-lg font-extrabold text-slate-900 mt-1">
-              {isId
-                ? `Total Poin Kamu: ${totalAccumulatedPoints} Poin · Tier Aktif: ${
-                    isBronzeUnlocked
-                      ? currentTier.name.toUpperCase()
-                      : `Belum Bronze (Min. ${CERTIFICATE_TIERS[0].minPoints} Poin)`
-                  }`
-                : `Total Points: ${totalAccumulatedPoints} Pts · Tier: ${
-                    isBronzeUnlocked
-                      ? currentTier.name.toUpperCase()
-                      : `Below Bronze (Min. ${CERTIFICATE_TIERS[0].minPoints} Pts)`
-                  }`}
+              {pcopy.tierTitleSummary(
+                totalAccumulatedPoints,
+                isBronzeUnlocked
+                  ? currentTier.name.toUpperCase()
+                  : pcopy.tierBelowBronze(CERTIFICATE_TIERS[0].minPoints)
+              )}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {!isBronzeUnlocked
@@ -677,14 +674,13 @@ export function TierCertificateExchangePanel({
 
           <div className="rounded-xl bg-[#111111] text-[#FACC15] px-4 py-2.5 text-right shrink-0">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              {isId ? "Total Akumulasi Poin" : "Accumulated Points"}
+              {pcopy.accumulatedPointsLabel}
             </div>
             <div className="text-xl font-black">
               {totalAccumulatedPoints} {isId ? "Poin" : "Pts"}
             </div>
             <div className="text-[10px] text-slate-300">
-              {completedCoursesCount} / {allBreakdowns.length}{" "}
-              {isId ? "PPT Lulus" : "PPT Passed"}
+              {pcopy.coursesPassedLine(completedCoursesCount, allBreakdowns.length)}
             </div>
           </div>
         </div>
@@ -765,9 +761,7 @@ export function TierCertificateExchangePanel({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="rounded bg-[#111111] text-[#FACC15] px-1.5 py-0.5 text-[10px] font-extrabold shrink-0">
-                      {isId
-                        ? `Bobot ${b.pptDifficultyPoints}/5`
-                        : `Weight ${b.pptDifficultyPoints}/5`}
+                      {pcopy.weightTag(b.pptDifficultyPoints)}
                     </span>
                     <span className="font-semibold text-slate-800 truncate">
                       {b.courseTitle}
@@ -775,12 +769,8 @@ export function TierCertificateExchangePanel({
                   </div>
                   <span className="font-extrabold text-slate-900 shrink-0">
                     {b.isFullyCompletedAtEnd
-                      ? isId
-                        ? `+${b.totalEarnedFromRoadmap} Poin ✓`
-                        : `+${b.totalEarnedFromRoadmap} Pts ✓`
-                      : isId
-                      ? `0 / ${b.maxPossibleFromRoadmap} Poin (Belum Lulus PPT)`
-                      : `0 / ${b.maxPossibleFromRoadmap} Pts (Incomplete)`}
+                      ? pcopy.ptsCredited(b.totalEarnedFromRoadmap)
+                      : pcopy.incompletePts(b.maxPossibleFromRoadmap)}
                   </span>
                 </div>
               ))}
@@ -800,7 +790,7 @@ export function TierCertificateExchangePanel({
               type="text"
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
-              placeholder={isId ? "Masukkan nama lengkap..." : "Enter full name..."}
+              placeholder={pcopy.recipientPlaceholder}
               className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900 focus:border-[#111111] focus:bg-white focus:outline-none"
             />
           </div>
@@ -1257,9 +1247,7 @@ export function TierCertificateExchangePanel({
               <span>$SYL Learn-to-Earn Academic Coin &amp; Perks</span>
             </span>
             <h3 className="text-base sm:text-lg font-extrabold text-white">
-              {isId
-                ? "Saldo Akumulasi $SYL Coin & Penukaran Perks Akademik"
-                : "$SYL Coin Balance & Academic Perks Exchange"}
+              {pcopy.sylSectionTitle}
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
               {isId ? (
@@ -1286,13 +1274,13 @@ export function TierCertificateExchangePanel({
             </div>
             <div className="rounded-xl bg-emerald-500/15 border border-emerald-400/40 px-3 py-2 text-center">
               <div className="text-[10px] font-bold uppercase text-emerald-300">
-                {isId ? "Saldo Aktif" : "Available"}
+                {pcopy.sylAvailableLabel}
               </div>
               <div className="text-base sm:text-lg font-black text-emerald-300">
                 {availableSylToSpend}
               </div>
               <div className="text-[10px] text-emerald-200">
-                {isId ? "Siap Pakai" : "Spendable"}
+                {pcopy.sylSpendableLabel}
               </div>
             </div>
             <div className="rounded-xl bg-[#FACC15]/15 border border-[#FACC15]/40 px-3 py-2 text-center">
@@ -1388,12 +1376,12 @@ export function TierCertificateExchangePanel({
               {isClaimingSyl ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Claiming...</span>
+                  <span>{pcopy.claimingLabel}</span>
                 </>
               ) : (
                 <>
                   <Coins className="w-3.5 h-3.5" />
-                  <span>Claim +{unclaimedSylForWallet} $SYL (Gasless)</span>
+                  <span>{pcopy.sylClaimBtn(unclaimedSylForWallet)}</span>
                 </>
               )}
             </button>
@@ -1427,19 +1415,15 @@ export function TierCertificateExchangePanel({
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-[10px] font-semibold text-emerald-300">
                     {countOwned > 0
-                      ? isId
-                        ? `Aktif (${countOwned}x)`
-                        : `Active (${countOwned}x)`
-                      : isId
-                      ? "Tersedia"
-                      : "Available"}
+                      ? pcopy.perkActive(countOwned)
+                      : pcopy.perkAvailable}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRedeemPerk(perk)}
                     className="rounded-lg bg-[#FACC15] hover:bg-[#FDE047] text-[#111111] px-2.5 py-1 text-[11px] font-extrabold transition cursor-pointer"
                   >
-                    {isId ? "Tukar" : "Redeem"} {perk.costSyl} $SYL
+                    {pcopy.redeemBtn(perk.costSyl)}
                   </button>
                 </div>
               </div>
