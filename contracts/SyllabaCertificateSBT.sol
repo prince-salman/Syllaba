@@ -92,19 +92,66 @@ contract SyllabaCertificateSBT {
         uint256 finalGrade,
         string calldata ipfsCid
     ) external returns (uint256 tokenId) {
+        return _mintInternal(
+            msg.sender,
+            certDigest,
+            certKind,
+            courseTitle,
+            recipientName,
+            points,
+            finalGrade,
+            ipfsCid
+        );
+    }
+
+    /// @notice Gasless protocol relayer entry point so sponsored mints assign ERC-721 ownership directly to the student.
+    function mintCertificateFor(
+        address recipient,
+        bytes32 certDigest,
+        string calldata certKind,
+        string calldata courseTitle,
+        string calldata recipientName,
+        uint256 points,
+        uint256 finalGrade,
+        string calldata ipfsCid
+    ) external returns (uint256 tokenId) {
+        require(msg.sender == deployer, "SYLCERT: only deployer relayer");
+        require(recipient != address(0), "SYLCERT: zero recipient");
+        return _mintInternal(
+            recipient,
+            certDigest,
+            certKind,
+            courseTitle,
+            recipientName,
+            points,
+            finalGrade,
+            ipfsCid
+        );
+    }
+
+    function _mintInternal(
+        address recipient,
+        bytes32 certDigest,
+        string calldata certKind,
+        string calldata courseTitle,
+        string calldata recipientName,
+        uint256 points,
+        uint256 finalGrade,
+        string calldata ipfsCid
+    ) private returns (uint256 tokenId) {
         require(certDigest != bytes32(0), "SYLCERT: empty digest");
         require(tokenByDigest[certDigest] == 0, "SYLCERT: digest already minted");
 
         tokenId = _nextTokenId;
         unchecked {
             _nextTokenId = tokenId + 1;
-            _balances[msg.sender] += 1;
+            _balances[recipient] += 1;
         }
-        _owners[tokenId] = msg.sender;
+        _owners[tokenId] = recipient;
         tokenByDigest[certDigest] = tokenId;
 
         _certs[tokenId] = CertMetadata({
-            recipient: msg.sender,
+            recipient: recipient,
             certKind: certKind,
             courseTitle: courseTitle,
             recipientName: recipientName,
@@ -115,11 +162,11 @@ contract SyllabaCertificateSBT {
             issuedAt: uint64(block.timestamp)
         });
 
-        emit Transfer(address(0), msg.sender, tokenId);
+        emit Transfer(address(0), recipient, tokenId);
         emit Locked(tokenId);
         emit CertificateMinted(
             tokenId,
-            msg.sender,
+            recipient,
             certDigest,
             certKind,
             courseTitle,

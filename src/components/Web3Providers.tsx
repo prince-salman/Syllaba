@@ -43,6 +43,7 @@ import {
   SYLLABA_COIN_BYTECODE,
 } from "@/shared/contracts/syllabaCoin";
 import {
+  OFFICIAL_SYLLABA_SBT_ADDRESS,
   SYLLABA_SBT_ABI,
   SYLLABA_SBT_ADDRESS,
   SYLLABA_SBT_BYTECODE,
@@ -543,13 +544,40 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         throw new Error("Wallet is not connected.");
       }
 
+      const isOfficialSbt =
+        !syllabaSbtAddress ||
+        syllabaSbtAddress.toLowerCase() === OFFICIAL_SYLLABA_SBT_ADDRESS.toLowerCase();
+
+      // Priority 1A: Gasless server relayer FIRST via mintCertificateFor(address, ...)
+      // Assigns ERC-721 SBT directly to user's wallet with zero MetaMask popups
+      if (isOfficialSbt) {
+        const relay = await anchorCertificateViaRelayer({
+          certHash: params.certificateHash,
+          ipfsCid: params.ipfsCid,
+          courseTitle: params.courseTitle,
+          recipientName: params.recipientName,
+          finalGradeScore: params.finalGradeScore,
+          certKind: params.certKind || "COURSE_PASS",
+          points: params.points ?? 0,
+          studentAddress: address,
+        });
+        if (relay) {
+          return {
+            txHash: relay.txHash,
+            proofType: relay.proofType,
+            sbtAddress: relay.sbtContractAddress || syllabaSbtAddress,
+            certHash: relay.certHash,
+          };
+        }
+      }
+
       if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
         await switchToBaseSepolia();
       }
 
       const hasGasBalance = balanceData?.value !== undefined && balanceData.value > BigInt(30000000000000);
 
-      // Priority 1: Real ERC-721 Soulbound NFT Mint on SyllabaCertificateSBT.sol
+      // Priority 1B: Direct wallet ERC-721 Soulbound NFT Mint fallback
       if (walletClient && syllabaSbtAddress && hasGasBalance) {
         try {
           const data = encodeFunctionData({
@@ -579,26 +607,6 @@ function WagmiWeb3Bridge({ children }: { children: React.ReactNode }) {
         } catch {
           // Fall back if user rejects or digest already minted
         }
-      }
-
-      // Priority 1B: Server-sponsored Base Sepolia SBT mint (when connected wallet has 0 ETH or direct mint skipped)
-      const relay = await anchorCertificateViaRelayer({
-        certHash: params.certificateHash,
-        ipfsCid: params.ipfsCid,
-        courseTitle: params.courseTitle,
-        recipientName: params.recipientName,
-        finalGradeScore: params.finalGradeScore,
-        certKind: params.certKind || "COURSE_PASS",
-        points: params.points ?? 0,
-        studentAddress: address,
-      });
-      if (relay) {
-        return {
-          txHash: relay.txHash,
-          proofType: relay.proofType,
-          sbtAddress: relay.sbtContractAddress || syllabaSbtAddress,
-          certHash: relay.certHash,
-        };
       }
 
       // Priority 2: Direct Base Sepolia calldata TX if SBT contract not deployed yet

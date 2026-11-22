@@ -982,6 +982,18 @@ export function BlockchainCertificatePanel({
                   </a>
                 )}
 
+                {hasRealOnChainTx && (
+                  <a
+                    href={`/verify?tx=${displayTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-300 hover:underline"
+                  >
+                    <span>Verify on Syllaba Portal</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+
                 <button
                   type="button"
                   data-no-print="true"

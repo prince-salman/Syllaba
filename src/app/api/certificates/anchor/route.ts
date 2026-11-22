@@ -19,6 +19,7 @@ const LEGACY_PROOF_CONTRACT: `0x${string}` =
 const SBT_RELAY_ABI = parseAbi([
   "function tokenByDigest(bytes32 certDigest) view returns (uint256)",
   "function mintCertificate(bytes32 certDigest, string certKind, string courseTitle, string recipientName, uint256 points, uint256 finalGrade, string ipfsCid) returns (uint256)",
+  "function mintCertificateFor(address recipient, bytes32 certDigest, string certKind, string courseTitle, string recipientName, uint256 points, uint256 finalGrade, string ipfsCid) returns (uint256)",
 ]);
 
 const LEGACY_PROOF_ABI = parseAbi([
@@ -122,20 +123,29 @@ export async function POST(req: NextRequest) {
       // Proceed with resolved digest if view check is temporarily unavailable
     }
 
-    const txHash = await walletClient.writeContract({
-      address: SYLLABA_SBT_ADDRESS,
-      abi: SBT_RELAY_ABI,
-      functionName: "mintCertificate",
-      args: [
-        mintedDigest,
-        certKindRaw.slice(0, 32),
-        courseTitleRaw.slice(0, 80),
-        recipientNameRaw.slice(0, 48),
-        BigInt(pointsNum),
-        BigInt(gradeNum),
-        ipfsCidRaw.slice(0, 80),
-      ],
-    });
+    const certArgs = [
+      mintedDigest,
+      certKindRaw.slice(0, 32),
+      courseTitleRaw.slice(0, 80),
+      recipientNameRaw.slice(0, 48),
+      BigInt(pointsNum),
+      BigInt(gradeNum),
+      ipfsCidRaw.slice(0, 80),
+    ] as const;
+
+    const txHash = studentAddress
+      ? await walletClient.writeContract({
+          address: SYLLABA_SBT_ADDRESS,
+          abi: SBT_RELAY_ABI,
+          functionName: "mintCertificateFor",
+          args: [studentAddress, ...certArgs],
+        })
+      : await walletClient.writeContract({
+          address: SYLLABA_SBT_ADDRESS,
+          abi: SBT_RELAY_ABI,
+          functionName: "mintCertificate",
+          args: certArgs,
+        });
 
     await publicClient.waitForTransactionReceipt({ hash: txHash });
 
@@ -169,6 +179,7 @@ export async function POST(req: NextRequest) {
       certHash: mintedDigest,
       sbtContractAddress: SYLLABA_SBT_ADDRESS,
       relayerAddress: account.address,
+      recipientAddress: studentAddress || account.address,
       proofType: "onchain-tx" as const,
       chainId: 84532,
       proofContractTxHash,

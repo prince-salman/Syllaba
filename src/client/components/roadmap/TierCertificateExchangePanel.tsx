@@ -1145,6 +1145,18 @@ export function TierCertificateExchangePanel({
                   </a>
                 )}
 
+                {hasRealOnChainTx && (
+                  <a
+                    href={`/verify?tx=${displayTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-300 hover:underline"
+                  >
+                    <span>Verify on Syllaba Portal</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+
                 <button
                   type="button"
                   data-no-print="true"
@@ -1354,21 +1366,18 @@ export function TierCertificateExchangePanel({
                   : "bg-[#FACC15] hover:bg-[#FDE047] text-[#111111] cursor-pointer"
               }`}
             >
-              <Coins className="w-3.5 h-3.5" />
-              <span>Claim +{unclaimedSylForWallet} $SYL</span>
+              {isClaimingSyl ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Claiming...</span>
+                </>
+              ) : (
+                <>
+                  <Coins className="w-3.5 h-3.5" />
+                  <span>Claim +{unclaimedSylForWallet} $SYL (Gasless)</span>
+                </>
+              )}
             </button>
-
-            {unclaimedSylForWallet > 0 && (
-              <button
-                type="button"
-                disabled={isClaimingSyl}
-                onClick={() => handleClaimSylCoins(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#FACC15]/50 bg-white/10 hover:bg-white/20 px-3 py-2 text-xs font-bold text-[#FEF08A] transition cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Gasless Attest</span>
-              </button>
-            )}
           </div>
         </div>
 
